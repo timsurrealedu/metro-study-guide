@@ -1,0 +1,14 @@
+[
+  {"see": "c1-1", "exam": true, "src": "Teacher's slides",
+   "q": "Question text?",
+   "o": [["Right answer", true, "Why it is right."],
+         ["Wrong answer", false, "Why it is wrong."],
+         ["Wrong answer", false, "Why it is wrong."],
+         ["Wrong answer", false, "Why it is wrong."]],
+   "e": "One-line explanation shown after answering."},
+  {"see": "c1-2",
+   "q": "Select all that are true.",
+   "multi": true,
+   "o": [["True one", true, ""], ["True two", true, ""], ["False one", false, "Why."]],
+   "e": "Explanation."}
+]

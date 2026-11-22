@@ -1,0 +1,16 @@
+{
+  "id": "my-guide-2026",
+  "title": "Chem Metro",
+  "highlight": "Metro",
+  "icon": "Chem",
+  "eyebrow": "Grade 12 Chemistry · PAS 2026",
+  "lede": "2 stations on one line, then a review line to the exam.",
+  "subtitle": "Chemistry PAS · Grade 12",
+  "description": "Chemistry study guide, Grade 12",
+  "terminus": "PAS",
+  "lang": "en",
+  "lines": {
+    "1": { "name": "Line name", "color": "#cf450e" },
+    "R": { "name": "Review", "color": "#0b7285" }
+  }
+}

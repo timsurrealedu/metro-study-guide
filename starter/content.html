@@ -1,0 +1,80 @@
+<!-- =====================================================================
+     STARTER · content.html
+     Copy this folder, rename it, then replace the text. Shorthands used
+     here (build.py fills in the rest):
+       - <section class="part" data-…>   → the line opener is generated
+       - <article class="chapter" data-…> → header and footer are generated
+       - <p class="bigidea"> first        → goes into the station header
+       - <div class="traps">              → moved into the line's checkpoint
+       - callouts need no icon markup
+     Every block you can use: docs/03-content-blocks.md
+     ===================================================================== -->
+
+<section class="part" data-part="1" data-title="Line name" data-kicker="Line 1" data-eyebrow="Line 1 · Topics 1–2"
+  data-lede="One sentence: what this line covers.">
+
+<article class="chapter" id="c1-1" data-n="1.1" data-short="Short name" data-title="Full station title" data-tag="Exam topic 1">
+  <p class="bigidea">Two sentences in plain words: the one idea to remember from this station.</p>
+
+  <div class="sec"><h3 data-eb="In plain words">First section heading</h3>
+    <p>Explain the idea simply. Put the teacher's exact <b>term</b> in bold with the Indonesian term next to it (<span class="id">istilah</span>).</p>
+    <dl class="terms">
+      <div><b>Term</b><span class="id">istilah</span><span class="d">One-line meaning.</span></div>
+      <div><b>Another term</b><span class="d">One-line meaning.</span></div>
+    </dl>
+  </div>
+
+  <div class="sec"><h3 data-eb="See it">A visual</h3>
+    <p class="lead">Every visual has a lead sentence first: what to watch for.</p>
+    <div class="viz" id="k-example"></div>
+  </div>
+
+  <div class="sec"><h3 data-eb="Compare">A comparison</h3>
+    <p class="lead">Comparisons are always tables. Say what the rows have in common.</p>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th></th><th>Option A</th><th>Option B</th></tr></thead>
+      <tbody>
+        <tr><td>Row</td><td>…</td><td>…</td></tr>
+        <tr><td>Row</td><td class="yes">Yes</td><td class="no">No</td></tr>
+      </tbody></table></div>
+    <div class="callout eg"><b>Example</b><div>A plain real-life example. Not themed.</div></div>
+  </div>
+
+  <div class="traps">
+    <div class="callout trap"><b>The trap, as a short title</b><div>Why it is wrong, and what the right answer is.</div></div>
+  </div>
+</article>
+
+<article class="chapter" id="c1-2" data-n="1.2" data-short="Second" data-title="Second station" data-tag="Exam topic 2">
+  <p class="bigidea">The one idea of this station.</p>
+  <div class="sec"><h3 data-eb="Steps">A process</h3>
+    <p class="lead">Steps in order, each with its reason.</p>
+    <ol class="steps">
+      <li><b>First step</b>What happens and why it comes first.</li>
+      <li><b>Second step</b>What happens next.</li>
+    </ol>
+  </div>
+  <div class="sec"><h3 data-eb="Custom visual">A hand-drawn visual</h3>
+    <p class="lead">Use a custom visual only when no kit fits.</p>
+    <div class="viz" id="v-custom"><div class="viz-stage"><svg viewBox="0 0 640 260" role="img" aria-label="Describe the drawing for screen readers."></svg></div></div>
+  </div>
+</article>
+</section>
+
+<section class="part" data-part="R" data-title="Review" data-kicker="Review" data-eyebrow="Review · The night before"
+  data-lede="The cheat sheet, flashcards and a practice exam.">
+<article class="chapter" id="r-cheat" data-n="R1" data-short="Cheat sheet" data-title="Cheat sheet" data-count="no">
+  <p class="bigidea">The tables and numbers that come up most.</p>
+  <div class="sec"><h3 data-eb="Line 1">Line name</h3><ul><li>Key fact.</li></ul></div>
+</article>
+<article class="chapter" id="r-cards" data-n="R2" data-short="Flashcards" data-title="Flashcards" data-count="no">
+  <p class="bigidea">Tap the card to flip it. Say the answer out loud before you flip.</p>
+  <div class="flash"></div>
+</article>
+<article class="chapter" id="r-exam" data-n="R3" data-short="Practice exam" data-title="Practice exam" data-count="no">
+  <p class="bigidea">Mixed questions. Wrong answers link back to the lesson.</p>
+  <div class="quiz" data-set="exam"></div>
+</article>
+</section>
+
+<p class="foot">Built from your teacher's materials. Progress and quiz answers are saved only in this browser.</p>
