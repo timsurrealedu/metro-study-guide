@@ -732,7 +732,7 @@ $$(".drill").forEach(b=>{const k=Object.keys(DRILLS).find(k=>b.classList.contain
 
 /* ---------- math formatting: one equation per row, subscripts, semantic colours ---------- */
 function mapTextSegs(html,fn){return String(html).split(/(<[^>]+>|&[A-Za-z0-9#]+;)/g).map((s,i)=>i%2?s:fn(s)).join("")}
-function subMath(html){return mapTextSegs(html,t=>t.replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>").replace(/([A-Za-z0-9\u0370-\u03FF∑∏])_([A-Za-z0-9']+)/g,"$1<sub>$2</sub>"))}
+function subMath(html){return mapTextSegs(html,t=>t.replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>").replace(/\^([A-Za-z0-9'*+-])/g,"<sup>$1</sup>").replace(/([A-Za-z0-9\u0370-\u03FF∑∏])_([A-Za-z0-9']+)/g,"$1<sub>$2</sub>").replace(/([A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+)/g,'<span class="nowrap">$1</span>'))}
 function hasEqOp(s){return /[=≈≤≥]/.test(s.replace(/<[^>]+>/g,""))}
 function trimMath(s){return String(s).replace(/^(?:\s|&emsp;|&ensp;|&thinsp;)+|(?:\s|&emsp;|&ensp;|&thinsp;)+$/gi,"")}
 function splitEqRows(html){
