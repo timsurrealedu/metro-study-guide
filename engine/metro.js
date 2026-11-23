@@ -596,7 +596,23 @@ function splitEqRows(html){
         if(hasEqOp(L)&&hasEqOp(R)){parts.push(L);last=i+sep;i+=sep-1}}
     }
     parts.push(s.slice(last).trim());
-    parts.forEach(p=>{if(p)out.push(p)});
+    parts.forEach(p=>{
+      if(!p)return;
+      if(p.includes('class="fr"')){
+        let td=0,pd=0,frEnd=p.lastIndexOf('class="fr"'),lastEq=-1;
+        for(let i=0;i<p.length;i++){
+          const c=p[i];
+          if(c==="<"){td++;continue}if(c===">"&&td>0){td--;continue}if(td>0)continue;
+          if(c==="("||c==="["||c==="{")pd++;else if((c===")"||c==="]"||c==="}")&&pd>0)pd--;
+          if(pd===0&&i>frEnd&&(c==="="||c==="≈"))lastEq=i;
+        }
+        if(lastEq>0){
+          const head=p.slice(0,lastEq).trim(),tail=p.slice(lastEq).trim();
+          if(head&&tail&&!tail.includes('class="fr"')){out.push(head,tail);return}
+        }
+      }
+      out.push(p);
+    });
   });
   return out;
 }
