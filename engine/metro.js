@@ -79,7 +79,8 @@ const I18N={
     try_it:"Coba sendiri",try_d:"Geser pengatur dan amati visualnya.",mark_sm:"Tandai dipelajari",
     full_scr:"Layar penuh",free:"Atau coba sendiri"}
 };
-let lang=store.get("lang",root.lang==="id"?"id":"en");
+const origLang=root.lang==="id"?"id":"en";
+let lang=store.get("lang",origLang);
 const t=(k,...a)=>{const v=(I18N[lang]||I18N.en)[k]??I18N.en[k]??k;return typeof v==="function"?v(...a):v};
 /* ---------- motion ---------- */
 const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -842,10 +843,78 @@ function alignMath(rootEl=main){
 $$(".cmp td,.tbl td",main).forEach(td=>{if(!td.closest(".eq,.kd-m")&&/[≤≥<>→]/.test(td.textContent))td.innerHTML=subMath(td.innerHTML)});
 requestAnimationFrame(()=>alignMath());
 
-const blockEn=new WeakMap(),txtEn=new WeakMap();
-let quizEn=null,flashEn=null;
+const blockEn=new WeakMap(),txtEn=new WeakMap(),trCache=new Map();
+let quizEn=null,flashEn=null,quizTr=null,flashTr=null,trBusy=false;
+const TR_SKIP="script,style,code,pre,svg,.eq,.kd-m,.fr,.m-mat,.optsheet,.topbar,.phonebar,.vprog,.player,.q-steps,.num";
+function collectTextNodes(roots){
+  const nodes=[];
+  roots.forEach(r=>{if(!r)return;const w=document.createTreeWalker(r,NodeFilter.SHOW_TEXT);let n;
+    while((n=w.nextNode())){const p=n.parentElement;if(!p||p.closest(TR_SKIP))continue;
+      const v=n.nodeValue.trim();if(v.length>=2&&/[A-Za-z]{2,}/.test(v))nodes.push(n)}});
+  return nodes;
+}
+async function fetchBatch(items,sl,tl){
+  const sep="\n§§§\n",q=items.join(sep);
+  const url=`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(q)}`;
+  const res=await fetch(url);if(!res.ok)throw new Error(res.status);
+  const data=await res.json();
+  const joined=(data[0]||[]).map(x=>x[0]).join("");
+  const parts=joined.split(/\s*§§§\s*/);
+  if(parts.length===items.length)return parts;
+  return Promise.all(items.map(async s=>{
+    const r=await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(s)}`);
+    const d=await r.json();return (d[0]||[]).map(x=>x[0]).join("");
+  }));
+}
+async function autoTranslate(sl,tl){
+  if(trBusy)return;trBusy=true;
+  const nodes=collectTextNodes([main,side,sheet]);
+  nodes.forEach(n=>{if(!txtEn.has(n))txtEn.set(n,n.nodeValue)});
+  const todo=new Set();
+  nodes.forEach(n=>{const s=txtEn.get(n).trim();if(!trCache.has(s))todo.add(s)});
+  if(!quizEn&&window.QUIZ)quizEn=window.QUIZ;
+  if(!flashEn&&window.FLASH)flashEn=window.FLASH;
+  if(quizEn&&!quizTr)quizEn.forEach(q=>{if(q.q)todo.add(q.q);if(q.e)todo.add(q.e);(q.o||[]).forEach(o=>{if(o[0])todo.add(o[0]);if(o[2])todo.add(o[2])})});
+  if(flashEn&&!flashTr)flashEn.forEach(f=>{if(f.f)todo.add(f.f);if(f.b)todo.add(f.b)});
+  const list=[...todo];
+  if(list.length){
+    showToast(`<span class="ti">${ic("sliders")}</span><span>${tl==="id"?"Menerjemahkan isi panduan…":"Translating guide contents…"}</span>`);
+    try{
+      const chunks=[];let cur=[],len=0;
+      for(const s of list){if(len+s.length>1100&&cur.length){chunks.push(cur);cur=[];len=0}cur.push(s);len+=s.length+6}
+      if(cur.length)chunks.push(cur);
+      for(let i=0;i<chunks.length;i+=4){
+        const res=await Promise.all(chunks.slice(i,i+4).map(c=>fetchBatch(c,sl,tl)));
+        chunks.slice(i,i+4).forEach((c,ci)=>c.forEach((orig,k)=>{if(res[ci][k]!=null)trCache.set(orig,res[ci][k])}));
+      }
+    }catch(e){
+      trBusy=false;
+      showToast(`<span class="ti">${ic("info")}</span><span>${tl==="id"?"Offline — hanya antarmuka yang diterjemahkan.":"Offline — only UI translated."}</span>`);
+      return;
+    }
+  }
+  nodes.forEach(n=>{const raw=txtEn.get(n),trimmed=raw.trim(),tr=trCache.get(trimmed);if(tr)n.nodeValue=raw.replace(trimmed,tr)});
+  if(quizEn&&!quizTr){
+    quizTr=quizEn.map(q=>({...q,q:trCache.get(q.q)||q.q,e:trCache.get(q.e)||q.e,o:(q.o||[]).map(o=>[trCache.get(o[0])||o[0],o[1],trCache.get(o[2])||o[2]])}));
+  }
+  if(quizTr){window.QUIZ=quizTr;$$(".quiz[data-set]").forEach(renderQuiz)}
+  if(flashEn&&!flashTr){
+    flashTr=flashEn.map(f=>({...f,f:trCache.get(f.f)||f.f,b:trCache.get(f.b)||f.b}));
+  }
+  if(flashTr){window.FLASH=flashTr;$$(".flash").forEach(flashcards)}
+  trBusy=false;
+}
+document.addEventListener("visualstep",e=>{
+  if(lang===origLang||window.GUIDE_I18N||$("[data-id]"))return;
+  const cap=$(".viz-cap",e.target);if(!cap)return;
+  const ns=collectTextNodes([cap]);
+  const uncached=[];
+  ns.forEach(n=>{if(!txtEn.has(n))txtEn.set(n,n.nodeValue);const s=txtEn.get(n).trim();const tr=trCache.get(s);if(tr)n.nodeValue=txtEn.get(n).replace(s,tr);else uncached.push([n,s])});
+  if(uncached.length)fetchBatch(uncached.map(x=>x[1]),origLang,lang).then(res=>{uncached.forEach(([n,s],i)=>{if(res[i]!=null){trCache.set(s,res[i]);n.nodeValue=txtEn.get(n).replace(s,res[i])}})}).catch(()=>{});
+});
 function applyLang(l){
   lang=l==="id"?"id":"en";store.set("lang",lang);root.lang=lang;
+  const hasId=$$("[data-id]").length>0;
   $$("[data-id]").forEach(el=>{if(el.dataset.en==null)el.dataset.en=el.innerHTML;el.innerHTML=lang==="id"?el.dataset.id:el.dataset.en});
   const I=window.GUIDE_I18N;
   if(I){
@@ -859,6 +928,12 @@ function applyLang(l){
     }
     if(I.quiz){if(!quizEn)quizEn=window.QUIZ;window.QUIZ=lang==="id"?I.quiz:quizEn;$$(".quiz[data-set]").forEach(renderQuiz)}
     if(I.flash){if(!flashEn)flashEn=window.FLASH;window.FLASH=lang==="id"?I.flash:flashEn;$$(".flash").forEach(flashcards)}
+  } else if(!hasId){
+    if(lang===origLang){
+      collectTextNodes([main,side,sheet]).forEach(n=>{if(txtEn.has(n))n.nodeValue=txtEn.get(n)});
+      if(quizEn){window.QUIZ=quizEn;$$(".quiz[data-set]").forEach(renderQuiz)}
+      if(flashEn){window.FLASH=flashEn;$$(".flash").forEach(flashcards)}
+    } else autoTranslate(origLang,lang);
   }
   $(".tb-opt span",top).textContent=t("opt");
   $(".btn-pill",pbar).lastChild.textContent=t("contents");
@@ -869,7 +944,7 @@ function applyLang(l){
   paintOpt();
   document.dispatchEvent(new CustomEvent("langchange",{detail:lang}));
 }
-if(lang==="id")requestAnimationFrame(()=>applyLang("id"));
+if(lang!==origLang)requestAnimationFrame(()=>applyLang(lang));
 
 window.Engine={$,$$,h,ic,store,flow,stepper,segc,segSet,rangeFill,sorter,drills:DRILLS,watch,tickers,motionOn,markDone:id=>Engine_markDone(id),isDone:id=>done.has(id),visible,
   openSheet,openOptions,applyTheme,getTheme:()=>theme,applyMotion,applyLang,getLang:()=>lang,t,showToast,lineVars,chapters,parts,counted,fitAll,paintProgress,phoneMQ,math:formatMath,alignMath};
