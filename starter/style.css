@@ -1,1 +1,13 @@
 /* Extra CSS for this guide only. Usually empty. Keep engine changes in engine/metro.css instead. */
+
+/* Fix Explainer card overflow on short mobile/Canvas viewports */
+.ex-stage{overflow:hidden}
+.ex-card{overflow-y:auto;justify-content:flex-start;-webkit-overflow-scrolling:touch}
+.ex-card>*:first-child{margin-top:auto}
+.ex-card>*:last-child{margin-bottom:auto}
+@media (max-width:700px){
+  .ex-card.title .ch-head{padding:18px 18px 20px;gap:8px 14px}
+  .ex-card.title .ch-num{width:56px;height:56px;font-size:20px;margin-top:8px}
+  .ex-card.title .ch-head h2{font-size:clamp(22px,6vw,30px);margin-top:8px}
+  .ex-card.title .bigidea{font-size:15.5px;line-height:1.45}
+}
