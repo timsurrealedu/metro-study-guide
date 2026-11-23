@@ -110,6 +110,7 @@ Fix any sideways scrolling, clipped SVG text, small phone tap targets, or JS err
 ## Gotchas
 
 - Format all divisions in math formulas as stacked fractions (`<span class="fr"><span>num</span><span>den</span></span>` in HTML or `\\frac{num}{den}` in `Kit.derive`), never horizontal `/`.
+- Group full subscripts/superscripts inside `<sub>...</sub>` or `_{...}` (e.g. `∑<sub>s'</sub>`, not `∑<sub>s</sub>'`).
 - Keep paragraphs under 60 words (`check.py` warns over 90); never create walls of text on phones.
 - Every visual, table, and steps block must have a `<p class="lead">` immediately before it.
 - Never put metro analogies inside explanations or examples; the metro motif is strictly for navigation and layout.
