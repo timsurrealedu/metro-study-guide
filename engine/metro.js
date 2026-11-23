@@ -732,8 +732,8 @@ $$(".drill").forEach(b=>{const k=Object.keys(DRILLS).find(k=>b.classList.contain
 
 /* ---------- math formatting: one equation per row, subscripts, semantic colours ---------- */
 function mapTextSegs(html,fn){return String(html).split(/(<[^>]+>|&[A-Za-z0-9#]+;)/g).map((s,i)=>i%2?s:fn(s)).join("")}
-function subMath(html){return mapTextSegs(html,t=>t.replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>").replace(/\^([A-Za-z0-9'*+-])/g,"<sup>$1</sup>").replace(/([A-Za-z0-9\u0370-\u03FF∑∏])_([A-Za-z0-9']+)/g,"$1<sub>$2</sub>").replace(/([A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+)/g,'<span class="nowrap">$1</span>').replace(/([=≈≤≥≠∈]\s*[−-]?[A-Za-z0-9.]+%?)/g,'<span class="nowrap">$1</span>'))}
-function hasEqOp(s){return /[=≈≤≥]/.test(s.replace(/<[^>]+>/g,""))}
+function subMath(html){return mapTextSegs(html,t=>t.replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>").replace(/\^([A-Za-z0-9'*+-])/g,"<sup>$1</sup>").replace(/([A-Za-z0-9\u0370-\u03FF∑∏])_([A-Za-z0-9']+)/g,"$1<sub>$2</sub>").replace(/((?:(?:for|if|untuk|jika)\s+)?[A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+)/gi,'<span class="nowrap">$1</span>').replace(/([=≈≤≥≠∈]\s*[−-]?[A-Za-z0-9.]+%?)/g,'<span class="nowrap">$1</span>'))}
+function hasEqOp(s){return /[=≈≤≥⇒⇔]/.test(s.replace(/<[^>]+>/g,""))}
 function trimMath(s){return String(s).replace(/^(?:\s|&emsp;|&ensp;|&thinsp;)+|(?:\s|&emsp;|&ensp;|&thinsp;)+$/gi,"")}
 function splitEqRows(html){
   const out=[];
@@ -746,7 +746,7 @@ function splitEqRows(html){
       if(c==="("||c==="["||c==="{")pd++;else if((c===")"||c==="]"||c==="}")&&pd>0)pd--;
       if(pd!==0)continue;
       let sep=0;
-      if(c===","||c===";")sep=1;
+      if((c===","&&/\s/.test(s[i+1]||""))||c===";")sep=1;
       else if(s.slice(i).match(/^\s+and\s+/i))sep=s.slice(i).match(/^\s+and\s+/i)[0].length;
       if(sep){const L=trimMath(s.slice(last,i)),R=trimMath(s.slice(i+sep));
         if(hasEqOp(L)&&hasEqOp(R)){parts.push(L);last=i+sep;i+=sep-1}}
@@ -773,8 +773,8 @@ function colorMathRow(row){
         return tok;
       }
       if(hi>0)return tok;
-      return tok.replace(/([=≈≤≥≠+\-−×÷±→·|()[\]]|\d+(?:\.\d+)?%?)/g,(m,_,off,str)=>{
-        if(/^[=≈≤≥≠→]$/.test(m))return `<span class="m-op m-rel">${m}</span>`;
+      return tok.replace(/([=≈≤≥≠⇒⇔+\-−×÷±→·|()[\]]|\d+(?:\.\d+)?%?)/g,(m,_,off,str)=>{
+        if(/^[=≈≤≥≠→⇒⇔]$/.test(m))return `<span class="m-op m-rel">${m}</span>`;
         if(/^[+\-−×÷±]$/.test(m)){
           const op=m==="-"?"−":m;
           const prev=str.slice(0,off).trimEnd().slice(-1);
@@ -828,10 +828,15 @@ function alignMath(rootEl=main){
     const rows=$$(".eq-row",m);if(rows.length<2)return;
     const ls=rows.map(r=>$(".m-lhs",r)).filter(Boolean);
     ls.forEach(el=>el.style.minWidth="");
-    const w=Math.max(0,...ls.map(el=>el.getBoundingClientRect().width));
-    if(w>0)ls.forEach(el=>el.style.minWidth=Math.ceil(w)+"px");
+    const ws=ls.map(el=>el.getBoundingClientRect().width).filter(w=>w>0);
+    if(!ws.length)return;
+    const sorted=[...ws].sort((a,b)=>a-b),med=sorted[Math.floor(sorted.length/2)];
+    const cap=Math.min(180,med*2.2);
+    const target=Math.max(...ws.filter(w=>w<=cap),0);
+    if(target>0)ls.forEach((el,i)=>{if(ws[i]<=cap)el.style.minWidth=Math.ceil(target)+"px"});
   });
 }
+$$(".cmp td,.tbl td",main).forEach(td=>{if(!td.closest(".eq,.kd-m")&&/[≤≥<>]/.test(td.textContent))td.innerHTML=subMath(td.innerHTML)});
 requestAnimationFrame(()=>alignMath());
 
 const blockEn=new WeakMap(),txtEn=new WeakMap();

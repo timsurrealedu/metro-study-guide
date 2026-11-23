@@ -394,12 +394,23 @@ Kit.particles=(id,o)=>{
       Line syntax: [[x]] highlights a change, ~~x~~ crosses out,
       \frac{a}{b}, x^{2}, x_{1}, \sqrt{x}, \times \div \pm \le \ge \neq \approx \to \pi \theta \Delta
    ================================================================= */
-const TEX={"\\times":"×","\\div":"÷","\\pm":"±","\\le":"≤","\\ge":"≥","\\neq":"≠","\\approx":"≈","\\to":"→","\\cdot":"·","\\pi":"π","\\theta":"θ","\\Delta":"Δ","\\alpha":"α","\\beta":"β","\\lambda":"λ","\\mu":"μ","\\omega":"ω","\\rightleftharpoons":"⇌","\\infty":"∞","\\degree":"°","\\quad":"&emsp;","\\qquad":"&emsp;&emsp;","\\min":'<span class="mop">min</span>',"\\max":'<span class="mop">max</span>',"\\lim":'<span class="mop">lim</span>',"\\arg":'<span class="mop">arg</span>',"\\log":'<span class="mop">log</span>',"\\partial":"∂","\\sum":'<span class="mop mop-big">∑</span>',"\\prod":'<span class="mop mop-big">∏</span>',"\\gamma":"γ","\\sigma":"σ","\\phi":"φ","\\in":"∈","\\left":"","\\right":""};
+const TEX={"\\times":"×","\\div":"÷","\\pm":"±","\\le":"≤","\\ge":"≥","\\neq":"≠","\\equiv":"≡","\\approx":"≈","\\simeq":"≃","\\cong":"≅","\\sim":"∼","\\propto":"∝","\\to":"→","\\rightarrow":"→","\\leftarrow":"←","\\leftrightarrow":"↔","\\implies":"⇒","\\Rightarrow":"⇒","\\Leftarrow":"⇐","\\iff":"⇔","\\Leftrightarrow":"⇔","\\mapsto":"↦","\\cdot":"·","\\bullet":"•","\\circ":"∘","\\star":"⋆","\\pi":"π","\\theta":"θ","\\Delta":"Δ","\\alpha":"α","\\beta":"β","\\gamma":"γ","\\delta":"δ","\\epsilon":"ε","\\varepsilon":"ε","\\zeta":"ζ","\\eta":"η","\\lambda":"λ","\\mu":"μ","\\nu":"ν","\\xi":"ξ","\\rho":"ρ","\\sigma":"σ","\\tau":"τ","\\phi":"φ","\\varphi":"φ","\\chi":"χ","\\psi":"ψ","\\omega":"ω","\\Gamma":"Γ","\\Theta":"Θ","\\Lambda":"Λ","\\Sigma":"Σ","\\Phi":"Φ","\\Psi":"Ψ","\\Omega":"Ω","\\rightleftharpoons":"⇌","\\infty":"∞","\\degree":"°","\\partial":"∂","\\nabla":"∇","\\forall":"∀","\\exists":"∃","\\emptyset":"∅","\\varnothing":"∅","\\in":"∈","\\notin":"∉","\\subset":"⊂","\\subseteq":"⊆","\\supset":"⊃","\\supseteq":"⊇","\\cup":"∪","\\cap":"∩","\\land":"∧","\\lor":"∨","\\lnot":"¬","\\neg":"¬","\\therefore":"∴","\\because":"∵","\\perp":"⊥","\\parallel":"∥","\\angle":"∠","\\triangle":"△","\\ldots":"…","\\cdots":"⋯","\\vdots":"⋮","\\ddots":"⋱","\\dots":"…","\\quad":"&emsp;","\\qquad":"&emsp;&emsp;","\\min":'<span class="mop">min</span>',"\\max":'<span class="mop">max</span>',"\\lim":'<span class="mop">lim</span>',"\\arg":'<span class="mop">arg</span>',"\\log":'<span class="mop">log</span>',"\\ln":'<span class="mop">ln</span>',"\\exp":'<span class="mop">exp</span>',"\\sin":'<span class="mop">sin</span>',"\\cos":'<span class="mop">cos</span>',"\\tan":'<span class="mop">tan</span>',"\\sum":'<span class="mop mop-big">∑</span>',"\\prod":'<span class="mop mop-big">∏</span>',"\\int":'<span class="mop mop-big">∫</span>',"\\left":"","\\right":"","\\$":"$","\\%":"%","\\&":"&amp;","\\{":"{","\\}":"}"};
 function readBrace(s,i){if(s[i]!=="{")return null;let d=0,j=i;for(;j<s.length;j++){if(s[j]==="{")d++;else if(s[j]==="}"){d--;if(d===0)return [s.slice(i+1,j),j+1]}}return null}
+function recoverEscapes(s){
+  return s.replace(/\x08(egin|ar)\b/g,"\\$1").replace(/\t(ext|heta|imes|o|au|riangle|herefore)\b/g,"\\t$1").replace(/\x0c(rac|orall)\b/g,"\\f$1");
+}
+function parseMatrix(env,body){
+  const rows=body.trim().split(/\\\\|\\(?=\s|[-\dA-Za-z\\])/).map(r=>r.trim()).filter(Boolean);
+  const grid=rows.map(r=>r.split("&").map(c=>`<span>${parseTex(c.trim())}</span>`));
+  const cols=Math.max(1,...grid.map(r=>r.length));
+  return `<span class="m-mat m-${env}" style="--mc:${cols}">${grid.map(r=>r.join("")).join("")}</span>`;
+}
 function parseTex(s){
   let out="",i=0;
   while(i<s.length){
     if(s[i]==="\\"||s[i]==="^"||s[i]==="_"){
+      const bm=s.slice(i).match(/^\\begin\{(bmatrix|pmatrix|vmatrix|Bmatrix|Vmatrix|matrix|cases)\}/);
+      if(bm){const end=`\\end{${bm[1]}}`,j=s.indexOf(end,i+bm[0].length);if(j>=0){out+=parseMatrix(bm[1],s.slice(i+bm[0].length,j));i=j+end.length;continue}}
       if(s.startsWith("\\frac{",i)||s.startsWith("\\dfrac{",i)){
         const a=readBrace(s,s.indexOf("{",i));const b=a&&readBrace(s,a[1]);
         if(a&&b){out+=`<span class="fr"><span>${parseTex(a[0])}</span><span>${parseTex(b[0])}</span></span>`;i=b[1];continue}
@@ -417,9 +428,9 @@ function parseTex(s){
   }
   return out;
 }
-Kit.math=(s,o)=>{s=parseTex(String(s));
+Kit.math=(s,o)=>{s=parseTex(recoverEscapes(String(s)));
   s=s.replace(/\^([A-Za-z0-9'*+-])/g,"<sup>$1</sup>").replace(/([A-Za-z0-9\u0370-\u03FF∑∏])_([A-Za-z0-9']+)/g,"$1<sub>$2</sub>");
-  s=s.replace(/\\[;,!: ]/g,"&thinsp;").replace(/\\[A-Za-z]+/g,m=>TEX[m]??m);
+  s=s.replace(/\\[$%&{}]/g,m=>TEX[m]||m.slice(1)).replace(/\\[;,!: ]/g,"&thinsp;").replace(/\\[A-Za-z]+/g,m=>TEX[m]??m);
   s=s.replace(/\[\[(.+?)\]\]/g,'<span class="hi">$1</span>').replace(/~~(.+?)~~/g,'<span class="x">$1</span>');
   return E.math?E.math(s,o):s};
 Kit.derive=(id,o)=>{
