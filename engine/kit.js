@@ -30,7 +30,7 @@ V.arrow=(id,cls="f-arrow")=>`<defs><marker id="${id}" viewBox="0 0 10 10" refX="
 V.show=(el,on)=>{if(!el)return;(el.length!=null?[...el]:[el]).forEach(e=>e.classList.toggle("hide",!on))};
 V.dim=(el,on)=>{if(!el)return;(el.length!=null?[...el]:[el]).forEach(e=>e.classList.toggle("dim",!!on))};
 V.lbl=(x,y,t,cls="",anchor="middle")=>`<text x="${x}" y="${y}" text-anchor="${anchor}" class="${cls}">${t}</text>`;
-V.wrap=(txt,max)=>{const w=String(txt).split(" ");const out=[];let line="";w.forEach(x=>{if((line+" "+x).trim().length>max&&line){out.push(line);line=x}else line=(line+" "+x).trim()});if(line)out.push(line);return out};
+V.wrap=(txt,max)=>{const safe=String(txt).replace(/(\[[^\]]{1,16}\]|\([^)]{1,16}\))/g,m=>m.replace(/ /g,"\u00A0"));const w=safe.split(" ");const out=[];let line="";w.forEach(x=>{if((line+" "+x).trim().length>max&&line){out.push(line);line=x}else line=(line+" "+x).trim()});if(line)out.push(line);return out};
 /* tween helper that respects the Animations switch */
 V.tween=(dur,fn,done)=>{if(!E.motionOn()){fn(1);done&&done();return()=>{}}let t0=null,stop=false;function f(now){if(stop)return;if(t0==null)t0=now;const t=Math.min(1,(now-t0)/dur);fn(t);if(t<1)requestAnimationFrame(f);else done&&done()}requestAnimationFrame(f);return()=>{stop=true}};
 V.ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
@@ -39,7 +39,7 @@ V.ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 /* ---------------------------------------------------------------- shared */
 const Kit=window.Kit={version:"1.2"};
 const PAL=i=>`var(--c${(i%4)+1})`;
-const CW=(fs)=>fs*.57;                                   // average character width in px
+const CW=(fs)=>fs*.53;                                   // average character width in px
 const fit=(t,w,fs)=>V.wrap(t,Math.max(6,Math.floor(w/CW(fs))));
 const tlines=(x,y,lines,cls,lh,anchor="start")=>`<text x="${x}" y="${y}" class="${cls}" text-anchor="${anchor}">${lines.map((l,i)=>`<tspan x="${x}" dy="${i?lh:0}">${l}</tspan>`).join("")}</text>`;
 let uid=0;
@@ -114,8 +114,8 @@ Kit.flow=(id,o)=>{
     const gap=cols>1?Math.max(labW,Math.min(64,Math.max(40,(W-cols*150)/(cols-1)*.35))):0;
     const bw=Math.min(o.boxWidth||240,(W-8-(cols-1)*gap)/cols);
     const ox=(W-(cols*bw+(cols-1)*gap))/2;
-    const wr=N.map(nd=>({t:fit(nd.t,bw-26,15),s:nd.sub?fit(nd.sub,bw-26,13):[]}));
-    const hh=wr.map((w,i)=>18+w.t.length*19+(w.s.length?6+w.s.length*17:0)+(N[i].tag?30:0)+14);
+    const wr=N.map(nd=>({t:fit(nd.t,bw-24,15),s:nd.sub?fit(nd.sub,bw-24,13):[]}));
+    const hh=wr.map((w,i)=>16+w.t.length*19+(w.s.length?3+w.s.length*17:0)+(N[i].tag?30:0)+14);
     const rows=Math.ceil(n/cols),rowH=[];for(let r=0;r<rows;r++)rowH[r]=Math.max(...hh.slice(r*cols,r*cols+cols));
     const vg=cols===1?40:56;let y=10;const P=[];
     for(let r=0;r<rows;r++){for(let c=0;c<cols;c++){const i=r*cols+c;if(i>=n)break;P[i]={x:ox+c*(bw+gap),y,w:bw,h:rowH[r],r,c}}y+=rowH[r]+vg}
@@ -132,8 +132,8 @@ Kit.flow=(id,o)=>{
       s+=`<path class="k-edge" data-e="${k}" d="${d}"/>`;
       if(lab){const mx=A.r===B.r?(A.x+A.w+B.x)/2:A.x+A.w/2+8,my=A.r===B.r?A.y+A.h/2-9:A.y+A.h+(cols===1||A.c===B.c?vg/2+4:vg/2-6);s+=`<text class="k-s k-elab" data-e="${k}" x="${mx}" y="${my}" text-anchor="${A.r===B.r?"middle":"start"}">${lab}</text>`}});
     N.forEach((nd,i)=>{const p=P[i],w=wr[i];let t=`<g class="k-n" data-i="${i}"><rect class="k-node" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="14"/>`;
-      t+=tlines(p.x+13,p.y+30,w.t,"k-t",19);
-      if(w.s.length)t+=tlines(p.x+13,p.y+30+w.t.length*19+5,w.s,"k-s",17);
+      t+=tlines(p.x+12,p.y+28,w.t,"k-t",19);
+      if(w.s.length)t+=tlines(p.x+12,p.y+28+w.t.length*19+2,w.s,"k-s",17);
       if(nd.tag)t+=`<g class="k-tag"><rect x="${p.x+12}" y="${p.y+p.h-40}" width="${Math.min(p.w-24,nd.tag.length*8+22)}" height="24" rx="12"/><text class="k-c" x="${p.x+23}" y="${p.y+p.h-23.5}">${nd.tag}</text></g>`;
       s+=t+"</g>"});
     svg.innerHTML=s;render(cur);
@@ -403,7 +403,7 @@ Kit.derive=(id,o)=>{
   const S=setup(id,"derive");if(!S)return;
   S.stage.classList.add("kit-html");
   const Ls=o.lines;
-  S.stage.innerHTML=(o.given?`<div class="kd-given">${Kit.math(o.given)}</div>`:"")+`<ol class="kd">${Ls.map((l,i)=>`<li data-i="${i}"${l.final?' class="final"':""}><div class="kd-m">${Kit.math(l.m,{rows:true})}</div>${l.why?`<div class="kd-why">${Kit.math(l.why)}</div>`:""}</li>`).join("")}</ol>`;
+  S.stage.innerHTML=(o.given?`<div class="kd-given">${Kit.math(o.given)}</div>`:"")+`<ol class="kd">${Ls.map((l,i)=>`<li data-i="${i}"${l.final?' class="final"':""}>${l.why?`<div class="kd-why">${Kit.math(l.why)}</div>`:""}<div class="kd-m">${Kit.math(l.m,{rows:true})}</div></li>`).join("")}</ol>`;
   const steps=stepsOr(o,Ls.map((l,i)=>({t:l.t||(i?`Step ${i}`:"Start"),d:l.d||l.why||"",line:i})));
   return E.stepper(S.viz,steps,(i)=>{const s=steps[i],k=s.line??i;
     $$(".kd li",S.stage).forEach(li=>{const j=+li.dataset.i;li.classList.toggle("on",j===k);li.classList.toggle("later",j>k)});if(o.on)o.on(i,S.stage,s);},{ms:o.ms||4200});

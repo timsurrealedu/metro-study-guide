@@ -303,12 +303,14 @@ def build(folder, fragment=False, minify=False, out=None):
     quiz = normalise_quiz(json.loads(rd("quiz.json") or "[]"), g.get("shuffle", True))
     content = expand(inline_assets(rd("content.html"), folder), g, quiz)
     flash = json.loads(rd("flash.json") or "[]")
+    i18n_raw = rd("i18n.json")
     guide_js = {"id": g["id"], "title": g["title"], "icon": g.get("icon", ""), "subtitle": g.get("subtitle", ""),
                 "terminus": terminus,
                 "lines": {k: {"name": v.get("name", ""), **({"grad": toks[k]["grad"]} if toks[k].get("grad") else {})} for k, v in lines.items()}}
     data = ("window.GUIDE=" + json.dumps(guide_js, ensure_ascii=False) + ";\n"
             "window.QUIZ=" + json.dumps(quiz, ensure_ascii=False) + ";\n"
-            "window.FLASH=" + json.dumps(flash, ensure_ascii=False) + ";")
+            "window.FLASH=" + json.dumps(flash, ensure_ascii=False) + ";" +
+            ("\nwindow.GUIDE_I18N=" + i18n_raw.strip() + ";" if i18n_raw.strip() else ""))
     head = (f'<title>{esc(g["title"])}</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n'
             f'<meta name="description" content="{esc(g.get("description", g.get("subtitle", "")))}">\n')
     body = (f"{boot}\n<main id=\"main\">\n{hero}\n{content}\n</main>\n"

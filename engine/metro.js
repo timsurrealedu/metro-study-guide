@@ -46,6 +46,41 @@ document.body.insertAdjacentHTML("afterbegin",`<svg aria-hidden="true" style="po
 let theme = store.get("theme","auto");
 function applyTheme(t){theme=t;store.set("theme",t);if(t==="auto")root.removeAttribute("data-theme");else root.setAttribute("data-theme",t);
   $$(".seg-theme button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.t===t)))}
+/* ---------- language (en / id) ---------- */
+const I18N={
+  en:{opt:"Options",done:"Done",mode:"Reading mode",scroll:"Scroll page",explain:"Explainer",
+    mode_ex:"Full screen, one idea at a time. Tap Next to move on.",
+    mode_sc:"The whole guide on one page. Scroll at your own pace.",
+    app:"Appearance",app_d:"Auto matches your device's light or dark setting.",auto:"Auto",light:"Light",dark:"Dark",
+    anim:"Animations",anim_d:"Moving parts in the visuals. Turn off to keep everything still.",
+    lang:"Language",lang_d:"Translate all guide contents between English and Indonesian.",
+    font:"Font",font_d:"Use a font file of your own.",choose:"Aa · Choose",
+    contents:"Contents",mark:"Mark chapter as learned",learned:"Learned",next:"Next",
+    next_st:"Next station",start:"Start",cont:"Continue",stops:"stops",
+    reset:"Start over",step_of:(a,b)=>`Step ${a} of ${b}`,
+    q_of:(a,b)=>`Question ${a} of ${b}`,score:"See your score",q_next:"Next question",
+    try_again:"Try again",check_ans:"Check answer",ans:"Answer",flip:"Flip",shuffle:"Shuffle",
+    stations:"Stations",ex_scroll:"Scroll",back:"Back",finish:"Finish",start_ride:"Start riding",
+    try_it:"Try it yourself",try_d:"Drag a slider and watch the visual.",mark_sm:"Mark as learned",
+    full_scr:"Full screen",free:"Or try it yourself"},
+  id:{opt:"Opsi",done:"Selesai",mode:"Mode baca",scroll:"Gulir halaman",explain:"Penjelas",
+    mode_ex:"Layar penuh, satu ide tiap langkah. Ketuk Lanjut.",
+    mode_sc:"Seluruh panduan dalam satu halaman. Gulir sesuai ritme Anda.",
+    app:"Tampilan",app_d:"Otomatis mengikuti tema terang atau gelap perangkat.",auto:"Otomatis",light:"Terang",dark:"Gelap",
+    anim:"Animasi",anim_d:"Gerakan pada visual. Matikan agar tetap diam.",
+    lang:"Bahasa",lang_d:"Terjemahkan seluruh isi panduan ke Bahasa Indonesia atau Inggris.",
+    font:"Huruf",font_d:"Gunakan berkas huruf Anda sendiri.",choose:"Aa · Pilih",
+    contents:"Daftar Isi",mark:"Tandai bab sudah dipelajari",learned:"Sudah dipelajari",next:"Berikutnya",
+    next_st:"Stasiun berikutnya",start:"Mulai",cont:"Lanjut",stops:"stasiun",
+    reset:"Ulangi",step_of:(a,b)=>`Langkah ${a} dari ${b}`,
+    q_of:(a,b)=>`Pertanyaan ${a} dari ${b}`,score:"Lihat skor",q_next:"Pertanyaan berikutnya",
+    try_again:"Coba lagi",check_ans:"Periksa jawaban",ans:"Jawaban",flip:"Balik",shuffle:"Acak",
+    stations:"Stasiun",ex_scroll:"Gulir",back:"Kembali",finish:"Selesai",start_ride:"Mulai belajar",
+    try_it:"Coba sendiri",try_d:"Geser pengatur dan amati visualnya.",mark_sm:"Tandai dipelajari",
+    full_scr:"Layar penuh",free:"Atau coba sendiri"}
+};
+let lang=store.get("lang",root.lang==="id"?"id":"en");
+const t=(k,...a)=>{const v=(I18N[lang]||I18N.en)[k]??I18N.en[k]??k;return typeof v==="function"?v(...a):v};
 /* ---------- motion ---------- */
 const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 let motion = store.get("motion", reduce?"off":"on");
@@ -126,23 +161,27 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")openSheet(false)});
 /* ---------- options: every setting, labelled and explained (phones, and the explainer) ---------- */
 const optScrim=h("div",{class:"sheet-scrim op-scrim"});
 const opt=h("div",{class:"optsheet",role:"dialog","aria-modal":"true","aria-label":"Options"});
-opt.innerHTML=`<div class="grab" aria-hidden="true"></div><div class="op-head"><b>Options</b><button class="op-done" type="button">Done</button></div>
+opt.innerHTML=`<div class="grab" aria-hidden="true"></div><div class="op-head"><b data-tr="opt">${t("opt")}</b><button class="op-done" type="button" data-tr="done">${t("done")}</button></div>
  <div class="op-list">
-  <div class="op-item"><div class="op-l"><b>Reading mode</b><span class="op-md"></span></div>
-   <div class="segc op-mode" role="group" aria-label="Reading mode"><button type="button" data-m="scroll">Scroll page</button><button type="button" data-m="explain">Explainer</button></div></div>
-  <div class="op-item"><div class="op-l"><b>Appearance</b><span>Auto matches your device's light or dark setting.</span></div>
-   <div class="segc op-theme seg-theme" role="group" aria-label="Appearance"><button type="button" data-t="auto">${ic("auto")} Auto</button><button type="button" data-t="light">${ic("sun")} Light</button><button type="button" data-t="dark">${ic("moon")} Dark</button></div></div>
-  <div class="op-item op-inline"><div class="op-l"><b>Animations</b><span>Moving parts in the visuals. Turn off to keep everything still.</span></div>
+  <div class="op-item"><div class="op-l"><b data-tr="mode">${t("mode")}</b><span class="op-md"></span></div>
+   <div class="segc op-mode" role="group" aria-label="Reading mode"><button type="button" data-m="scroll" data-tr="scroll">${t("scroll")}</button><button type="button" data-m="explain" data-tr="explain">${t("explain")}</button></div></div>
+  <div class="op-item"><div class="op-l"><b data-tr="app">${t("app")}</b><span data-tr="app_d">${t("app_d")}</span></div>
+   <div class="segc op-theme seg-theme" role="group" aria-label="Appearance"><button type="button" data-t="auto">${ic("auto")} <span data-tr="auto">${t("auto")}</span></button><button type="button" data-t="light">${ic("sun")} <span data-tr="light">${t("light")}</span></button><button type="button" data-t="dark">${ic("moon")} <span data-tr="dark">${t("dark")}</span></button></div></div>
+  <div class="op-item"><div class="op-l"><b data-tr="lang">${t("lang")}</b><span class="op-ld" data-tr="lang_d">${t("lang_d")}</span></div>
+   <div class="segc op-lang" role="group" aria-label="Language"><button type="button" data-l="en">English</button><button type="button" data-l="id">Indonesia</button></div></div>
+  <div class="op-item op-inline"><div class="op-l"><b data-tr="anim">${t("anim")}</b><span data-tr="anim_d">${t("anim_d")}</span></div>
    <button class="switch btn-motion" type="button" role="switch" aria-label="Animations"><span class="tr"></span></button></div>
-  <div class="op-item op-inline"><div class="op-l"><b>Font</b><span>Use a font file of your own.</span></div>
-   <button class="vbtn op-font" type="button">Aa · Choose</button></div>
+  <div class="op-item op-inline"><div class="op-l"><b data-tr="font">${t("font")}</b><span data-tr="font_d">${t("font_d")}</span></div>
+   <button class="vbtn op-font" type="button" data-tr="choose">${t("choose")}</button></div>
  </div>
  <p class="op-by">by @Dvenmc</p>`;
 document.body.append(optScrim,opt);
 const isEx=()=>root.classList.contains("mode-ex");
 function paintOpt(){$$(".op-mode button",opt).forEach(b=>b.setAttribute("aria-pressed",String((b.dataset.m==="explain")===isEx())));
-  $(".op-md",opt).textContent=isEx()?"Full screen, one idea at a time. Tap Next to move on.":"The whole guide on one page. Scroll at your own pace.";
-  $$(".op-theme button",opt).forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.t===theme)))}
+  $(".op-md",opt).textContent=t(isEx()?"mode_ex":"mode_sc");
+  $$(".op-theme button",opt).forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.t===theme)));
+  $$(".op-lang button",opt).forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.l===lang)));
+  $$("[data-tr]",opt).forEach(el=>{el.textContent=t(el.dataset.tr)})}
 function openOptions(o){if(o)paintOpt();opt.classList.toggle("open",o);optScrim.classList.toggle("open",o);if(o)$(".op-done",opt).focus({preventScroll:true})}
 $(".tb-opt",top).addEventListener("click",()=>openOptions(true));
 $(".op-done",opt).addEventListener("click",()=>openOptions(false));
@@ -152,6 +191,7 @@ dragClose(opt,()=>openOptions(false));
 $$(".op-mode button",opt).forEach(b=>b.addEventListener("click",()=>{const X=window.Explainer;if(!X)return;
   if(b.dataset.m==="explain"&&!isEx())X.enter();else if(b.dataset.m==="scroll"&&isEx())X.leave(false);paintOpt();setTimeout(()=>openOptions(false),180)}));
 $$(".op-theme button",opt).forEach(b=>b.addEventListener("click",()=>{applyTheme(b.dataset.t);paintOpt()}));
+$$(".op-lang button",opt).forEach(b=>b.addEventListener("click",()=>{applyLang(b.dataset.l);paintOpt()}));
 $(".btn-motion",opt).addEventListener("click",()=>applyMotion(motionOn()?"off":"on"));
 $(".op-font",opt).addEventListener("click",e=>{e.stopPropagation();openOptions(false);fontPop.classList.add("open")});
 
@@ -726,15 +766,22 @@ function colorMathRow(row){
   }
   const paintSeg=(seg,inLhs)=>{
     let sub=0,hi=0;
-    return seg.split(/(<[^>]+>|&[A-Za-z0-9#]+;)/g).map((tok,i)=>{
+      return seg.split(/(<[^>]+>|&[A-Za-z0-9#]+;)/g).map((tok,i)=>{
       if(i%2){
         if(/^<(sub|sup)\b/i.test(tok))sub++;else if(/^<\/(sub|sup)>/i.test(tok)&&sub>0)sub--;
         if(/^<span class="(?:hi|x)"/i.test(tok))hi++;else if(/^<\/span>/i.test(tok)&&hi>0)hi--;
         return tok;
       }
       if(hi>0)return tok;
-      return tok.replace(/([=≈≤≥≠+\-−×÷±→·|()[\]]|\d+(?:\.\d+)?%?)/g,m=>{
-        if(/^[=≈≤≥≠+\-−×÷±→·|()[\]]$/.test(m))return `<span class="m-op">${m}</span>`;
+      return tok.replace(/([=≈≤≥≠+\-−×÷±→·|()[\]]|\d+(?:\.\d+)?%?)/g,(m,_,off,str)=>{
+        if(/^[=≈≤≥≠→]$/.test(m))return `<span class="m-op m-rel">${m}</span>`;
+        if(/^[+\-−×÷±]$/.test(m)){
+          const op=m==="-"?"−":m;
+          const prev=str.slice(0,off).trimEnd().slice(-1);
+          const una=/^[+\-−]$/.test(op)&&(!prev||/[(=≈≤≥≠→,[+\-−×÷±]/.test(prev));
+          return `<span class="m-op ${una?"m-una":"m-bin"}">${op}</span>`;
+        }
+        if(/^[·|()[\]]$/.test(m))return `<span class="m-op">${m}</span>`;
         if(inLhs||sub>0)return m;
         return `<span class="m-num">${m}</span>`;
       });
@@ -742,7 +789,7 @@ function colorMathRow(row){
   };
   if(idx>0){
     const lhs=row.slice(0,idx).trim(),rhs=row.slice(idx);
-    if(lhs)return `<span class="m-lhs">${paintSeg(lhs,true)}</span> ${paintSeg(rhs,false)}`;
+    if(lhs)return `<span class="m-lhs">${paintSeg(lhs,true)}</span>${paintSeg(rhs,false)}`;
   }
   return paintSeg(row,false);
 }
@@ -777,7 +824,36 @@ $$(".eq").forEach(el=>{
   sm.forEach(n=>el.appendChild(n));
 });
 
+const blockEn=new WeakMap(),txtEn=new WeakMap();
+let quizEn=null,flashEn=null;
+function applyLang(l){
+  lang=l==="id"?"id":"en";store.set("lang",lang);root.lang=lang;
+  $$("[data-id]").forEach(el=>{if(el.dataset.en==null)el.dataset.en=el.innerHTML;el.innerHTML=lang==="id"?el.dataset.id:el.dataset.en});
+  const I=window.GUIDE_I18N;
+  if(I){
+    if(I.blocks)Object.entries(I.blocks).forEach(([sel,idHtml])=>{$$(sel).forEach(el=>{if(!blockEn.has(el))blockEn.set(el,el.innerHTML);el.innerHTML=lang==="id"?idHtml:blockEn.get(el)})});
+    if(I.text){
+      const w=document.createTreeWalker(main,NodeFilter.SHOW_TEXT);let n;
+      while((n=w.nextNode())){const raw=n.nodeValue.trim();if(!raw)continue;
+        if(lang==="id"&&I.text[raw]!=null){if(!txtEn.has(n))txtEn.set(n,n.nodeValue);n.nodeValue=n.nodeValue.replace(raw,I.text[raw])}
+        else if(lang==="en"&&txtEn.has(n))n.nodeValue=txtEn.get(n);
+      }
+    }
+    if(I.quiz){if(!quizEn)quizEn=window.QUIZ;window.QUIZ=lang==="id"?I.quiz:quizEn;$$(".quiz[data-set]").forEach(renderQuiz)}
+    if(I.flash){if(!flashEn)flashEn=window.FLASH;window.FLASH=lang==="id"?I.flash:flashEn;$$(".flash").forEach(flashcards)}
+  }
+  $(".tb-opt span",top).textContent=t("opt");
+  $(".btn-pill",pbar).lastChild.textContent=t("contents");
+  $(".sheet-done",sheet).textContent=t("done");
+  $$(".ov-next .eyebrow").forEach(e=>e.textContent=t("next_st"));
+  $$("[data-done]").forEach(b=>{const on=done.has(b.dataset.done);b.querySelector("span").textContent=on?t("learned"):t("mark")});
+  $$(".player [data-a='reset'] span").forEach(s=>s.textContent=t("reset"));
+  paintOpt();
+  document.dispatchEvent(new CustomEvent("langchange",{detail:lang}));
+}
+if(lang==="id")requestAnimationFrame(()=>applyLang("id"));
+
 window.Engine={$,$$,h,ic,store,flow,stepper,segc,segSet,rangeFill,sorter,drills:DRILLS,watch,tickers,motionOn,markDone:id=>Engine_markDone(id),isDone:id=>done.has(id),visible,
-  openSheet,openOptions,applyTheme,getTheme:()=>theme,applyMotion,showToast,lineVars,chapters,parts,counted,fitAll,paintProgress,phoneMQ,math:formatMath};
+  openSheet,openOptions,applyTheme,getTheme:()=>theme,applyMotion,applyLang,getLang:()=>lang,t,showToast,lineVars,chapters,parts,counted,fitAll,paintProgress,phoneMQ,math:formatMath};
 document.dispatchEvent(new Event("engine-ready"));
 })();

@@ -303,7 +303,19 @@ $(".ex-next",ex).addEventListener("click",()=>{
   if(screens[cur].kind==="map"){const nx=E.counted.find(c=>!E.isDone(c.id));if(nx&&E.counted.some(c=>E.isDone(c.id))){show(screens.findIndex(s=>s.group===nx.id),1);return}}
   if(cur>=screens.length-1){E.showToast(`<span class="ti">${ic("check")}</span><span>End of the line. Try the practice exam again any time.</span>`);return}show(cur+1,1)});
 $(".ex-menu",ex).addEventListener("click",()=>E.openSheet(true));
-document.addEventListener("progress",()=>{if(cur>=0&&root.classList.contains("mode-ex")){const s=screens[cur];const b=$(".donebtn",doneBox);if(b&&s.ch){const on=E.isDone(s.ch.id);b.setAttribute("aria-pressed",String(on));b.querySelector("span").textContent=on?"Learned":"Mark as learned"}}});
+document.addEventListener("progress",()=>{if(cur>=0&&root.classList.contains("mode-ex")){const s=screens[cur];const b=$(".donebtn",doneBox);if(b&&s.ch){const on=E.isDone(s.ch.id);b.setAttribute("aria-pressed",String(on));b.querySelector("span").textContent=on?E.t("learned"):E.t("mark_sm")}}});
+document.addEventListener("langchange",()=>{
+  $(".ex-menu span",ex).textContent=E.t("stations");
+  $(".ex-scroll span",ex).textContent=E.t("ex_scroll");
+  $(".ex-opt span",ex).textContent=E.t("opt");
+  $(".ex-fs .lbl",ex).textContent=E.t("full_scr");
+  $(".ex-prev span",ex).textContent=E.t("back");
+  $(".ex-trybtn span",ex).textContent=E.t("try_it");
+  $(".ex-try-h b",trySheet).textContent=E.t("try_it");
+  $(".ex-try-h span",trySheet).textContent=E.t("try_d");
+  $(".ex-try-done",trySheet).textContent=E.t("done");
+  if(cur>=0&&root.classList.contains("mode-ex"))show(cur,0);
+});
 
 /* links inside the explainer jump to the matching screen */
 document.addEventListener("click",e=>{
