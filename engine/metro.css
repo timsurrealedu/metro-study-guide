@@ -434,6 +434,9 @@ html[data-motion="off"] .fc-card{transition:none}
 .eq-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;text-align:center}
 .eq.eq-multi .eq-scroll{text-align:left}
 .eq-row{display:block;white-space:nowrap}
+.eq-row.eq-split{display:flex;flex-wrap:wrap;align-items:center;gap:6px .35em;white-space:normal}
+.eq:not(.eq-multi) .eq-scroll .eq-row.eq-split{justify-content:center}
+.eq-head,.eq-tail{white-space:nowrap}
 .eq-row+.eq-row{margin-top:11px}
 .eq small{display:block;margin-top:10px;font:400 13.5px/1.45 var(--font);color:var(--text-2);letter-spacing:-.006em}
 .eq sub,.eq sup,.kd-m sub,.kd-m sup{font-size:.72em;line-height:0;padding-left:.06em;font-weight:500;font-variant-numeric:tabular-nums}

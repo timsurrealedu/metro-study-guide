@@ -579,10 +579,11 @@ document.addEventListener("visualstep",e=>{const s=e.target.querySelector?.(".vi
 function mapTextSegs(html,fn){return String(html).split(/(<[^>]+>|&[A-Za-z0-9#]+;)/g).map((s,i)=>i%2?s:fn(s)).join("")}
 function subMath(html){return mapTextSegs(html,t=>t.replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>").replace(/([A-Za-z0-9\u0370-\u03FF∑∏])_([A-Za-z0-9']+)/g,"$1<sub>$2</sub>"))}
 function hasEqOp(s){return /[=≈≤≥]/.test(s.replace(/<[^>]+>/g,""))}
+function trimMath(s){return String(s).replace(/^(?:\s|&emsp;|&ensp;|&thinsp;)+|(?:\s|&emsp;|&ensp;|&thinsp;)+$/gi,"")}
 function splitEqRows(html){
   const out=[];
   String(html).split(/<br\s*\/?>|\n/gi).forEach(line=>{
-    const s=line.trim();if(!s)return;
+    const s=trimMath(line);if(!s)return;
     let pd=0,td=0,last=0,parts=[];
     for(let i=0;i<s.length;i++){
       const c=s[i];
@@ -592,27 +593,11 @@ function splitEqRows(html){
       let sep=0;
       if(c===","||c===";")sep=1;
       else if(s.slice(i).match(/^\s+and\s+/i))sep=s.slice(i).match(/^\s+and\s+/i)[0].length;
-      if(sep){const L=s.slice(last,i).trim(),R=s.slice(i+sep).trim();
+      if(sep){const L=trimMath(s.slice(last,i)),R=trimMath(s.slice(i+sep));
         if(hasEqOp(L)&&hasEqOp(R)){parts.push(L);last=i+sep;i+=sep-1}}
     }
-    parts.push(s.slice(last).trim());
-    parts.forEach(p=>{
-      if(!p)return;
-      if(p.includes('class="fr"')){
-        let td=0,pd=0,frEnd=p.lastIndexOf('class="fr"'),lastEq=-1;
-        for(let i=0;i<p.length;i++){
-          const c=p[i];
-          if(c==="<"){td++;continue}if(c===">"&&td>0){td--;continue}if(td>0)continue;
-          if(c==="("||c==="["||c==="{")pd++;else if((c===")"||c==="]"||c==="}")&&pd>0)pd--;
-          if(pd===0&&i>frEnd&&(c==="="||c==="≈"))lastEq=i;
-        }
-        if(lastEq>0){
-          const head=p.slice(0,lastEq).trim(),tail=p.slice(lastEq).trim();
-          if(head&&tail&&!tail.includes('class="fr"')){out.push(head,tail);return}
-        }
-      }
-      out.push(p);
-    });
+    parts.push(trimMath(s.slice(last)));
+    parts.forEach(p=>{if(p)out.push(p)});
   });
   return out;
 }
@@ -646,18 +631,34 @@ function colorMathRow(row){
   }
   return paintSeg(row,false);
 }
+function renderMathRow(r){
+  if(r.includes('class="fr"')){
+    let td=0,pd=0,frEnd=r.lastIndexOf('class="fr"'),lastEq=-1;
+    for(let i=0;i<r.length;i++){
+      const c=r[i];
+      if(c==="<"){td++;continue}if(c===">"&&td>0){td--;continue}if(td>0)continue;
+      if(c==="("||c==="["||c==="{")pd++;else if((c===")"||c==="]"||c==="}")&&pd>0)pd--;
+      if(pd===0&&i>frEnd&&(c==="="||c==="≈"))lastEq=i;
+    }
+    if(lastEq>0){
+      const head=trimMath(r.slice(0,lastEq)),tail=trimMath(r.slice(lastEq));
+      if(head&&tail&&!tail.includes('class="fr"'))
+        return `<span class="eq-row eq-split"><span class="eq-head">${colorMathRow(head)}</span><span class="eq-tail">${colorMathRow(tail)}</span></span>`;
+    }
+  }
+  return `<span class="eq-row">${colorMathRow(r)}</span>`;
+}
 function formatMath(s,o){
   const h=subMath(s);
   if(!o||!o.rows)return h;
-  const rows=splitEqRows(h);
-  return rows.map(r=>`<span class="eq-row">${colorMathRow(r)}</span>`).join("");
+  return splitEqRows(h).map(renderMathRow).join("");
 }
 $$(".eq").forEach(el=>{
   const sm=[...el.querySelectorAll(":scope>small")];
   sm.forEach(n=>n.remove());
   const rows=splitEqRows(subMath(el.innerHTML));
   if(rows.length>1)el.classList.add("eq-multi");
-  el.innerHTML=`<div class="eq-scroll">${rows.map(r=>`<span class="eq-row">${colorMathRow(r)}</span>`).join("")}</div>`;
+  el.innerHTML=`<div class="eq-scroll">${rows.map(renderMathRow).join("")}</div>`;
   sm.forEach(n=>el.appendChild(n));
 });
 

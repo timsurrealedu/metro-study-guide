@@ -201,7 +201,8 @@ document.addEventListener("keydown",e=>{
   if(e.key==="ArrowRight"||e.key==="PageDown"){e.preventDefault();$(".ex-next",ex).click()}
   else if(e.key==="ArrowLeft"||e.key==="PageUp"){e.preventDefault();show(cur-1,-1)}});
 let sx=0,sy=0,ok=false;
-stage.addEventListener("touchstart",e=>{const t=e.target;ok=!(t.closest&&t.closest("input,.viz-stage,.ctl,.segc,.tbl-wrap,.mmap"));const p=e.touches[0];sx=p.clientX;sy=p.clientY},{passive:true});
+function hasHScroll(el){for(;el&&el!==stage;el=el.parentElement)if(el.scrollWidth>el.clientWidth+2)return true;return false}
+stage.addEventListener("touchstart",e=>{const t=e.target;ok=!(t.closest&&t.closest("input,.viz-stage,.ctl,.segc,.tbl-wrap,.mmap,.eq,.eq-scroll,.kd-m,.sorter"))&&!hasHScroll(t);const p=e.touches[0];sx=p.clientX;sy=p.clientY},{passive:true});
 stage.addEventListener("touchend",e=>{if(!ok)return;const p=e.changedTouches[0],dx=p.clientX-sx,dy=p.clientY-sy;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5){if(dx<0)$(".ex-next",ex).click();else show(cur-1,-1)}},{passive:true});
 
 /* no boot overlay (e.g. stripped page): honour the saved mode straight away */
