@@ -356,10 +356,10 @@ Kit.particles=(id,o)=>{
       Line syntax: [[x]] highlights a change, ~~x~~ crosses out,
       \frac{a}{b}, x^{2}, x_{1}, \sqrt{x}, \times \div \pm \le \ge \neq \approx \to \pi \theta \Delta
    ================================================================= */
-const TEX={"\\times":"×","\\div":"÷","\\pm":"±","\\le":"≤","\\ge":"≥","\\neq":"≠","\\approx":"≈","\\to":"→","\\cdot":"·","\\pi":"π","\\theta":"θ","\\Delta":"Δ","\\alpha":"α","\\beta":"β","\\lambda":"λ","\\mu":"μ","\\omega":"ω","\\rightleftharpoons":"⇌","\\infty":"∞","\\degree":"°"};
+const TEX={"\\times":"×","\\div":"÷","\\pm":"±","\\le":"≤","\\ge":"≥","\\neq":"≠","\\approx":"≈","\\to":"→","\\cdot":"·","\\pi":"π","\\theta":"θ","\\Delta":"Δ","\\alpha":"α","\\beta":"β","\\lambda":"λ","\\mu":"μ","\\omega":"ω","\\rightleftharpoons":"⇌","\\infty":"∞","\\degree":"°","\\quad":"&emsp;","\\qquad":"&emsp;&emsp;","\\min":"min","\\max":"max","\\log":"log","\\partial":"∂","\\sum":"Σ","\\gamma":"γ","\\sigma":"σ","\\phi":"φ","\\in":"∈"};
 Kit.math=s=>{s=String(s);
-  for(let k=0;k<4;k++)s=s.replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g,'<span class="fr"><span>$1</span><span>$2</span></span>').replace(/\\sqrt\{([^{}]*)\}/g,'<span class="rt">$1</span>').replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>");
-  s=s.replace(/\\[A-Za-z]+/g,m=>TEX[m]||m);
+  for(let k=0;k<4;k++)s=s.replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g,'<span class="fr"><span>$1</span><span>$2</span></span>').replace(/\\text\{([^{}]*)\}/g,"$1").replace(/\\sqrt\{([^{}]*)\}/g,'<span class="rt">$1</span>').replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>");
+  s=s.replace(/\\;/g,"&ensp;").replace(/\\,/g,"&thinsp;").replace(/log_2/g,"log<sub>2</sub>").replace(/\\[A-Za-z]+/g,m=>TEX[m]||m);
   return s.replace(/\[\[(.+?)\]\]/g,'<span class="hi">$1</span>').replace(/~~(.+?)~~/g,'<span class="x">$1</span>')};
 Kit.derive=(id,o)=>{
   const S=setup(id,"derive");if(!S)return;
