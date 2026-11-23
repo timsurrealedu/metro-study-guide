@@ -357,15 +357,16 @@ Kit.particles=(id,o)=>{
       \frac{a}{b}, x^{2}, x_{1}, \sqrt{x}, \times \div \pm \le \ge \neq \approx \to \pi \theta \Delta
    ================================================================= */
 const TEX={"\\times":"×","\\div":"÷","\\pm":"±","\\le":"≤","\\ge":"≥","\\neq":"≠","\\approx":"≈","\\to":"→","\\cdot":"·","\\pi":"π","\\theta":"θ","\\Delta":"Δ","\\alpha":"α","\\beta":"β","\\lambda":"λ","\\mu":"μ","\\omega":"ω","\\rightleftharpoons":"⇌","\\infty":"∞","\\degree":"°","\\quad":"&emsp;","\\qquad":"&emsp;&emsp;","\\min":'<span class="mop">min</span>',"\\max":'<span class="mop">max</span>',"\\lim":'<span class="mop">lim</span>',"\\arg":'<span class="mop">arg</span>',"\\log":'<span class="mop">log</span>',"\\partial":"∂","\\sum":'<span class="mop mop-big">∑</span>',"\\prod":'<span class="mop mop-big">∏</span>',"\\gamma":"γ","\\sigma":"σ","\\phi":"φ","\\in":"∈"};
-Kit.math=s=>{s=String(s);
+Kit.math=(s,o)=>{s=String(s);
   for(let k=0;k<4;k++)s=s.replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g,'<span class="fr"><span>$1</span><span>$2</span></span>').replace(/\\text\{([^{}]*)\}/g,"$1").replace(/\\sqrt\{([^{}]*)\}/g,'<span class="rt">$1</span>').replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>");
-  s=s.replace(/\\;/g,"&ensp;").replace(/\\,/g,"&thinsp;").replace(/log_2/g,"log<sub>2</sub>").replace(/\\[A-Za-z]+/g,m=>TEX[m]||m);
-  return s.replace(/\[\[(.+?)\]\]/g,'<span class="hi">$1</span>').replace(/~~(.+?)~~/g,'<span class="x">$1</span>')};
+  s=s.replace(/\\;/g,"&ensp;").replace(/\\,/g,"&thinsp;").replace(/\\[A-Za-z]+/g,m=>TEX[m]||m);
+  s=s.replace(/\[\[(.+?)\]\]/g,'<span class="hi">$1</span>').replace(/~~(.+?)~~/g,'<span class="x">$1</span>');
+  return E.math?E.math(s,o):s};
 Kit.derive=(id,o)=>{
   const S=setup(id,"derive");if(!S)return;
   S.stage.classList.add("kit-html");
   const Ls=o.lines;
-  S.stage.innerHTML=(o.given?`<div class="kd-given">${Kit.math(o.given)}</div>`:"")+`<ol class="kd">${Ls.map((l,i)=>`<li data-i="${i}"${l.final?' class="final"':""}><div class="kd-m">${Kit.math(l.m)}</div>${l.why?`<div class="kd-why">${Kit.math(l.why)}</div>`:""}</li>`).join("")}</ol>`;
+  S.stage.innerHTML=(o.given?`<div class="kd-given">${Kit.math(o.given)}</div>`:"")+`<ol class="kd">${Ls.map((l,i)=>`<li data-i="${i}"${l.final?' class="final"':""}><div class="kd-m">${Kit.math(l.m,{rows:true})}</div>${l.why?`<div class="kd-why">${Kit.math(l.why)}</div>`:""}</li>`).join("")}</ol>`;
   const steps=stepsOr(o,Ls.map((l,i)=>({t:l.t||(i?`Step ${i}`:"Start"),d:l.d||l.why||"",line:i})));
   return E.stepper(S.viz,steps,(i)=>{const s=steps[i],k=s.line??i;
     $$(".kd li",S.stage).forEach(li=>{const j=+li.dataset.i;li.classList.toggle("on",j===k);li.classList.toggle("later",j>k)});if(o.on)o.on(i,S.stage,s);},{ms:o.ms||4200});

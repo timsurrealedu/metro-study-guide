@@ -575,6 +575,76 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 phoneMQ.addEventListener?.("change",fitAll);window.addEventListener("orientationchange",()=>setTimeout(fitAll,300));
 document.addEventListener("visualstep",e=>{const s=e.target.querySelector?.(".viz-stage svg");if(s&&(!s.closest(".kit")||s.closest(".kit-diagram"))){fitSvgText(s);setTimeout(()=>fitSvgText(s),700)}});
 
+/* ---------- math formatting: one equation per row, subscripts, semantic colours ---------- */
+function mapTextSegs(html,fn){return String(html).split(/(<[^>]+>|&[A-Za-z0-9#]+;)/g).map((s,i)=>i%2?s:fn(s)).join("")}
+function subMath(html){return mapTextSegs(html,t=>t.replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>").replace(/([A-Za-z0-9\u0370-\u03FF∑∏])_([A-Za-z0-9']+)/g,"$1<sub>$2</sub>"))}
+function hasEqOp(s){return /[=≈≤≥]/.test(s.replace(/<[^>]+>/g,""))}
+function splitEqRows(html){
+  const out=[];
+  String(html).split(/<br\s*\/?>|\n/gi).forEach(line=>{
+    const s=line.trim();if(!s)return;
+    let pd=0,td=0,last=0,parts=[];
+    for(let i=0;i<s.length;i++){
+      const c=s[i];
+      if(c==="<"){td++;continue}if(c===">"&&td>0){td--;continue}if(td>0)continue;
+      if(c==="("||c==="["||c==="{")pd++;else if((c===")"||c==="]"||c==="}")&&pd>0)pd--;
+      if(pd!==0)continue;
+      let sep=0;
+      if(c===","||c===";")sep=1;
+      else if(s.slice(i).match(/^\s+and\s+/i))sep=s.slice(i).match(/^\s+and\s+/i)[0].length;
+      if(sep){const L=s.slice(last,i).trim(),R=s.slice(i+sep).trim();
+        if(hasEqOp(L)&&hasEqOp(R)){parts.push(L);last=i+sep;i+=sep-1}}
+    }
+    parts.push(s.slice(last).trim());
+    parts.forEach(p=>{if(p)out.push(p)});
+  });
+  return out;
+}
+function colorMathRow(row){
+  let idx=-1,td=0,pd=0;
+  for(let i=0;i<row.length;i++){
+    const c=row[i];
+    if(c==="<"){td++;continue}if(c===">"&&td>0){td--;continue}if(td>0)continue;
+    if(c==="("||c==="["||c==="{")pd++;else if((c===")"||c==="]"||c==="}")&&pd>0)pd--;
+    if(pd===0&&/[=≈≤≥]/.test(c)){idx=i;break}
+  }
+  const paintSeg=(seg,inLhs)=>{
+    let sub=0,hi=0;
+    return seg.split(/(<[^>]+>|&[A-Za-z0-9#]+;)/g).map((tok,i)=>{
+      if(i%2){
+        if(/^<(sub|sup)\b/i.test(tok))sub++;else if(/^<\/(sub|sup)>/i.test(tok)&&sub>0)sub--;
+        if(/^<span class="(?:hi|x)"/i.test(tok))hi++;else if(/^<\/span>/i.test(tok)&&hi>0)hi--;
+        return tok;
+      }
+      if(hi>0)return tok;
+      return tok.replace(/([=≈≤≥≠+\-−×÷±→·|()[\]]|\d+(?:\.\d+)?%?)/g,m=>{
+        if(/^[=≈≤≥≠+\-−×÷±→·|()[\]]$/.test(m))return `<span class="m-op">${m}</span>`;
+        if(inLhs||sub>0)return m;
+        return `<span class="m-num">${m}</span>`;
+      });
+    }).join("");
+  };
+  if(idx>0){
+    const lhs=row.slice(0,idx).trim(),rhs=row.slice(idx);
+    if(lhs)return `<span class="m-lhs">${paintSeg(lhs,true)}</span> ${paintSeg(rhs,false)}`;
+  }
+  return paintSeg(row,false);
+}
+function formatMath(s,o){
+  const h=subMath(s);
+  if(!o||!o.rows)return h;
+  const rows=splitEqRows(h);
+  return rows.map(r=>`<span class="eq-row">${colorMathRow(r)}</span>`).join("");
+}
+$$(".eq").forEach(el=>{
+  const sm=[...el.querySelectorAll(":scope>small")];
+  sm.forEach(n=>n.remove());
+  const rows=splitEqRows(subMath(el.innerHTML));
+  if(rows.length>1)el.classList.add("eq-multi");
+  el.innerHTML=`<div class="eq-scroll">${rows.map(r=>`<span class="eq-row">${colorMathRow(r)}</span>`).join("")}</div>`;
+  sm.forEach(n=>el.appendChild(n));
+});
+
 /* ---------- boot ---------- */
 applyTheme(theme);applyMotion(motion);paintProgress();swipeHints();
 $$("input[type=range]").forEach(rangeFill);
@@ -587,6 +657,6 @@ $$(".sorter[data-bins]").forEach(b=>{const items=$$("[data-bin]",b).map(p=>[p.in
 $$(".q").forEach(q=>q.classList.add("rv","in"));
 $$(".flash").forEach(flashcards);
 window.Engine={$,$$,h,ic,store,flow,stepper,segc,segSet,rangeFill,sorter,watch,tickers,motionOn,markDone:id=>Engine_markDone(id),isDone:id=>done.has(id),visible,
-  openSheet,openOptions,applyTheme,getTheme:()=>theme,applyMotion,showToast,lineVars,chapters,parts,counted,fitAll,paintProgress,phoneMQ};
+  openSheet,openOptions,applyTheme,getTheme:()=>theme,applyMotion,showToast,lineVars,chapters,parts,counted,fitAll,paintProgress,phoneMQ,math:formatMath};
 document.dispatchEvent(new Event("engine-ready"));
 })();
