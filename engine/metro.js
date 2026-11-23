@@ -582,7 +582,7 @@ function compact(){
   $$("table.tbl").forEach(t=>{const hs=[...t.querySelectorAll("thead th")].map(th=>{const c=th.cloneNode(true);c.querySelectorAll(".id").forEach(x=>x.remove());return c.textContent.trim()});if(!hs.length)return;
     /* comparison table: an empty corner cell, then the things being compared.
        Each compared thing gets its own colour; it stays a real table on phones. */
-    if(!hs[0]&&hs.length>=3){t.classList.add("cmp");t.style.setProperty("--n",hs.length-1);t.closest(".tbl-wrap")?.classList.add("cmp-wrap");
+    if(!hs[0]&&hs.length>=3){t.classList.add("cmp");if(hs.length>=5)t.classList.add("cmp-wide");t.style.setProperty("--n",hs.length-1);t.closest(".tbl-wrap")?.classList.add("cmp-wrap");
       const paint=row=>[...row.children].forEach((c,i)=>{if(i)c.style.setProperty("--cc",`var(--c${i})`)});
       $$("thead tr,tbody tr",t).forEach(paint);return}
     t.classList.add("stackable");$$("tbody tr",t).forEach(tr=>[...tr.children].forEach((td,i)=>{if(hs[i])td.setAttribute("data-label",hs[i])}))});
@@ -732,7 +732,7 @@ $$(".drill").forEach(b=>{const k=Object.keys(DRILLS).find(k=>b.classList.contain
 
 /* ---------- math formatting: one equation per row, subscripts, semantic colours ---------- */
 function mapTextSegs(html,fn){return String(html).split(/(<[^>]+>|&[A-Za-z0-9#]+;)/g).map((s,i)=>i%2?s:fn(s)).join("")}
-function subMath(html){return mapTextSegs(html,t=>t.replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>").replace(/\^([A-Za-z0-9'*+-])/g,"<sup>$1</sup>").replace(/([A-Za-z0-9\u0370-\u03FF∑∏])_([A-Za-z0-9']+)/g,"$1<sub>$2</sub>").replace(/((?:(?:for|if|untuk|jika)\s+)?[A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+)/gi,'<span class="nowrap">$1</span>').replace(/([=≈≤≥≠∈]\s*[−-]?[A-Za-z0-9.]+%?)/g,'<span class="nowrap">$1</span>'))}
+function subMath(html){return mapTextSegs(html,t=>t.replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>").replace(/\^([A-Za-z0-9'*+-])/g,"<sup>$1</sup>").replace(/([A-Za-z0-9\u0370-\u03FF∑∏])_([A-Za-z0-9']+)/g,"$1<sub>$2</sub>").replace(/((?:(?:for|if|untuk|jika)\s+)?[A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+)/gi,'<span class="nowrap">$1</span>').replace(/(\([^()]{1,22}[→=≤≥<>][^()]{0,22}\))/g,'<span class="nowrap">$1</span>').replace(/([=≈≤≥≠∈]\s*[−-]?[A-Za-z0-9.]+%?)/g,'<span class="nowrap">$1</span>'))}
 function hasEqOp(s){return /[=≈≤≥⇒⇔]/.test(s.replace(/<[^>]+>/g,""))}
 function trimMath(s){return String(s).replace(/^(?:\s|&emsp;|&ensp;|&thinsp;)+|(?:\s|&emsp;|&ensp;|&thinsp;)+$/gi,"")}
 function splitEqRows(html){
@@ -839,7 +839,7 @@ function alignMath(rootEl=main){
     if(target>0)ls.forEach((el,i)=>{if(ws[i]<=cap)el.style.minWidth=Math.ceil(target)+"px"});
   });
 }
-$$(".cmp td,.tbl td",main).forEach(td=>{if(!td.closest(".eq,.kd-m")&&/[≤≥<>]/.test(td.textContent))td.innerHTML=subMath(td.innerHTML)});
+$$(".cmp td,.tbl td",main).forEach(td=>{if(!td.closest(".eq,.kd-m")&&/[≤≥<>→]/.test(td.textContent))td.innerHTML=subMath(td.innerHTML)});
 requestAnimationFrame(()=>alignMath());
 
 const blockEn=new WeakMap(),txtEn=new WeakMap();
