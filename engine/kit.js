@@ -1,5 +1,5 @@
 /* =====================================================================
-   METRO ENGINE v1 · VISUAL KIT
+   METRO ENGINE v1.3 · VISUAL KIT
    ---------------------------------------------------------------------
    1) V  — small drawing helpers for hand-drawn (custom) visuals.
    2) Kit — ready-made step visuals you configure with data instead of
@@ -37,7 +37,7 @@ V.ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 
 /* @kit-start (build.py drops everything below when visuals.js never calls Kit.) */
 /* ---------------------------------------------------------------- shared */
-const Kit=window.Kit={version:"1.0"};
+const Kit=window.Kit={version:"1.2"};
 const PAL=i=>`var(--c${(i%4)+1})`;
 const CW=(fs)=>fs*.57;                                   // average character width in px
 const fit=(t,w,fs)=>V.wrap(t,Math.max(6,Math.floor(w/CW(fs))));
@@ -236,28 +236,64 @@ Kit.graph=(id,o)=>{
   const p={};Object.entries(o.params||{}).forEach(([k,c])=>p[k]=c.value);
   const steps=stepsOr(o,[{t:"The graph",d:""}]);
   const col=(fn,k)=>fn.color||(k?PAL(k-1):"var(--pc)");
+  const val=(v,d)=>v==null?d:(typeof v==="function"?v(p):v);   /* a number, or a function of the sliders */
+  const lab=(t,x,y)=>String(t).replace("{x}",num(x)).replace("{y}",num(y));
   let W0=640,H0=360,leg=[],legH=0,stopT=()=>{},show=F.map((_,i)=>i),marks=[],setters={};
+  /* v1.2 extras: step values replace the top-level ones while that step is shown */
+  let ex={vlines:o.vlines||[],hlines:o.hlines||[],dots:o.dots||[],shade:o.shade||[]};
+  const arr=v=>v==null?[]:(Array.isArray(v)?v:[v]);
   function layout(W){W0=W;
     /* legend: one row of "— label" items under the x axis, wrapping on narrow screens */
     leg=[];let lx=0,ly=0;F.forEach((fn,k)=>{if(!fn.label)return;const w=26+fn.label.length*7.4+18;if(lx&&lx+w>W-60){lx=0;ly+=22}leg.push({k,x:lx,y:ly});lx+=w});
     legH=leg.length?ly+26:0;H0=Math.round(V.clamp(W*.5,200,330))+34+46+legH;draw()}
+  /* the pieces of a curve: its domain cut at its breaks (jumps); each piece is sampled a hair inside its ends */
+  function pieces(fn){
+    let a=val(fn.domain&&fn.domain[0],X.min),b=val(fn.domain&&fn.domain[1],X.max);a=Math.max(a,X.min);b=Math.min(b,X.max);if(!(b>a))return[];
+    let br=fn.breaks==="int"?(()=>{const r=[];for(let k=Math.ceil(a);k<=b;k++)r.push(k);return r})():arr(val(fn.breaks,[]));
+    const cuts=[a,...br.filter(x=>x>a&&x<b).sort((u,v)=>u-v),b],out=[];
+    for(let i=0;i<cuts.length-1;i++)if(cuts[i+1]-cuts[i]>1e-9)out.push([cuts[i],cuts[i+1]]);return out}
+  function fval(fn,x){let y;try{y=fn.f(x,p)}catch(e){y=NaN}return y}
   function draw(){
     const W=W0,H=H0,L=52,R=16,T=34,B=46+legH;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
     const sx=x=>L+(x-X.min)/(X.max-X.min)*(W-L-R),sy=y=>H-B-(y-Y.min)/(Y.max-Y.min)*(H-T-B);
+    const eps=(X.max-X.min)*1e-6;
     let s=`<defs><clipPath id="${S.uid}-c"><rect x="${L}" y="${T-4}" width="${W-L-R}" height="${H-T-B+8}"/></clipPath></defs>`;
     const gx=X.step||nice(X.max-X.min,W<500?5:8),gy=Y.step||nice(Y.max-Y.min,6);
     for(let v=Math.ceil(X.min/gx)*gx;v<=X.max+1e-9;v+=gx)s+=`<line class="k-grid" x1="${sx(v)}" y1="${T}" x2="${sx(v)}" y2="${H-B}"/><text class="k-s" x="${sx(v)}" y="${H-B+18}" text-anchor="middle">${num(v)}</text>`;
     for(let v=Math.ceil(Y.min/gy)*gy;v<=Y.max+1e-9;v+=gy)s+=`<line class="k-grid" x1="${L}" y1="${sy(v)}" x2="${W-R}" y2="${sy(v)}"/><text class="k-s" x="${L-8}" y="${sy(v)+4}" text-anchor="end">${num(v)}</text>`;
+    /* shaded areas go under the axes and curves */
+    s+=`<g clip-path="url(#${S.uid}-c)">`;
+    arr(ex.shade).forEach((sh,j)=>{const f1=F[sh.fn||0],f2=sh.fn2!=null?F[sh.fn2]:null;if(!f1)return;
+      const a=val(sh.from,X.min),b=val(sh.to,X.max);if(!(b>a))return;const N=Math.max(60,Math.round((sx(b)-sx(a))/3));let top="",bot=[],cy=0,cn=0;
+      for(let i=0;i<=N;i++){const x=a+(b-a)*i/N,y1=fval(f1,x),y2=f2?fval(f2,x):0;if(!isFinite(y1)||!isFinite(y2))continue;
+        const Y1=V.clamp(sy(y1),-2000,4000),Y2=V.clamp(sy(y2),-2000,4000);top+=(top?"L":"M")+sx(x).toFixed(1)+","+Y1.toFixed(1);bot.unshift(sx(x).toFixed(1)+","+Y2.toFixed(1));cy+=(Y1+Y2)/2;cn++}
+      if(!cn)return;const c=sh.color||(j?PAL(j):"var(--pc)");
+      s+=`<path class="k-shade" d="${top}L${bot.join("L")}Z" style="fill:${c};stroke:${c}"/>`;
+      if(sh.label){const mx=val(sh.lx,(a+b)/2),ly=sh.ly!=null?sy(val(sh.ly)):cy/cn;s+=`<text class="k-t k-halo" x="${sx(mx)}" y="${ly+5}" text-anchor="middle">${sh.label}</text>`}});
+    s+=`</g>`;
     if(X.min<=0&&X.max>=0)s+=`<line class="k-axis" x1="${sx(0)}" y1="${T}" x2="${sx(0)}" y2="${H-B}"/>`;
     if(Y.min<=0&&Y.max>=0)s+=`<line class="k-axis" x1="${L}" y1="${sy(0)}" x2="${W-R}" y2="${sy(0)}"/>`;
     s+=`<text class="k-s k-axl" x="${W-R}" y="${H-B+38}" text-anchor="end">${X.label||"x"}</text><text class="k-s k-axl" x="6" y="18">${Y.label||"y"}</text>`;
+    /* vertical and horizontal lines (asymptotes, bounds x = a) */
+    arr(ex.vlines).forEach(v=>{const x=val(v.x);if(!isFinite(x)||x<X.min||x>X.max)return;const c=v.color||"var(--text-2)";
+      s+=`<line class="k-vl" x1="${sx(x)}" y1="${T-4}" x2="${sx(x)}" y2="${H-B}" style="stroke:${c};${v.dash===false?"":"stroke-dasharray:7 6"}"/>`;
+      if(v.label){const t=lab(v.label,x,0),lw=t.length*8.2,side=v.side||(sx(x)+8+lw<=W-R?"right":"left"),right=side==="right";s+=`<text class="k-t k-halo" x="${right?sx(x)+8:sx(x)-8}" y="${v.at==="bottom"?H-B-10:T+12}" text-anchor="${right?"start":"end"}" style="fill:${c}">${t}</text>`}});
+    arr(ex.hlines).forEach(v=>{const y=val(v.y);if(!isFinite(y)||y<Y.min||y>Y.max)return;const c=v.color||"var(--text-2)";
+      s+=`<line class="k-vl" x1="${L}" y1="${sy(y)}" x2="${W-R}" y2="${sy(y)}" style="stroke:${c};${v.dash===false?"":"stroke-dasharray:7 6"}"/>`;
+      if(v.label){const t=lab(v.label,0,y),lw=t.length*8.2,ty=(v.below||sy(y)-8<T+10)?sy(y)+20:sy(y)-8,at=v.at||"right";s+=`<text class="k-t k-halo" x="${at==="left"?L+6:W-R-4}" y="${ty}" text-anchor="${at==="left"?"start":"end"}" style="fill:${c}">${t}</text>`}});
     s+=`<g clip-path="url(#${S.uid}-c)">`;
-    F.forEach((fn,k)=>{if(!show.includes(k))return;let d="",pen=false;const N=Math.max(120,W);
-      for(let j=0;j<=N;j++){const x=X.min+(X.max-X.min)*j/N;let y;try{y=fn.f(x,p)}catch(e){y=NaN}
-        if(!isFinite(y)||Math.abs(y)>1e6){pen=false;continue}const yy=V.clamp(sy(y),-2000,4000);d+=(pen?"L":"M")+sx(x).toFixed(1)+","+yy.toFixed(1);pen=true}
+    F.forEach((fn,k)=>{if(!show.includes(k))return;let d="";
+      pieces(fn).forEach(([a,b])=>{let pen=false;const n=Math.max(40,Math.round(sx(b)-sx(a)));
+        for(let j=0;j<=n;j++){let x=a+(b-a)*j/n;if(j===0)x=a+eps;if(j===n)x=b-eps;const y=fval(fn,x);
+          if(!isFinite(y)||Math.abs(y)>1e6){pen=false;continue}const yy=V.clamp(sy(y),-2000,4000);d+=(pen?"L":"M")+sx(x).toFixed(1)+","+yy.toFixed(1);pen=true}});
       s+=`<path class="k-curve" d="${d}" style="stroke:${col(fn,k)};${fn.dash?"stroke-dasharray:7 6":""}"/>`});
     (o.points||[]).forEach(pt=>{s+=`<circle class="k-pt" cx="${sx(pt[0])}" cy="${sy(pt[1])}" r="5.5"/>`+(pt[2]?`<text class="k-s k-halo" x="${sx(pt[0])+9}" y="${sy(pt[1])-8}">${pt[2]}</text>`:"")});
     s+=`</g>`;
+    /* endpoint dots: closed ● = included, open ○ = not included */
+    arr(ex.dots).forEach(dt=>{const x=val(dt.x);let y=dt.y!=null?val(dt.y):(F[dt.fn||0]?fval(F[dt.fn||0],x):NaN);if(!isFinite(x)||!isFinite(y)||x<X.min-1e-9||x>X.max+1e-9||y<Y.min-1e-9||y>Y.max+1e-9)return;
+      const c=dt.color||col(F[dt.fn||0]||{},dt.fn||0);const cw=6.8;
+      s+=`<circle class="k-dot${dt.open?" open":""}" cx="${sx(x)}" cy="${sy(y)}" r="6" style="stroke:${c};${dt.open?"":"fill:"+c}"/>`;
+      if(dt.label){const t=lab(dt.label,x,y),lw=t.length*cw,tx=sx(x)+12+lw>W-R?sx(x)-12-lw:sx(x)+12;s+=`<text class="k-s k-halo" x="${V.clamp(tx,L+4,W-R-lw)}" y="${V.clamp(sy(y)-10,T+14,H-B-8)}">${t}</text>`}});
     marks.forEach(m0=>{const fn=F[m0.fn||0];if(!fn)return;const m={...m0,x:typeof m0.x==="function"?m0.x(p):m0.x};let y;try{y=m.y!=null?(typeof m.y==="function"?m.y(p):m.y):fn.f(m.x,p)}catch(e){return}if(!isFinite(y)||!isFinite(m.x))return;
       const lab=m.label!=null?m.label.replace("{x}",num(m.x)).replace("{y}",num(y)):`(${num(m.x)}, ${num(y)})`;
       const lw=lab.length*8.2,tx=sx(m.x)+12+lw>W-R?sx(m.x)-12-lw:sx(m.x)+12;
@@ -270,6 +306,7 @@ Kit.graph=(id,o)=>{
   Object.entries(o.params||{}).forEach(([k,c])=>{if(c.slider===false)return;setters[k]=ctlRange(S,k,c,v=>{p[k]=v;draw()})});
   responsive(S,layout);
   return E.stepper(S.viz,steps,(i)=>{const s=steps[i];show=s.show||F.map((_,k)=>k);marks=s.mark||[];stopT();
+    ["vlines","hlines","dots","shade"].forEach(k=>ex[k]=s[k]!==undefined?s[k]:(o[k]||[]));
     const from={...p},to={...p,...(s.set||{})};
     stopT=V.tween(o.tween||700,t=>{const e=V.ease(t);Object.keys(to).forEach(k=>p[k]=from[k]+(to[k]-from[k])*e);draw()},()=>Object.keys(to).forEach(k=>setters[k]&&setters[k](to[k])));
     if(o.on)o.on(i,svg,s,p);},{ms:o.ms,freeLabel:o.freeLabel});

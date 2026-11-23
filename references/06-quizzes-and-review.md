@@ -1,4 +1,4 @@
-# 06 · Quizzes, flashcards, sorters, checkpoints
+# 06 · Quizzes, flashcards, sorters, drills, checkpoints
 
 ## quiz.json
 
@@ -88,6 +88,62 @@ One item at a time; the reader taps a bin; the log shows right/wrong with the re
 "Sort again" restarts. Good for true/false-trap lists, classification (element or
 compound, renewable or not, fact or opinion) and matching a function to a body.
 From JavaScript: `E.sorter(box, [[html, bin, why], …], ["A", "B"])`.
+
+## Drills (v1.3)
+
+Four hands-on exercises written in plain HTML, no JavaScript. Each one gets a header,
+a one-line hint, buttons (Check, Show answer(s), Shuffle or Reset) and a result line.
+Every action works by **tapping** as well as by **dragging**, so they work on phones,
+with a keyboard and with a screen reader. They are not scored in progress.
+
+| Drill | Use it for | Interaction |
+|---|---|---|
+| `order` | Steps of a process, structure of a text, events in time, sentences of a paragraph | Drag the dotted handle, or tap two rows to swap. Arrow keys move a focused row. Check marks each row right or wrong. |
+| `cloze` | Fill-in-the-blank: key terms, kata baku, conjunctions, a letter header | Tap a word in the bank, then a blank (or drag it there). Tap a filled blank to empty it. |
+| `spot` | Find the mistakes: a letter, a paragraph with spelling errors, a wrong worked solution | Tap every wrong word or phrase; each find shows its correction and the rule. Wrong taps are counted. |
+| `match` | Terms ↔ meanings, rules ↔ examples, parts ↔ quotes | Tap a term then its meaning (or drag the term onto it). |
+
+```html
+<!-- order: write the items in the RIGHT order; they are shuffled on screen -->
+<div class="drill order" data-why="Shown when everything is in order.">
+  <p>First step</p><p>Second step</p><p>Third step</p>
+</div>
+
+<!-- cloze: each blank is a span.gap holding the answer; data-extra adds distractors -->
+<div class="drill cloze" data-extra="wrong1|wrong2">
+  <p>Water boils at <span class="gap" data-why="At sea level.">100</span> °C and freezes at
+     <span class="gap" data-alt="0°">0</span> °C.</p>
+</div>
+
+<!-- spot: wrap each mistake in <s>; data-fix is the right form ("" = delete it) -->
+<div class="drill spot">
+  <p><s data-fix="Hal" data-why="Peri already means hal.">Perihal</s>: lamaran pekerjaan</p>
+</div>
+
+<!-- match: one <p> per pair, the term in <b>, the meaning after it -->
+<div class="drill match">
+  <p><b>Tema</b> The main idea of the story</p>
+  <p><b>Amanat</b> The moral message</p>
+</div>
+```
+
+| Attribute | On | Meaning |
+|---|---|---|
+| `data-why` | order | Text shown when the order is right (or after Show answer) |
+| `data-extra` | cloze | Distractor words, separated by `|` |
+| `data-alt` | cloze `.gap` | Other accepted answers, separated by `|` (not case-sensitive) |
+| `data-why` | cloze `.gap`, spot `s` | The rule, shown after Check / when found |
+| `data-fix` | spot `s` | The correct form; empty means "delete this" |
+
+**Writing good drills:** put a `p.lead` before each one (what to do and why), keep them
+short (order ≤ 10 rows, cloze ≤ 10 blanks, match ≤ 6–8 pairs) so they fit a phone, use
+real mistakes students make as distractors, and give every fix a short rule.
+`check.py` checks the markup and these limits.
+
+**In the explainer** drills are compact; on small phones a long drill may be split
+into parts, and the word bank of a cloze (and the terms of a match) stay in view while
+you move between parts. Selections carry across parts: tap a word, press More, tap the
+blank. From JavaScript: `Engine.drills.order(box)` (also `cloze`, `spot`, `match`).
 
 ## Checkpoints
 

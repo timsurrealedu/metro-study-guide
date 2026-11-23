@@ -256,6 +256,7 @@ small (≤ 200 KB each; JPEG for photos, PNG/SVG for drawings).
 | Practice exam | `<div class="quiz" data-set="exam"></div>` | items with `"exam": true` |
 | Flashcards | `<div class="flash"></div>` | `flash.json` |
 | Sorter | see below | in the HTML |
+| Drills (v1.3) | `<div class="drill order">`, `cloze`, `spot`, `match` | in the HTML: drag-to-order, fill in the blanks, find the mistakes, match pairs ([06](06-quizzes-and-review.md#drills-v13)) |
 
 ```html
 <div class="sorter" data-bins="Element|Compound">

@@ -1,5 +1,5 @@
 /* =====================================================================
-   BOOT SCREEN · MODE PICKER · FULL-SCREEN EXPLAINER
+   METRO ENGINE v1.3 · BOOT SCREEN · MODE PICKER · FULL-SCREEN EXPLAINER
    Two ways to ride the same stations:
      scroll   – the whole guide on one page (the original layout)
      explain  – full screen, one idea per screen: explainer text on top,
@@ -22,7 +22,7 @@ const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches||root.datase
 const msg=boot&&$(".boot-msg",boot),bar=boot&&$(".boot-bar i",boot);
 const steps=["Laying the track","Painting the lines","Opening the stations","Ready"];
 let si=0;const tick=()=>{if(!boot)return;si=Math.min(si+1,steps.length-1);if(msg)msg.textContent=steps[si];if(bar)bar.style.width=((si+1)/steps.length*100)+"%"};
-const minT=reduce?250:1500,t0=performance.now();
+const minT=reduce?150:950,t0=performance.now();
 const tickT=reduce?null:setInterval(tick,minT/steps.length);
 const fontsReady=document.fonts&&document.fonts.ready?Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1500))]):Promise.resolve();
 const ready=Promise.all([fontsReady,new Promise(r=>setTimeout(r,Math.max(0,minT-(performance.now()-t0))))]);
@@ -75,7 +75,15 @@ function build(){
         const h3=$(":scope>h3",el);let cur=null;
         const start=()=>{cur={...base,kind:"sec",h3,nodes:[],text:[],media:0,calls:0,chars:0};S.push(cur)};
         [...el.children].forEach(b=>{if(b===h3)return;
-          if(b.matches(".cp-list")){[...b.children].forEach(d=>{keep(d);start();cur.nodes.push(d);cur.media++});return}
+          if(b.matches(".cp-list")){[...b.children].forEach(d=>{
+            const body=d.matches("details.cp")&&$(".cp-body",d);
+            if(!body){keep(d);start();cur.nodes.push(d);cur.media++;return}
+            /* v1.2: a checkpoint becomes short screens: two traps per screen, then its quiz */
+            const nm=`${$(".cp-n",d)?.textContent||""} ${$(".cp-t",d)?.textContent||""}`.trim();
+            const traps=$$(":scope>.callout",body),quiz=$(":scope>.quiz",body),pages=Math.ceil(traps.length/2);
+            const sc=(eb,nodes)=>{const x={...base,kind:"sec",h3:h("h3",{"data-eb":eb},nm),nodes:nodes.map(keep),text:[],media:nodes.length,calls:0,chars:0};S.push(x)};
+            for(let k=0;k<traps.length;k+=2)sc(pages>1?`Watch out for · ${k/2+1} of ${pages}`:"Watch out for",traps.slice(k,k+2));
+            if(quiz)sc("Test yourself",[quiz]);cur=null});return}
           keep(b);
           if(isAside(b)&&cur){cur.nodes.push(b);cur.media++;return}
           if(isText(b)){if(!cur||cur.media||(cur.text.length&&cur.chars+len(b)>CH))start();cur.nodes.push(b);cur.text.push(b);cur.chars+=len(b)}
@@ -91,29 +99,40 @@ function build(){
 /* ------------------------------------------------------------- chrome */
 const ex=h("div",{class:"ex",role:"region","aria-label":"Explainer","aria-roledescription":"slides"});
 ex.innerHTML=`<div class="ex-top">
-    <button class="ex-pill ex-menu" type="button" aria-haspopup="dialog">${ic("list")}<span>Stations</span></button>
+    <button class="ex-pill ex-menu" type="button" aria-haspopup="dialog" aria-label="Stations">${ic("list")}<span>Stations</span></button>
     <div class="ex-where"><span class="lbadge"></span><span class="ex-wt"></span></div>
-    <button class="ex-pill ex-opt" type="button" aria-haspopup="dialog">${ic("sliders")}<span>Options</span></button>
+    <div class="ex-acts" role="group" aria-label="Reading mode and options"><button class="ex-pill ex-scroll" type="button" title="Scroll mode: the whole guide on one page" aria-label="Switch to scroll mode">${SVG.scroll}<span>Scroll</span></button><button class="ex-pill ex-opt" type="button" aria-haspopup="dialog" aria-label="Options">${ic("sliders")}<span>Options</span></button><button class="ex-pill ex-fs fs-btn" type="button" aria-label="Full screen" title="Full screen" hidden><svg class="ic fs-on" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg><svg class="ic fs-off" viewBox="0 0 24 24"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg><span class="lbl">Full screen</span></button></div>
     <div class="ex-bars" aria-hidden="true"></div>
   </div>
   <div class="ex-stage"><div class="ex-card" aria-live="polite"><div class="ex-text"></div><div class="ex-media"></div></div></div>
   <div class="ex-bot">
     <div class="ex-nav"><button class="ex-prev" type="button">${ic("back")}<span>Back</span></button><button class="ex-next" type="button"><span>Next</span>${ic("next")}</button></div>
-    <div class="ex-meta"><span class="ex-count"></span><span class="ex-tools"><span class="ex-done"></span></span></div>
+    <div class="ex-meta"><span class="ex-count"></span><span class="ex-tools"><button class="ex-pill ex-trybtn" type="button" aria-expanded="false" aria-controls="ex-try" hidden>${ic("sliders")}<span>Try it yourself</span></button><span class="ex-done"></span></span></div>
   </div>`;
 document.body.appendChild(ex);
+/* sliders sheet (narrow screens): the visual's sliders live here while the screen is shown */
+const trySheet=h("div",{class:"ex-try",id:"ex-try",role:"dialog","aria-label":"Try it yourself"},`<div class="ex-try-h"><b>Try it yourself</b><span>Drag a slider and watch the visual.</span><button class="ex-pill ex-try-done" type="button">Done</button></div><div class="viz ex-try-b"></div>`);
+trySheet.hidden=true;ex.appendChild(trySheet);
 const card=$(".ex-card",ex),txt=$(".ex-text",ex),med=$(".ex-media",ex),stage=$(".ex-stage",ex);
 const bars=$(".ex-bars",ex),wt=$(".ex-wt",ex),badge=$(".ex-where .lbadge",ex),count=$(".ex-count",ex),doneBox=$(".ex-done",ex);
 let cur=-1,shown=[];
-
-function returnNodes(){shown.forEach(n=>{const ph=home.get(n);if(ph&&ph.parentNode)ph.parentNode.insertBefore(n,ph);n.style.zoom=""});shown=[];txt.innerHTML="";med.innerHTML="";med.style.zoom="";card.classList.remove("scroll","two","solo","title")}
+const tryBtn=$(".ex-trybtn",ex),tryBody=$(".ex-try-b",trySheet);
+let moved=[],made=[],arranged=null,nextBase="Next",pendingLast=false,pgEl=null;const pg={stops:[0],i:0};const painted=new Map();
+/* sub-nodes moved for one screen (a visual's caption, player, sliders) go back to their own place */
+function moveTo(n,into){const ph=document.createComment("exm");n.before(ph);into.appendChild(n);moved.push([n,ph])}
+function restoreMoved(){moved.reverse().forEach(([n,ph])=>{if(ph.parentNode)ph.parentNode.insertBefore(n,ph);ph.remove()});moved=[];made.forEach(m=>m.remove());made=[];
+  closeTry();tryBtn.hidden=true;arranged=null;$$(".viz-stage.ex-win",med).forEach(st=>{st.classList.remove("ex-win");st.style.maxHeight=""})}
+function returnNodes(){restoreMoved();shown.forEach(n=>{const ph=home.get(n);if(ph&&ph.parentNode)ph.parentNode.insertBefore(n,ph);n.style.zoom=""});shown=[];txt.innerHTML="";txt.style.zoom="";med.innerHTML="";med.style.zoom="";med.style.height="";med.scrollTop=0;med.classList.remove("paged","more");txt.style.height="";txt.scrollTop=0;txt.classList.remove("paged","more");card.style.height="";card.scrollTop=0;card.classList.remove("more");pgEl=null;card.classList.remove("scroll","two","solo","title","paged");pg.stops=[0];pg.i=0;
+  painted.forEach((d,q)=>q.dispatchEvent(new CustomEvent("quizpaint",{bubbles:true,detail:d})));painted.clear()}
+function openTry(){trySheet.hidden=false;tryBtn.setAttribute("aria-expanded","true");ex.classList.add("trying")}
+function closeTry(){trySheet.hidden=true;tryBtn.setAttribute("aria-expanded","false");ex.classList.remove("trying")}
 function setLine(p){
   if(p){ex.classList.add("part");ex.dataset.part=p.dataset.part;ex.style.cssText=E.lineVars(p.dataset.part)}
   else{ex.classList.remove("part");delete ex.dataset.part;ex.style.cssText=""}}
 function show(i,dir){
   if(!screens)screens=build();
   i=Math.max(0,Math.min(screens.length-1,i));const s=screens[i];
-  returnNodes();card.scrollTop=0;stage.scrollTop=0;cur=i;setLine(s.part);
+  returnNodes();cur=i;setLine(s.part);
   // text column: section heading (a copy), then the explainer paragraphs
   if(s.kind==="sec"&&s.h3)txt.appendChild(s.h3.cloneNode(true));
   const textNodes=s.kind==="chapter"?s.nodes:s.nodes.filter(n=>s.text.includes(n));
@@ -127,34 +146,131 @@ function show(i,dir){
   const grp=screens.filter(x=>x.group===s.group),k=grp.indexOf(s);
   bars.innerHTML=grp.map((x,j)=>`<i class="${j<k?"past":j===k?"now":""}"></i>`).join("");
   wt.textContent=s.label;badge.textContent=s.part?s.part.dataset.part:"";badge.hidden=!s.part;
-  count.textContent=`${k+1} / ${grp.length}`;
+  count.textContent=`${k+1} / ${grp.length}`;count.dataset.base=count.textContent;
   $(".ex-prev",ex).disabled=i===0;
   const last=i===screens.length-1,endOfCh=s.ch&&(i===screens.length-1||screens[i+1].group!==s.group);
   const anyDone=E.counted.some(c=>E.isDone(c.id));
-  $(".ex-next span",ex).textContent=last?"Finish":endOfCh?"Next station":(s.kind==="map"?(anyDone?"Continue":"Start riding"):"Next");
+  nextBase=last?"Finish":endOfCh?"Next station":(s.kind==="map"?(anyDone?"Continue":"Start riding"):"Next");pendingLast=dir<0;
+  $(".ex-next span",ex).textContent=nextBase;
   doneBox.innerHTML=s.ch&&s.ch.counts&&endOfCh?`<button class="donebtn sm" type="button" data-done="${s.ch.id}" aria-pressed="${E.isDone(s.ch.id)}">${ic("check")}<span>${E.isDone(s.ch.id)?"Learned":"Mark as learned"}</span></button>`:"";
   store.set("exPos",s.key);
   // slide in
   card.classList.remove("in-l","in-r");void card.offsetWidth;if(dir&&E.motionOn())card.classList.add(dir>0?"in-r":"in-l");
-  requestAnimationFrame(()=>{card.scrollTop=0;fit();card.scrollTop=0;});setTimeout(()=>{fit();},400);
+  requestAnimationFrame(fit);setTimeout(fit,400);
   E.fitAll&&E.fitAll();
 }
-/* fit: keep each screen inside the viewport. Media shrinks (zoom) down to a
-   floor; only if it still can't fit does the card scroll inside itself. */
-function fit(){
-  if(cur<0)return;med.style.zoom="";card.classList.remove("scroll");
-  const hasBody=[...txt.children].some(n=>n.tagName!=="H3");
-  const wide=innerWidth>=1000&&innerWidth>innerHeight*1.15&&hasBody&&med.childNodes.length;
-  card.classList.toggle("head-only",!hasBody&&!!txt.childNodes.length);
+/* fit (v1.2): every screen fits the viewport with no scrolling.
+   1. arrange: on wide screens a visual's caption, player and sliders move into the
+      left column, so the right column holds only the picture; on narrow screens the
+      sliders move into a "Try it yourself" sheet when they don't fit.
+   2. a stepped HTML visual (worked example, table) that is still too tall becomes a
+      window that follows the current step.
+   3. shrink a little (never below a readable floor).
+   4. otherwise split the screen into parts: Next shows the next part ("More"). */
+function wideNow(){const hasBody=[...txt.children].some(n=>n.tagName!=="H3"&&!n.classList.contains("ex-vpanel"));
+  const v=med.querySelector(":scope>.viz");const panel=!!(v&&$(":scope>.player",v));
+  return roomy()&&!!med.childNodes.length&&(hasBody||panel)}
+function arrange(wide){
   card.classList.toggle("two",!!wide);ex.classList.toggle("wide",!!wide);
-  const H=stage.clientHeight-8;const tH=wide?0:txt.offsetHeight+(txt.childNodes.length&&med.childNodes.length?14:0);
-  const mH=med.scrollHeight;if(!mH)return;
-  if(screens[cur].kind==="map"){if(mH>H)card.classList.add("scroll");return}
-  const avail=H-tH;let z=1;
-  if(mH>avail){const texty=med.querySelector(".quiz,details.cp,.grid2,.grid3,.terms,.steps,.tbl-wrap,.callout,.kit-html");const floor=texty?(med.querySelector(".quiz,details.cp")?1:.86):.6;z=Math.max(floor,avail/mH);med.style.zoom=z.toFixed(3)}
-  if((wide?Math.max(txt.offsetHeight,med.scrollHeight*z):tH+med.scrollHeight*z)>H+2)card.classList.add("scroll");
+  const v=med.querySelector(":scope>.viz");if(!wide||!v)return;
+  const parts=[$(":scope>.viz-cap",v),$(":scope>.player",v),...$$(":scope>.ctl",v)].filter(Boolean);if(!parts.some(n=>n.matches(".player")))return;
+  const panel=h("div",{class:"viz ex-vpanel"+(v.classList.contains("kit")?" kit":"")});txt.appendChild(panel);made.push(panel);parts.forEach(n=>moveTo(n,panel));
 }
-med.addEventListener("toggle",()=>requestAnimationFrame(fit),true);
+function fit(){
+  if(cur<0)return;let wide=wideNow();
+  if(arranged&&arranged.i===cur&&arranged.room===roomy())wide=arranged.wide;
+  if(!arranged||arranged.i!==cur||arranged.wide!==wide){restoreMoved();arrange(wide);arranged={i:cur,wide,room:roomy()}}
+  refit(false);
+  /* a heading-only screen that needs parts in one column: try heading left, content right */
+  if(!wide&&roomy()&&card.classList.contains("paged")&&txt.childNodes.length){restoreMoved();arrange(true);arranged={i:cur,wide:true,room:true};refit(false)}
+}
+function roomy(){return innerWidth>=900&&innerWidth>innerHeight*1.1}
+function resetFit(){
+  const w=$(".viz-stage.ex-win",med);if(w){w.classList.remove("ex-win");w.style.maxHeight=""}
+  $$("svg.ex-fit",med).forEach(g=>{g.classList.remove("ex-fit");g.style.maxHeight=""});med.style.zoom="";
+}
+/* make the media fit `avail` px without making words smaller: a stepped visual becomes a
+   window that follows the step; the tallest drawing gets a little shorter. Returns the px still over. */
+function squeeze(avail,keepTop,keep,floor=.72){
+  const over=()=>med.scrollHeight-avail;
+  const v=med.querySelector(":scope>.viz"),st=v&&$(":scope>.viz-stage",v);
+  if(over()>0&&st&&$(".player",card)&&(!st.querySelector(":scope>svg")||st.querySelector(".on"))){const want=st.offsetHeight-over();
+    if(want>=110){st.classList.add("ex-win");st.style.maxHeight=want+"px";const left=over();if(left>0)st.style.maxHeight=(want-left)+"px";st.scrollTop=keepTop;follow(!!keep)}}
+  if(over()>0){const svgs=$$("svg",med).filter(g=>!g.closest(".ex-win,.ic,button")&&g.getBoundingClientRect().height>120).sort((a,b)=>b.getBoundingClientRect().height-a.getBoundingClientRect().height);
+    if(svgs[0]){const g=svgs[0],gh=g.getBoundingClientRect().height,want=gh-over();if(want/gh>=floor){g.classList.add("ex-fit");g.style.maxHeight=Math.floor(want)+"px"}}}
+  return over();
+}
+function refit(keep){
+  if(cur<0)return;
+  const w0=$(".viz-stage.ex-win",med),keepTop=w0?w0.scrollTop:0;
+  resetFit();txt.style.zoom="";med.style.height="";med.classList.remove("paged","more");txt.style.height="";txt.classList.remove("paged","more");
+  card.style.height="";card.scrollTop=0;card.classList.remove("scroll","paged","more");pgEl=med;
+  const wide=card.classList.contains("two");
+  card.classList.toggle("head-only",![...txt.children].some(n=>n.tagName!=="H3")&&!!txt.childNodes.length);
+  const cs=getComputedStyle(stage),H=stage.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-4;
+  const parts=()=>{pgEl=card;card.style.height=H+"px";card.classList.add("paged");return setPages(stopsFor(H),keep)};
+  if(wide&&txt.scrollHeight>H)txt.style.zoom=Math.max(.82,H/txt.scrollHeight).toFixed(3);
+  if(!med.childNodes.length){
+    if(txt.scrollHeight>H){const z=H/txt.scrollHeight;if(z>=.8)txt.style.zoom=z.toFixed(3);else return parts()}
+    return setPages([0])}
+  const tH=wide?0:txt.offsetHeight+(txt.childNodes.length?14:0),avail=H-tH,over=()=>med.scrollHeight-avail;
+  const v=med.querySelector(":scope>.viz"),stepped=!!(v&&$(".player",card));
+  // narrow screens: sliders to the sheet when they don't fit
+  if(!wide&&v&&over()>0&&!tryBody.childNodes.length){const c=$$(":scope>.ctl",v);if(c.length){c.forEach(n=>moveTo(n,tryBody));tryBtn.hidden=false}}
+  if(squeeze(avail,keepTop,keep)<=0)return setPages([0]);
+  // a visual that can't share a small screen with its words: words first, then the whole visual ("More")
+  if(!wide&&stepped&&tH>0){resetFit();
+    const after=[...med.children].filter(n=>n!==v&&(v.compareDocumentPosition(n)&Node.DOCUMENT_POSITION_FOLLOWING));
+    const extra=after.length?med.scrollHeight-(v.getBoundingClientRect().bottom-med.getBoundingClientRect().top):0;
+    if(squeeze(H+extra,keepTop,keep,.66)<=0){pgEl=card;card.style.height=H+"px";card.classList.add("paged");
+      const at=n=>Math.round(n.getBoundingClientRect().top-card.getBoundingClientRect().top+card.scrollTop);
+      const S=[0,at(v)];if(after.length&&card.scrollHeight-S[1]>H+1)S.push(at(after[0]));return setPages(S,keep)}
+    resetFit();squeeze(avail,keepTop,keep)}
+  // shrink a little (never below a readable floor)
+  const mH=med.scrollHeight,kind=screens[cur].kind;
+  const floor=med.querySelector(".quiz,.flash,.sorter")?.9:med.querySelector("details.cp,.grid2,.grid3,.terms,.steps,.tbl-wrap,.callout,.kit-html,.hn,table")?.88:kind==="map"?.8:.74;
+  if(avail/mH>=floor){let z=avail/mH;med.style.zoom=z.toFixed(3);
+    for(let k=0;k<3;k++){const real=med.getBoundingClientRect().height;if(real<=avail+1)break;z=z*avail/real;if(z<floor)break;med.style.zoom=z.toFixed(3)}
+    if(med.getBoundingClientRect().height<=avail+1)return setPages([0]);med.style.zoom=""}
+  // split into parts
+  if(wide){pgEl=med;med.style.height=avail+"px";med.classList.add("paged");card.classList.add("paged");return setPages(stopsFor(avail),keep)}
+  parts();
+}
+/* where a part may start: the top of a block, a table row, a list item, an option… */
+const BREAKS=".ex-media>*,.ex-text>*,.ex-media .viz>*,.callout,tr,li,dl>div,.q-top,.q-text,.q-hint,.opt,.q-foot,.q-exp,.grid2>*,.grid3>*,.hn-b,.hn-end,.kd-given,p,h4,.eq,.cp-h,.flash,.sorter";
+function stopsFor(H){
+  const el=pgEl||med,o=el.getBoundingClientRect().top-el.scrollTop,total=el.scrollHeight;
+  const bps=[...new Set($$(BREAKS,el).map(e=>Math.round(e.getBoundingClientRect().top-o-6)).filter(y=>y>0&&y<total))].sort((a,b)=>a-b);
+  const S=[0];let s=0,guard=0;
+  while(total-s>H&&guard++<40){let best=null;for(const y of bps){if(y<=s+40)continue;if(y-s<=H)best=y;else break}
+    if(best==null)best=s+H-28;S.push(best);s=best}
+  return S;
+}
+function setPages(S,keep){
+  pg.stops=S;pg.i=pendingLast?S.length-1:keep?Math.min(pg.i,S.length-1):0;pendingLast=false;goPage(pg.i,false);
+}
+function goPage(i,smooth=true){
+  pg.i=Math.max(0,Math.min(pg.stops.length-1,i));const n=pg.stops.length,more=pg.i<n-1;
+  const el=pgEl||med;el.scrollTo({top:pg.stops[pg.i],behavior:smooth&&E.motionOn()?"smooth":"auto"});
+  el.classList.toggle("more",more&&n>1);
+  $(".ex-prev",ex).disabled=cur===0&&pg.i===0;
+  $(".ex-next span",ex).textContent=more?"More":nextBase;
+  count.textContent=(count.dataset.base||"")+(n>1?` · part ${pg.i+1} of ${n}`:"");
+}
+function follow(smooth=true){
+  const st=$(".viz-stage.ex-win",med);if(!st)return;
+  const c=st.querySelector(".hn-on")||st.querySelector(".hn-b.on,.hn-end.on")||st.querySelector("li.on")||st.querySelector(".on");if(!c)return;
+  const r=c.getBoundingClientRect(),sr=st.getBoundingClientRect(),rel=r.top-sr.top+st.scrollTop;
+  const top=Math.max(0,Math.min(rel-(st.clientHeight-r.height)/2,st.scrollHeight-st.clientHeight));
+  st.scrollTo({top,behavior:smooth&&E.motionOn()?"smooth":"auto"});
+}
+med.addEventListener("visualstep",()=>requestAnimationFrame(()=>{refit(true);follow(true)}));
+med.addEventListener("quizpaint",e=>{painted.set(e.target,e.detail);requestAnimationFrame(()=>refit(true))});
+med.addEventListener("click",e=>{if(e.target.closest(".quiz,.flash,.sorter,.drill"))setTimeout(()=>refit(true),80)});
+med.addEventListener("drillchange",()=>setTimeout(()=>refit(true),80)); /* v1.3: drills grow when checked */
+tryBtn.addEventListener("click",()=>trySheet.hidden?openTry():closeTry());
+$(".ex-try-done",trySheet).addEventListener("click",()=>{closeTry();tryBtn.focus()});
+med.addEventListener("toggle",()=>requestAnimationFrame(()=>refit(true)),true);
 let rT=0;addEventListener("resize",()=>{if(!root.classList.contains("mode-ex"))return;clearTimeout(rT);rT=setTimeout(fit,120)});
 
 /* ---------------------------------------------------------- enter / leave */
@@ -178,8 +294,12 @@ function leave(silent){
   E.fitAll&&E.fitAll();
 }
 $(".ex-opt",ex).addEventListener("click",()=>E.openOptions(true));
-$(".ex-prev",ex).addEventListener("click",()=>show(cur-1,-1));
-$(".ex-next",ex).addEventListener("click",()=>{if(card.scrollHeight>card.clientHeight+4&&card.scrollTop+card.clientHeight<card.scrollHeight-4){card.scrollBy({top:Math.max(120,Math.round(card.clientHeight*0.78)),behavior:E.motionOn()?"smooth":"auto"});return;}
+/* back to the scroll page, at the station on screen */
+$(".ex-scroll",ex).addEventListener("click",()=>{store.set("mode","scroll");leave()});
+function back(){if(pg.i>0){goPage(pg.i-1);return}show(cur-1,-1)}
+$(".ex-prev",ex).addEventListener("click",back);
+$(".ex-next",ex).addEventListener("click",()=>{
+  if(pg.i<pg.stops.length-1){goPage(pg.i+1);return}
   if(screens[cur].kind==="map"){const nx=E.counted.find(c=>!E.isDone(c.id));if(nx&&E.counted.some(c=>E.isDone(c.id))){show(screens.findIndex(s=>s.group===nx.id),1);return}}
   if(cur>=screens.length-1){E.showToast(`<span class="ti">${ic("check")}</span><span>End of the line. Try the practice exam again any time.</span>`);return}show(cur+1,1)});
 $(".ex-menu",ex).addEventListener("click",()=>E.openSheet(true));
@@ -197,15 +317,33 @@ document.addEventListener("click",e=>{
 /* keys and swipes */
 document.addEventListener("keydown",e=>{
   if(!root.classList.contains("mode-ex")||e.defaultPrevented)return;const t=e.target;
-  if(t.closest&&t.closest("input,textarea,select,[contenteditable],.viz,.segc,.q-steps"))return;
+  if(t.closest&&t.closest("input,textarea,select,[contenteditable],.viz,.segc,.q-steps,.drill"))return;
   if(e.key==="ArrowRight"||e.key==="PageDown"){e.preventDefault();$(".ex-next",ex).click()}
-  else if(e.key==="ArrowLeft"||e.key==="PageUp"){e.preventDefault();show(cur-1,-1)}});
+  else if(e.key==="ArrowLeft"||e.key==="PageUp"){e.preventDefault();back()}
+  else if(e.key==="Escape"&&!trySheet.hidden){closeTry();tryBtn.focus()}});
 let sx=0,sy=0,ok=false;
 function hasHScroll(el){for(;el&&el!==stage;el=el.parentElement)if(el.scrollWidth>el.clientWidth+2)return true;return false}
-stage.addEventListener("touchstart",e=>{const t=e.target;ok=!(t.closest&&t.closest("input,.viz-stage,.ctl,.segc,.tbl-wrap,.mmap,.eq,.eq-scroll,.kd-m,.sorter"))&&!hasHScroll(t);const p=e.touches[0];sx=p.clientX;sy=p.clientY},{passive:true});
-stage.addEventListener("touchend",e=>{if(!ok)return;const p=e.changedTouches[0],dx=p.clientX-sx,dy=p.clientY-sy;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5){if(dx<0)$(".ex-next",ex).click();else show(cur-1,-1)}},{passive:true});
+stage.addEventListener("touchstart",e=>{const t=e.target;ok=!(t.closest&&t.closest("input,.viz-stage,.ctl,.segc,.tbl-wrap,.mmap,.drill,.eq,.eq-scroll,.kd-m,.sorter"))&&!hasHScroll(t);const p=e.touches[0];sx=p.clientX;sy=p.clientY},{passive:true});
+stage.addEventListener("touchend",e=>{if(!ok)return;const p=e.changedTouches[0],dx=p.clientX-sx,dy=p.clientY-sy;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5){if(dx<0)$(".ex-next",ex).click();else back()}},{passive:true});
 
 /* no boot overlay (e.g. stripped page): honour the saved mode straight away */
 if(!boot&&store.get("mode","scroll")==="explain")enter();
+/* full screen (scroll top bar + explainer): hidden where the browser can't do it */
+const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
+const fsOk=!!(document.fullscreenEnabled||document.webkitFullscreenEnabled);
+/* where the browser can't go full screen (iPhone, some in-app views) the button switches to a
+   "focus" view instead: the guide's own top bar folds away, a small Exit button stays. */
+const fsFloat=h("button",{class:"fs-btn fs-float",type:"button","aria-label":"Exit full screen",title:"Exit full screen"},'<svg class="ic" viewBox="0 0 24 24"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg>');
+document.body.appendChild(fsFloat);
+function fsPaint(){const on=!!fsEl()||root.classList.contains("fs-lite");root.classList.toggle("is-fs",on);$$(".fs-btn").forEach(b=>{b.hidden=false;const l=on?"Exit full screen":"Full screen";b.setAttribute("aria-label",l);b.title=l;const s=b.querySelector(".lbl");if(s)s.textContent=on?"Exit":"Full screen"});
+  if(root.classList.contains("mode-ex"))setTimeout(fit,150)}
+function fsLite(){root.classList.toggle("fs-lite");fsPaint()}
+document.addEventListener("click",e=>{const b=e.target.closest(".fs-btn");if(!b)return;
+  if(root.classList.contains("fs-lite"))return fsLite();
+  if(!fsOk)return fsLite();
+  try{const p=fsEl()?(document.exitFullscreen||document.webkitExitFullscreen).call(document):(root.requestFullscreen||root.webkitRequestFullscreen).call(root);
+    if(p&&p.catch)p.catch(()=>{if(!fsEl())fsLite()})}catch(err){fsLite()}});
+document.addEventListener("fullscreenchange",fsPaint);
+document.addEventListener("webkitfullscreenchange",fsPaint);fsPaint();
 window.Explainer={enter,leave,show,get screens(){return screens},get cur(){return cur}};
 })();

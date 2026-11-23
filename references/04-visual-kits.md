@@ -153,6 +153,39 @@ Kit.graph("k-parabola", {
 | `steps[].mark` | Marked points with guide lines: `{x, y?, fn?, label?}`. `x` and `y` may be functions of `p` (a point that moves with the sliders). `{x}` `{y}` in the label are filled in. |
 | `readout(p)` | A live text line. |
 | `freeLabel` | Heading above the sliders (default "Or try it yourself"). |
+| `vlines`, `hlines`, `dots`, `shade` | v1.2: see below. |
+
+### New in v1.2: asymptotes, jumps, endpoint dots and shaded areas
+
+```js
+Kit.graph("k-floor", {
+  x: {min: -3, max: 5}, y: {min: -3, max: 5},
+  fns: [
+    {f: x => 1 / (x - 2) + 1, breaks: [2]},            // no vertical stroke at the asymptote
+    {f: x => Math.floor(x), breaks: "int"},             // a jump at every whole number
+    {f: x => x + 1, domain: [-3, 2]},                   // piecewise: each rule on its own interval
+    {f: x => 4, domain: [2, 5]}
+  ],
+  vlines: [{x: 2, label: "x = 2"}],                     // dashed vertical line (asymptote, bound x = a)
+  hlines: [{y: 1, label: "y = 1", at: "left"}],         // dashed horizontal line (asymptote y = b)
+  dots: [{x: 2, y: 3, fn: 2, open: true}, {x: 2, y: 4, fn: 3}],   // ○ not included, ● included
+  shade: [{fn: 0, from: 3, to: 4, label: "A"}],        // area between a curve and the x-axis
+  steps: [{t: "…", d: "…", shade: [], dots: []}]       // a step may replace any of these four
+});
+```
+
+| Field | Meaning |
+|---|---|
+| `fns[].domain` | `[a, b]`: draw the curve only for a ≤ x ≤ b (a piece of a piecewise function). `a`, `b` may be functions of `p`. |
+| `fns[].breaks` | x values where the curve jumps: the pen lifts there, so floor, ceiling, piecewise and rational graphs are never joined by a vertical stroke. `"int"` = every whole number. The curve stops a hair before each break, so `Math.floor` reads the left piece correctly. |
+| `vlines[]` | `{x, label?, dash?, color?, at?, side?}`: a vertical line. Dashed unless `dash: false`. `x` may be a function of `p`. Label at the top (`at: "bottom"` to move it), on whichever side fits (`side: "left"`/`"right"` to choose). `{x}` in the label is filled in. |
+| `hlines[]` | `{y, label?, dash?, color?, at?, below?}`: a horizontal line. Label on the right (`at: "left"`), above the line (`below: true` to put it under). |
+| `dots[]` | `{x, y?, fn?, open?, label?, color?}`: an endpoint dot. `open: true` draws a hollow circle (endpoint **not** included); otherwise filled (included). Without `y`, the dot sits on curve `fn`. Colour = that curve's colour. |
+| `shade` | One area or a list: `{fn?, fn2?, from, to, label?, color?, lx?, ly?}`. Fills between curve `fn` (default 0) and curve `fn2`, or the x-axis if `fn2` is left out, from x = `from` to x = `to`. First area uses the line colour, later ones `--c2…`. Use a second colour for parts below the axis (negative integral). The label sits in the middle (`lx`, `ly` move it). |
+| `steps[].vlines`, `hlines`, `dots`, `shade` | Replace the top-level value while that step is shown (`[]` hides them). Leave out to keep the top-level value. |
+
+Shading is drawn under the axes and curves; dots and labels on top. Everything follows
+light and dark mode (`.k-vl`, `.k-dot`, `.k-dot.open`, `.k-shade`).
 
 ## Kit.bars — amounts
 

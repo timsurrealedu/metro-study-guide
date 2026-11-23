@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Metro Engine v1 — check a guide folder before building it.
+Metro Engine v1.3 — check a guide folder before building it.
 
     python3 tools/check.py <guide-folder>
 
@@ -127,7 +127,7 @@ def main(folder):
     for s in R.find(lambda n: "sec" in n.cls):
         h3 = [k for k in s.kids if k.tag == "h3"]
         if not h3: warn(f"line {s.line}: a .sec has no <h3> heading")
-        heavy = s.find(lambda n: n.cls & {"viz", "tbl-wrap", "steps", "sorter", "grid2", "grid3"})
+        heavy = s.find(lambda n: n.cls & {"viz", "tbl-wrap", "steps", "sorter", "grid2", "grid3", "drill"})
         lead = s.find(lambda n: n.tag == "p" and "lead" in n.cls)
         if heavy and not lead and not s.up(lambda n: "checkpoint" in n.cls) and not s.up(lambda n: n.attrs.get("data-part") == "R"):
             warn(f"line {s.line}: section \"{h3[0].alltext().strip() if h3 else '?'}\" has a visual/table/steps but no <p class=\"lead\"> to introduce it")
@@ -143,6 +143,20 @@ def main(folder):
             if (c in RESERVED and not (c == "kit")) or (c.startswith(RESERVED_PREFIX) and c not in ("ex-where",)):
                 if c == "in" or c == "open": continue
                 err(f"line {n.line}: class \"{c}\" is reserved by the engine ({RESERVED.get(c, 'engine internals')}). Rename it")
+    # drills (v1.3): order, cloze, spot, match
+    for d in R.find(lambda n: "drill" in n.cls):
+        kinds = d.cls & {"order", "cloze", "spot", "match"}
+        if len(kinds) != 1: err(f"line {d.line}: a .drill needs exactly one kind: order, cloze, spot or match"); continue
+        k = kinds.pop(); ps = [x for x in d.kids if x.tag in ("p", "li")]
+        if k == "order" and len(ps) < 3: err(f"line {d.line}: an order drill needs at least 3 <p> items, written in the right order")
+        if k == "order" and len(ps) > 10: warn(f"line {d.line}: an order drill with {len(ps)} items is long on phones; aim for 10 or fewer")
+        if k == "cloze" and not d.find(lambda x: "gap" in x.cls): err(f"line {d.line}: a cloze drill has no <span class=\"gap\">answer</span>")
+        if k == "cloze" and len(d.find(lambda x: "gap" in x.cls)) > 10: warn(f"line {d.line}: more than 10 blanks; split the cloze in two")
+        if k == "spot" and not d.find(lambda x: x.tag == "s" and "data-fix" in x.attrs): err(f"line {d.line}: a spot drill has no <s data-fix=\"…\">mistake</s>")
+        if k == "match":
+            if len(ps) < 2: err(f"line {d.line}: a match drill needs at least 2 <p><b>term</b> meaning</p> items")
+            if any(not p.find(lambda x: x.tag == "b") for p in ps): err(f"line {d.line}: every match item needs its term in <b>")
+            if len(ps) > 8: warn(f"line {d.line}: a match drill with {len(ps)} pairs is long on phones; aim for 6 or fewer")
     for img in R.find(lambda n: n.tag == "img"):
         if not img.attrs.get("alt") and img.attrs.get("alt") != "": warn(f"line {img.line}: <img> without alt text")
 

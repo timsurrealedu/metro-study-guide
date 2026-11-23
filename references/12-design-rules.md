@@ -60,6 +60,7 @@ are about how content is written. `check.py` enforces the ones it can.
 | **Quizzes show one question at a time**; the next appears after answering | Built in |
 | Every wrong option explains why | Third item in each option; `check.py` warns |
 | A review line: cheat sheet, flashcards, practice exam, notes | `data-part="R"` |
+| **Hands-on practice** where it helps: drag into order, fill in the blanks, find the mistakes, match pairs; everything works by tap as well as drag | `.drill` blocks (v1.3) |
 
 ## Controls
 

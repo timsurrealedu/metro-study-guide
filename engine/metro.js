@@ -1,5 +1,5 @@
 /* =====================================================================
-   METRO ENGINE v1 — runtime  (docs/02-file-structure.md, docs/05-custom-visuals.md)
+   METRO ENGINE v1.3 — runtime  (docs/02-file-structure.md, docs/05-custom-visuals.md)
    Reads the page structure (.part > .chapter) and builds:
    sidebar + phone bar + sheet, scroll spy, progress, Auto/Light/Dark,
    motion switch, step players, flowing dots, quizzes, flashcards.
@@ -67,7 +67,7 @@ const top=h("div",{class:"topbar",role:"region","aria-label":"Reading controls"}
 top.innerHTML=`<div class="topbar-in glass">
  <button class="tb-btn btn-side" type="button" title="Show or hide the sidebar" aria-label="Show or hide the sidebar">${ic("sidebar")}</button>
  <div class="crumb" aria-live="polite"><i class="dot"></i><span class="t"><span class="p"></span><span class="c">${G.title}</span></span></div>
- <button class="tb-btn tb-aa" type="button" aria-haspopup="dialog" aria-label="Fonts" title="Load your own font">Aa<span class="lbl">Font</span></button>
+ <button class="tb-btn tb-aa" type="button" aria-haspopup="dialog" aria-label="Fonts" title="Load your own font">Aa<span class="lbl">Font</span></button><button class="tb-btn tb-fs fs-btn" type="button" aria-label="Full screen" title="Full screen" hidden><svg class="ic fs-on" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg><svg class="ic fs-off" viewBox="0 0 24 24"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg><span class="lbl">Full screen</span></button>
  <button class="switch btn-motion" type="button" role="switch" aria-checked="true" aria-label="Animations"><span class="lbl">Animations</span><span class="tr"></span></button>
  <div class="seg seg-theme" role="group" aria-label="Appearance">
    <button type="button" data-t="auto" title="Follow my device" aria-label="Appearance: follow my device">${ic("auto")}<span class="lbl">Auto</span></button>
@@ -136,7 +136,8 @@ opt.innerHTML=`<div class="grab" aria-hidden="true"></div><div class="op-head"><
    <button class="switch btn-motion" type="button" role="switch" aria-label="Animations"><span class="tr"></span></button></div>
   <div class="op-item op-inline"><div class="op-l"><b>Font</b><span>Use a font file of your own.</span></div>
    <button class="vbtn op-font" type="button">Aa · Choose</button></div>
- </div>`;
+ </div>
+ <p class="op-by">by @Dvenmc</p>`;
 document.body.append(optScrim,opt);
 const isEx=()=>root.classList.contains("mode-ex");
 function paintOpt(){$$(".op-mode button",opt).forEach(b=>b.setAttribute("aria-pressed",String((b.dataset.m==="explain")===isEx())));
@@ -419,7 +420,7 @@ function qCard(q,k,n,set){
     q.o.forEach((o,i)=>{const b=bs[i];b.disabled=true;const chosen=sel.has(i);
       if(o[1]&&chosen)b.classList.add("right");else if(o[1]&&!chosen){b.classList.add(multi?"right":"right");if(multi)ok=false}
       else if(!o[1]&&chosen){b.classList.add("wrong");ok=false}
-      if((chosen||o[1])&&o[2])$(".why",b).hidden=false;
+      if(o[2])$(".why",b).hidden=false;
       if(o[1]||chosen)$(".tk",b).innerHTML=ic(o[1]?"check":"x");
       b.classList.remove("sel")});
     if(!multi)ok=q.o[[...sel][0]][1];
@@ -575,6 +576,120 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 phoneMQ.addEventListener?.("change",fitAll);window.addEventListener("orientationchange",()=>setTimeout(fitAll,300));
 document.addEventListener("visualstep",e=>{const s=e.target.querySelector?.(".viz-stage svg");if(s&&(!s.closest(".kit")||s.closest(".kit-diagram"))){fitSvgText(s);setTimeout(()=>fitSvgText(s),700)}});
 
+/* ---------- boot ---------- */
+applyTheme(theme);applyMotion(motion);paintProgress();swipeHints();
+$$("input[type=range]").forEach(rangeFill);
+/* gentle settle-in for content blocks (always visible; only position eases) */
+const rvo=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");rvo.unobserve(e.target)}}),{rootMargin:"0px 0px -6% 0px"});
+$$(".card,.viz,.callout,.tbl-wrap,.terms,.steps,.part-open,.eq,.sorter,.drill,.ov-map,details.more").forEach(el=>{const r=el.getBoundingClientRect();if(r.top<innerHeight)el.classList.add("in");el.classList.add("rv");rvo.observe(el)});
+$$(".quiz[data-set]").forEach(renderQuiz);
+/* sorters written in HTML: <div class="sorter" data-bins="A|B"><p data-bin="0" data-why="…">item</p>…</div> */
+$$(".sorter[data-bins]").forEach(b=>{const items=$$("[data-bin]",b).map(p=>[p.innerHTML,+p.dataset.bin,p.dataset.why||""]);sorter(b,items,b.dataset.bins.split("|"))});
+$$(".q").forEach(q=>q.classList.add("rv","in"));
+$$(".flash").forEach(flashcards);
+/* ---------- v1.3 drills, written in HTML (docs/06-quizzes-and-review.md § Drills) ----------
+   <div class="drill order">   <p>first</p><p>second</p>…           drag or tap-swap into order
+   <div class="drill cloze" data-extra="pengecoh|…">  text with <span class="gap" data-alt="…" data-why="…">answer</span>
+   <div class="drill spot">    text with <s data-fix="right form" data-why="rule">wrong</s>   tap the mistakes
+   <div class="drill match">   <p><b>term</b> meaning</p>…           pair terms with meanings
+   Every drill: a header, one short hint, Check / Show answers / Reset where they fit, a live result line. */
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const shufNew=(a,key)=>{let s=a;for(let n=0;n<25;n++){s=shuf(a);if(a.length<2||s.some((x,i)=>key(x)!==key(a[i])))break}return s};
+const norm=s=>String(s).replace(/\s+/g," ").trim().toLowerCase();
+function drillShell(box,label,hint){box.innerHTML=`<div class="q-top"><span>${label}</span><span class="src num" data-c></span></div>${hint?`<p class="dr-hint">${hint}</p>`:""}`;const body=h("div",{class:"dr-body"});box.appendChild(body);return body}
+function drillBar(box,btns){const f=h("div",{class:"dr-bar"});btns.forEach(([t,icon,fn])=>{const b=h("button",{class:"vbtn",type:"button"},`${ic(icon)}<span>${t}</span>`);b.onclick=fn;f.appendChild(b)});box.appendChild(f);return f}
+function drillMsg(box){const m=h("div",{class:"dr-msg","aria-live":"polite"});box.appendChild(m);return m}
+function pulse(el,c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c);setTimeout(()=>el.classList.remove(c),650)}
+/* pointer drag with a floating copy; touch needs touch-action:none on the handle (CSS) */
+function dragger(el,{start,move,end}){
+  el.addEventListener("pointerdown",e=>{if(e.button>0)return;const r=el.getBoundingClientRect(),x0=e.clientX,y0=e.clientY;let g=null,moved=false;
+    const under=ev=>{if(g)g.style.visibility="hidden";const u=document.elementFromPoint(ev.clientX,ev.clientY);if(g)g.style.visibility="";return u};
+    const mv=ev=>{const dx=ev.clientX-x0,dy=ev.clientY-y0;if(!moved&&Math.hypot(dx,dy)<6)return;
+      if(!moved){moved=true;g=el.cloneNode(true);g.classList.add("dr-ghost");Object.assign(g.style,{width:r.width+"px",left:r.left+"px",top:r.top+"px"});document.body.appendChild(g);el.classList.add("dr-lift");root.classList.add("dr-dragging");getSelection&&getSelection().removeAllRanges();start&&start()}
+      ev.preventDefault();g.style.transform=`translate(${dx}px,${dy}px)`;
+      if(!root.classList.contains("mode-ex")){const sy=ev.clientY<70?-14:ev.clientY>innerHeight-70?14:0;if(sy)scrollBy(0,sy)}
+      move&&move(under(ev),ev)};
+    const up=ev=>{removeEventListener("pointermove",mv);removeEventListener("pointerup",up);removeEventListener("pointercancel",up);if(!moved)return;
+      const u=ev.type==="pointercancel"?null:under(ev);g.remove();el.classList.remove("dr-lift");root.classList.remove("dr-dragging");el.dispatchEvent(new CustomEvent("drillchange",{bubbles:true}));el._drag=true;setTimeout(()=>{el._drag=false},60);end&&end(u,ev)};
+    addEventListener("pointermove",mv,{passive:false});addEventListener("pointerup",up);addEventListener("pointercancel",up)});
+}
+
+function drillOrder(box){
+  const items=$$(":scope>p,:scope>li",box).map((p,i)=>({html:p.innerHTML,i})),why=box.dataset.why||"";
+  const body=drillShell(box,"Put in order","Drag the dotted handle, or tap two rows to swap them."),list=h("ol",{class:"od-list"});body.appendChild(list);
+  let sel=null;const msg=drillMsg(box),cnt=$("[data-c]",box);
+  const clear=()=>{$$(".od-row",list).forEach((r,k)=>{r.classList.remove("ok","no");$(".od-n",r).textContent=k+1});msg.textContent="";cnt.textContent=`${items.length} steps`};
+  const pick=r=>{if(sel)sel.classList.remove("sel");sel=r;if(r)r.classList.add("sel")};
+  function render(arr){list.innerHTML="";pick(null);arr.forEach(it=>{const li=h("li",{class:"od-row",tabindex:"0"},`<span class="od-n"></span><span class="od-t">${it.html}</span><span class="od-grip" title="Drag to move" aria-hidden="true"></span>`);li.dataset.i=it.i;list.appendChild(li);
+      dragger($(".od-grip",li),{start(){pick(null);li.classList.add("od-drag")},move(u){const t=u&&u.closest(".od-row");if(!t||t===li||t.parentNode!==list)return;const rows=[...list.children];if(rows.indexOf(t)>rows.indexOf(li))t.after(li);else t.before(li)},end(){li.classList.remove("od-drag");clear()}});
+      li.addEventListener("click",e=>{if(e.target.closest(".od-grip"))return;if(!sel){pick(li);return}if(sel===li){pick(null);return}
+        const a=sel,ph=document.createComment("");a.replaceWith(ph);li.replaceWith(a);ph.replaceWith(li);pick(null);clear()});
+      li.addEventListener("keydown",e=>{if(e.key==="ArrowUp"&&li.previousElementSibling){e.preventDefault();li.previousElementSibling.before(li);li.focus();clear()}else if(e.key==="ArrowDown"&&li.nextElementSibling){e.preventDefault();li.nextElementSibling.after(li);li.focus();clear()}})});clear()}
+  drillBar(box,[["Check","check",()=>{let n=0;$$(".od-row",list).forEach((r,k)=>{const ok=+r.dataset.i===k;n+=ok;r.classList.toggle("ok",ok);r.classList.toggle("no",!ok)});pick(null);
+      msg.innerHTML=n===items.length?`${ic("check")}<span><b>All ${n} in order.</b> ${why}</span>`:`${ic("x")}<span><b>${n} of ${items.length}</b> in the right place. Move the red rows and check again.</span>`;msg.className="dr-msg "+(n===items.length?"ok":"no")}],
+    ["Show answer","bulb",()=>{render(items);$$(".od-row",list).forEach(r=>r.classList.add("ok"));msg.innerHTML=why?`${ic("info")}<span>${why}</span>`:"";msg.className="dr-msg"}],
+    ["Shuffle","shuffle",()=>render(shufNew(items,x=>x.i))]]);
+  render(shufNew(items,x=>x.i));
+}
+
+function drillCloze(box){
+  const gaps=$$(".gap",box),extra=(box.dataset.extra||"").split("|").map(s=>s.trim()).filter(Boolean);
+  const ans=gaps.map(g=>({w:g.textContent.trim(),alt:(g.dataset.alt||"").split("|").filter(Boolean),why:g.dataset.why||""}));
+  gaps.forEach((g,k)=>{const b=h("button",{class:"cz-gap",type:"button","aria-label":`Blank ${k+1}`},`<span class="cz-k">${k+1}</span><span class="cz-w"></span>`);b.dataset.k=k;g.replaceWith(b)});
+  const text=h("div",{class:"cz-text"});while(box.firstChild)text.appendChild(box.firstChild);
+  const body=drillShell(box,"Fill in the blanks","Tap a word, then tap a blank. You can also drag a word into a blank. Tap a filled blank to empty it.");
+  body.appendChild(text);const bank=h("div",{class:"cz-bank"});body.appendChild(bank);const msg=drillMsg(box),cnt=$("[data-c]",box);
+  let sel=null;const G=$$(".cz-gap",text);
+  const pickChip=c=>{if(sel)sel.classList.remove("sel");sel=c&&c!==sel?c:null;if(sel)sel.classList.add("sel")};
+  const empty=g=>{if(g._chip){g._chip.classList.remove("used");g._chip.disabled=false}g._chip=null;g.dataset.w="";$(".cz-w",g).textContent="";g.classList.remove("full","ok","no")};
+  const place=(g,c)=>{if(!c)return;empty(g);g._chip=c;g.dataset.w=c.dataset.w;$(".cz-w",g).textContent=c.dataset.w;g.classList.add("full");c.classList.add("used");c.disabled=true;pickChip(null);msg.textContent="";msg.className="dr-msg";count()};
+  const count=()=>{cnt.textContent=`${G.filter(g=>g.dataset.w).length} of ${G.length} filled`};
+  function build(){bank.innerHTML="";G.forEach(empty);pickChip(null);shuf([...ans.map(a=>a.w),...extra]).forEach(w=>{const c=h("button",{class:"cz-chip",type:"button"},w);c.dataset.w=w;bank.appendChild(c);
+      c.onclick=()=>{if(c._drag)return;pickChip(c)};dragger(c,{start(){pickChip(null)},end(u){const g=u&&u.closest(".cz-gap");if(g&&text.contains(g))place(g,c)}})});msg.textContent="";msg.className="dr-msg";count()}
+  G.forEach(g=>g.onclick=()=>{if(sel)place(g,sel);else if(g._chip){empty(g);count()}});
+  const right=(g)=>{const a=ans[+g.dataset.k];return [a.w,...a.alt].some(x=>norm(x)===norm(g.dataset.w||""))};
+  drillBar(box,[["Check","check",()=>{let n=0;const notes=[];G.forEach(g=>{const ok=right(g);n+=ok;g.classList.toggle("ok",ok);g.classList.toggle("no",!ok);const a=ans[+g.dataset.k];if(!ok&&a.why)notes.push(`<li><b>${+g.dataset.k+1}</b> ${a.why}</li>`)});
+      const all=n===G.length;msg.innerHTML=`${ic(all?"check":"x")}<span><b>${n} of ${G.length}</b> correct.${all?"":" Fix the red blanks, or press Show answers."}${notes.length?`<ul>${notes.join("")}</ul>`:""}</span>`;msg.className="dr-msg "+(all?"ok":"no")}],
+    ["Show answers","bulb",()=>{G.forEach(g=>{const a=ans[+g.dataset.k];empty(g);const c=$$(".cz-chip:not(.used)",bank).find(c=>c.dataset.w===a.w);if(c)place(g,c);else{g.dataset.w=a.w;$(".cz-w",g).textContent=a.w;g.classList.add("full")}g.classList.add("ok")});
+      const notes=ans.map((a,k)=>a.why?`<li><b>${k+1}</b> ${a.why}</li>`:"").join("");msg.innerHTML=notes?`${ic("info")}<span><ul>${notes}</ul></span>`:"";msg.className="dr-msg"}],
+    ["Reset","reset",build]]);
+  build();
+}
+
+function drillSpot(box){
+  const tw=document.createTreeWalker(box,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentNode.closest("s[data-fix]")||!n.nodeValue.trim()?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+  const tn=[];while(tw.nextNode())tn.push(tw.currentNode);
+  tn.forEach(n=>{const f=document.createDocumentFragment();n.nodeValue.split(/(\s+)/).forEach(p=>{if(!p)return;if(/^\s+$/.test(p))f.appendChild(document.createTextNode(p));else f.appendChild(h("span",{class:"sp-w"},p.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"})[c])))});n.replaceWith(f)});
+  const E=$$("s[data-fix]",box).map((s,k)=>{const b=h("span",{class:"sp-err",role:"button",tabindex:"0"},s.innerHTML);b.dataset.k=k;b.dataset.fix=s.dataset.fix;b.dataset.why=s.dataset.why||"";s.replaceWith(b);return b});
+  const text=h("div",{class:"sp-text"});while(box.firstChild)text.appendChild(box.firstChild);
+  const body=drillShell(box,"Find the mistakes",`Tap every word or part that is wrong. <b>${E.length}</b> mistakes are hidden here.`);body.appendChild(text);
+  const msg=drillMsg(box),log=h("ol",{class:"sp-log"}),cnt=$("[data-c]",box);box.appendChild(log);let miss=0;
+  const count=()=>{const f=E.filter(e=>e.classList.contains("found")).length;cnt.textContent=`${f} of ${E.length} found`;msg.innerHTML=f===E.length?`${ic("check")}<span><b>All ${E.length} found</b>${miss?` (${miss} wrong ${miss>1?"taps":"tap"})`:""}.</span>`:(miss?`<span>${miss} wrong ${miss>1?"taps":"tap"} so far.</span>`:"");msg.className="dr-msg"+(f===E.length?" ok":"")};
+  const reveal=(e,auto)=>{if(e.classList.contains("found"))return;e.classList.add("found");if(auto)e.classList.add("shown");e.insertAdjacentHTML("afterend",`<span class="sp-fix">${e.dataset.fix||"(hapus)"}</span>`);
+    const li=h("li",{},`<span class="sp-was">${e.innerHTML}</span> → <b>${e.dataset.fix||"(hapus)"}</b>${e.dataset.why?` <span class="sp-why">${e.dataset.why}</span>`:""}`);li.dataset.k=e.dataset.k;
+    const after=[...log.children].find(x=>+x.dataset.k>+e.dataset.k);log.insertBefore(li,after||null);count()};
+  text.addEventListener("click",e=>{const er=e.target.closest(".sp-err");if(er){reveal(er);return}const w=e.target.closest(".sp-w");if(w){miss++;pulse(w,"miss");count()}});
+  text.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches(".sp-err")){e.preventDefault();reveal(e.target)}});
+  drillBar(box,[["Show all","bulb",()=>E.forEach(e=>reveal(e,true))],["Reset","reset",()=>{E.forEach(e=>{e.classList.remove("found","shown");const f=e.nextElementSibling;if(f&&f.matches(".sp-fix"))f.remove()});log.innerHTML="";miss=0;count();msg.textContent=""}]]);
+  count();msg.textContent="";
+}
+
+function drillMatch(box){
+  const P=$$(":scope>p",box).map((p,i)=>{const b=$("b",p),t=b?b.innerHTML:"";if(b)b.remove();return {t,d:p.innerHTML.trim(),i}});
+  const body=drillShell(box,"Match","Tap a term, then tap its meaning. You can also drag the term onto the meaning.");
+  const bank=h("div",{class:"cz-bank mt-bank"}),list=h("div",{class:"mt-list"});body.append(bank,list);const msg=drillMsg(box),cnt=$("[data-c]",box);
+  let sel=null,miss=0;
+  const pick=c=>{if(sel)sel.classList.remove("sel");sel=c&&c!==sel?c:null;if(sel)sel.classList.add("sel")};
+  const count=()=>{const n=$$(".mt-row.ok",list).length;cnt.textContent=`${n} of ${P.length} matched`;if(n===P.length){msg.innerHTML=`${ic("check")}<span><b>All matched</b>${miss?` (${miss} wrong ${miss>1?"tries":"try"})`:""}.</span>`;msg.className="dr-msg ok"}};
+  const tryMatch=(c,row)=>{if(!c||row.classList.contains("ok"))return;if(c.dataset.i===row.dataset.i){row.classList.add("ok");$(".mt-slot",row).innerHTML=c.innerHTML;c.classList.add("used");c.disabled=true;pick(null);count()}else{miss++;pulse(row,"no");msg.innerHTML=`<span>Not that one. ${miss} wrong ${miss>1?"tries":"try"}.</span>`;msg.className="dr-msg no"}};
+  function build(){bank.innerHTML="";list.innerHTML="";miss=0;pick(null);msg.textContent="";msg.className="dr-msg";
+    shuf(P).forEach(p=>{const c=h("button",{class:"cz-chip",type:"button"},p.t);c.dataset.i=p.i;bank.appendChild(c);c.onclick=()=>{if(!c._drag)pick(c)};dragger(c,{start(){pick(null)},end(u){const r=u&&u.closest(".mt-row");if(r&&list.contains(r))tryMatch(c,r)}})});
+    shufNew(P,x=>x.i).forEach(p=>{const r=h("button",{class:"mt-row",type:"button"},`<span class="mt-slot">?</span><span class="mt-d">${p.d}</span>`);r.dataset.i=p.i;list.appendChild(r);r.onclick=()=>{if(sel)tryMatch(sel,r)}});count()}
+  drillBar(box,[["Reset","reset",build]]);build();
+}
+const DRILLS={order:drillOrder,cloze:drillCloze,spot:drillSpot,match:drillMatch};
+$$(".drill").forEach(b=>{const k=Object.keys(DRILLS).find(k=>b.classList.contains(k));if(k)try{DRILLS[k](b)}catch(e){console.error(e)}});
+
 /* ---------- math formatting: one equation per row, subscripts, semantic colours ---------- */
 function mapTextSegs(html,fn){return String(html).split(/(<[^>]+>|&[A-Za-z0-9#]+;)/g).map((s,i)=>i%2?s:fn(s)).join("")}
 function subMath(html){return mapTextSegs(html,t=>t.replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>").replace(/([A-Za-z0-9\u0370-\u03FF∑∏])_([A-Za-z0-9']+)/g,"$1<sub>$2</sub>"))}
@@ -662,18 +777,7 @@ $$(".eq").forEach(el=>{
   sm.forEach(n=>el.appendChild(n));
 });
 
-/* ---------- boot ---------- */
-applyTheme(theme);applyMotion(motion);paintProgress();swipeHints();
-$$("input[type=range]").forEach(rangeFill);
-/* gentle settle-in for content blocks (always visible; only position eases) */
-const rvo=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");rvo.unobserve(e.target)}}),{rootMargin:"0px 0px -6% 0px"});
-$$(".card,.viz,.callout,.tbl-wrap,.terms,.steps,.part-open,.eq,.sorter,.ov-map,details.more").forEach(el=>{const r=el.getBoundingClientRect();if(r.top<innerHeight)el.classList.add("in");el.classList.add("rv");rvo.observe(el)});
-$$(".quiz[data-set]").forEach(renderQuiz);
-/* sorters written in HTML: <div class="sorter" data-bins="A|B"><p data-bin="0" data-why="…">item</p>…</div> */
-$$(".sorter[data-bins]").forEach(b=>{const items=$$("[data-bin]",b).map(p=>[p.innerHTML,+p.dataset.bin,p.dataset.why||""]);sorter(b,items,b.dataset.bins.split("|"))});
-$$(".q").forEach(q=>q.classList.add("rv","in"));
-$$(".flash").forEach(flashcards);
-window.Engine={$,$$,h,ic,store,flow,stepper,segc,segSet,rangeFill,sorter,watch,tickers,motionOn,markDone:id=>Engine_markDone(id),isDone:id=>done.has(id),visible,
+window.Engine={$,$$,h,ic,store,flow,stepper,segc,segSet,rangeFill,sorter,drills:DRILLS,watch,tickers,motionOn,markDone:id=>Engine_markDone(id),isDone:id=>done.has(id),visible,
   openSheet,openOptions,applyTheme,getTheme:()=>theme,applyMotion,showToast,lineVars,chapters,parts,counted,fitAll,paintProgress,phoneMQ,math:formatMath};
 document.dispatchEvent(new Event("engine-ready"));
 })();

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Metro Engine v1 — build a study guide into ONE self-contained HTML file.
+Metro Engine v1.3 — build a study guide into ONE self-contained HTML file.
 
     python3 tools/build.py <guide-folder> [--fragment] [--min] [--out FILE]
 

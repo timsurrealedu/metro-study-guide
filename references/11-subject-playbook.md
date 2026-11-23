@@ -21,7 +21,7 @@ lesson each, 3–7 per line, each readable in about 10 minutes.
 | 4 | Comparison table | Compare | Every "difference between" is a table |
 | 5 | Steps or worked example | Steps / Worked example / The method | The process or method, each step with its reason |
 | 6 | Example callout | (inside a section) | One real-life example, not themed |
-| 7 | Practice block (optional) | Sort it / Try it | Sorter or a slider to play with |
+| 7 | Practice block (optional) | Sort it / Try it / Drag it / Fill it in / Fix it / Match it | Sorter, a slider, or a drill (v1.3): order, cloze, spot, match |
 | 8 | Traps | — | `<div class="traps">`, 1–3 per station |
 
 Then 2–4 questions per station in `quiz.json` (`see`), 2–4 flashcards, and the line's
@@ -250,7 +250,9 @@ sentence.
 Same layout as English with Indonesian text types (teks eksposisi, argumentasi,
 negosiasi, laporan hasil observasi, cerpen, puisi, hikayat, …): `Kit.annotate` for
 struktur and kaidah kebahasaan, `Kit.flow` for struktur teks, tables for perbandingan
-jenis teks, sorters for fakta/opini and kalimat baku/tidak baku. The guide can be
+jenis teks, sorters for fakta/opini and kalimat baku/tidak baku. Drills (v1.3): `spot` for
+"temukan kesalahan" letters and paragraphs, `cloze` for kata baku and konjungsi, `order`
+for struktur and paragraf padu, `match` for istilah. `examples/bi-metro` is a full guide. The guide can be
 written in Indonesian: set `"lang": "id"` in `guide.json`.
 
 ## Geography
