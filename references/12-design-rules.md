@@ -41,11 +41,12 @@ are about how content is written. `check.py` enforces the ones it can.
 
 | Rule | How |
 |---|---|
-| **Simple, not over-explained**, but with a **lead** before every visual, table or list | `p.lead`; `check.py` warns |
-| **More explanation, less clutter** | Short paragraphs; fold-outs for extras; one idea per section |
+| **Exhaustive source coverage** | Include every topic, sub-point, edge case, and detail from all NotebookLM / course sources—never skip "minor" parts |
+| **Kindergarten-teacher clarity** | Explain every idea in very basic, everyday words with short sentences; break detailed explanations into short paragraphs (`≤ ~60 words`), steps, and `<details class="more">` |
+| **Define every complex term + context** | Plain-English idea first, then `<b>term</b>` + `<span class="id">istilah</span>`, with a `<dl class="terms">` definition and *why/when* context |
 | **No text walls** (especially on phones) | Paragraphs ≤ ~60 words; terms/steps/cards fold on phones; `check.py` warns over 90 |
 | **Comparisons are tables** | Comparison table (empty first header cell) |
-| **Simple English with the teacher's exact terms**, plus the class-language term | `<b>term</b>` + `<span class="id">istilah</span>` |
+| **Lead before every visual, table, list, or drill** | `p.lead`; `check.py` warns |
 | **Follow the teacher** where materials disagree, and say so | R4 "Notes on your materials" |
 | **Flag unclear content** instead of guessing | A `note` in R4 |
 | **Examples are plain real-life notes**, titled "Example", never themed to the metro | `.callout.eg` |

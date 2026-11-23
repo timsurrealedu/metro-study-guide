@@ -18,7 +18,7 @@ Create self-contained, interactive Metro Engine HTML study guides tailored to co
 - `engine/`: `boot.html`, `explainer.js`, `kit.js`, `metro.css`, `metro.js`
 - `tools/`: `new.py`, `check.py`, `build.py`, `verify_chromium.py`, `cssprune.py`, `shots.js`
 - `starter/`: `content.html`, `flash.json`, `guide.json`, `quiz.json`, `style.css`, `visuals.js`
-- `references/`: `02-file-structure.md`, `03-content-blocks.md`, `04-visual-kits.md`, `05-custom-visuals.md`, `06-quizzes-and-review.md`, `07-theme-and-colours.md`, `11-subject-playbook.md`, `12-design-rules.md`
+- `references/`: `01-overview.md`, `02-file-structure.md`, `03-content-blocks.md`, `04-visual-kits.md`, `05-custom-visuals.md`, `06-quizzes-and-review.md`, `07-theme-and-colours.md`, `08-modes.md`, `09-responsive.md`, `10-build-and-check.md`, `11-subject-playbook.md`, `12-design-rules.md`, `13-accessibility-and-storage.md`, `14-troubleshooting.md`
 
 ## Workflow
 
@@ -27,14 +27,17 @@ Create self-contained, interactive Metro Engine HTML study guides tailored to co
 1. Fetch the bundled files from `engine/`, `tools/`, `starter/`, and key `references/` (`03-content-blocks.md`, `04-visual-kits.md`, `05-custom-visuals.md`, `06-quizzes-and-review.md`, `11-subject-playbook.md`, `12-design-rules.md`) using `get_skill_resources`.
 2. Write them into a clean temporary directory in the VM (e.g., `/tmp/metro-engine/`), preserving `engine/`, `tools/`, and `starter/`.
 
-### 2. Gather & Reconcile Course Materials
+### 2. Gather & Reconcile Course Materials (Exhaustive, Zero Skips)
 
-Check all relevant user sources before planning:
+**NotebookLM / Gemini Notebooks (`notebooklm`) is the primary source.** Check all relevant user sources before planning, and **do not skip any part of any source, no matter how small or seemingly unimportant**:
 
-- **Gemini Notebooks (`notebooklm`)**: Call `notebooklm:list_notebooks` to find matching course notebooks (e.g., `Sem3-AI-UAS`, `Sem3-NetPen-UTS`, `Sem3-ADA-UTS`, `Sem3-ComPhys-UTS`, `Sem2-CompNet-UTS`, `Sem1-CSF-UAS`). Call `notebooklm:list_sources` on the target notebook, then run multiple targeted `notebooklm:retrieve_relevant_chunks` queries across every session, unit, and learning outcome so no topic is missed.
-- **Google Drive (`drive`)**: Search for course folders or slides (e.g., `UAS`, `UTS`, `.pptx`, `.pdf`) with `drive:search_files` and read/download relevant files.
+- **Gemini Notebooks (`notebooklm`)**:
+  1. Call `notebooklm:list_notebooks` to find matching course notebooks (e.g., `Sem3-AI-UAS`, `Sem3-NetPen-UTS`, `Sem3-ADA-UTS`, `Sem3-ComPhys-UTS`, `Sem2-CompNet-UTS`, `Sem1-CSF-UAS`).
+  2. Call `notebooklm:list_sources` on the target notebook to get the complete inventory of every source (slides, PDFs, notes, readings, transcripts).
+  3. Query **every single source and every session/unit/subtopic** with multiple targeted `notebooklm:retrieve_relevant_chunks` calls. Explicitly check for minor sections, side notes, edge cases, exceptions, background remarks, small definitions, and worked examples—nothing in any source may be omitted.
+- **Google Drive (`drive`)**: Search for course folders or slides (e.g., `UAS`, `UTS`, `.pptx`, `.pdf`) with `drive:search_files` and read/download any additional or matching files.
 - **Uploaded Files**: Read all pages or slides of any files in `user_uploaded_files/`.
-- **Reconcile**: Record exact lecturer terms, formulas, examples, and any conflicts or unclear points between sources to document in Review station `R4 Notes on your materials`.
+- **Coverage Audit & Reconcile**: Before planning stations, verify every source from `list_sources` and every detail inside it is mapped to a station. Record exact lecturer terms, formulas, examples, and any conflicts or unclear points between sources to document in Review station `R4 Notes on your materials`.
 
 ### 3. Plan Lines, Stations, and Visuals
 
@@ -64,20 +67,31 @@ To match the Bio Metro baseline, visuals must feel alive and interactive rather 
 Run from `/tmp/metro-engine/`:
 
 ```bash
-python3 tools/new.py guides/<slug> "<Title>" --lines <n> --id <unique-id>
+python3 tools/new.py guides/<semester>/<subject> "<Title>" --lines <n> --id <unique-id>
 ```
 
-Author the files in `guides/<slug>/`:
+#### Explanation Voice & Pedagogy (Kindergarten-Teacher Clarity, Complete Detail)
+
+- **Teach like a patient teacher explaining to a kindergartener**: Use very basic, everyday words and short, concrete sentences. Never assume prior knowledge or skip steps ("obviously", "simply", "it follows").
+- **Be as detailed as possible without walls of text**: Cover 100% of every source—including small remarks, edge cases, exceptions, and background details—by breaking rich explanations into multiple short `<p>` blocks (under ~60 words each), `<ol class="steps">`, or `<details class="more">` fold-outs.
+- **Always define complex terms and give context**: Whenever a technical term, acronym, or jargon word appears:
+  1. Explain the idea in plain, simple words *first*, then introduce `<b>exact term</b>` (plus `<span class="id">local term</span>` when helpful).
+  2. Add a clear, plain-English definition in `<dl class="terms">` along with **relevant context** (why it exists, where it fits in the big picture, and when you use it).
+  3. Pair abstract ideas with a concrete, real-world `<div class="callout eg"><b>Example</b><div>...</div></div>` (using everyday objects/situations—never metro analogies).
+- **Show every step of math & logic**: In `Kit.derive` and `<ol class="steps">`, include every intermediate step and explain *why* each step happens in plain words.
+
+#### Files in `guides/<slug>/`
 
 - `guide.json`: `id`, `title`, `highlight`, `eyebrow`, `lede`, `terminus`, and `lines` (names + hex colours). Keep `id` identical when updating an existing guide so browser progress is preserved.
 - `content.html`: Use the engine shorthands. Structure each station as:
-  1. `<p class="bigidea">` (1 to 2 sentences)
-  2. `<dl class="terms">` with `<b>exact term</b>` and `<span class="id">Indonesian term</span>` where helpful
+  1. `<p class="bigidea">` (1 to 2 plain-English sentences)
+  2. Plain-words explanation (`<p>` blocks) + `<dl class="terms">` with `<b>exact term</b>`, plain definition, and context
   3. Visuals (`.viz`) each preceded by `<p class="lead">`
   4. Comparison tables (`<div class="tbl-wrap"><table class="tbl">` with an empty first `<th>`)
   5. `<ol class="steps">` or `Kit.derive` for worked examples
   6. Plain, real-life `<div class="callout eg"><b>Example</b><div>...</div></div>` (never metro-themed)
-  7. `<div class="traps">` containing `<div class="callout trap">` items (automatically collected into the line's collapsible checkpoint)
+  7. Optional hands-on `.drill` blocks (`order`, `cloze`, `spot`, `match`) preceded by `<p class="lead">`
+  8. `<div class="traps">` containing `<div class="callout trap">` items (automatically collected into the line's collapsible checkpoint)
 - `quiz.json`: 2 to 4 questions per station (`"see": "c1-1"`) and 15 to 30 questions marked `"exam": true`, using 4 to 5 options (`A-E`) per question. Every option needs `[text, isCorrect, why]`, plus `"e"` explanation and `"src"` source label.
 - `flash.json`: 2 to 4 cards per station (`{"k": "1.1", "f": "...", "b": "..."}`).
 - `visuals.js`: `Kit.*` and `E.stepper` + `V` calls matching the `.viz` IDs in `content.html`.
