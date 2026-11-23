@@ -743,11 +743,14 @@ function splitEqRows(html){
     for(let i=0;i<s.length;i++){
       const c=s[i];
       if(c==="<"){td++;continue}if(c===">"&&td>0){td--;continue}if(td>0)continue;
+      if(c==="&"){const semi=s.indexOf(";",i);if(semi>i&&semi-i<10){i=semi;continue}}
       if(c==="("||c==="["||c==="{")pd++;else if((c===")"||c==="]"||c==="}")&&pd>0)pd--;
       if(pd!==0)continue;
       let sep=0;
-      if((c===","&&/\s/.test(s[i+1]||""))||c===";")sep=1;
-      else if(s.slice(i).match(/^\s+and\s+/i))sep=s.slice(i).match(/^\s+and\s+/i)[0].length;
+      if((c===","&&/^(?:\s|&(?:emsp|ensp|thinsp);)/.test(s.slice(i+1)))||c===";"){
+        const m=s.slice(i+1).match(/^(?:\s|&(?:emsp|ensp|thinsp);)*/);
+        sep=1+(m?m[0].length:0);
+      } else if(s.slice(i).match(/^\s+and\s+/i))sep=s.slice(i).match(/^\s+and\s+/i)[0].length;
       if(sep){const L=trimMath(s.slice(last,i)),R=trimMath(s.slice(i+sep));
         if(hasEqOp(L)&&hasEqOp(R)){parts.push(L);last=i+sep;i+=sep-1}}
     }
