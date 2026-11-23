@@ -113,7 +113,7 @@ function setLine(p){
 function show(i,dir){
   if(!screens)screens=build();
   i=Math.max(0,Math.min(screens.length-1,i));const s=screens[i];
-  returnNodes();cur=i;setLine(s.part);
+  returnNodes();card.scrollTop=0;stage.scrollTop=0;cur=i;setLine(s.part);
   // text column: section heading (a copy), then the explainer paragraphs
   if(s.kind==="sec"&&s.h3)txt.appendChild(s.h3.cloneNode(true));
   const textNodes=s.kind==="chapter"?s.nodes:s.nodes.filter(n=>s.text.includes(n));
@@ -136,7 +136,7 @@ function show(i,dir){
   store.set("exPos",s.key);
   // slide in
   card.classList.remove("in-l","in-r");void card.offsetWidth;if(dir&&E.motionOn())card.classList.add(dir>0?"in-r":"in-l");
-  requestAnimationFrame(fit);setTimeout(fit,400);
+  requestAnimationFrame(()=>{card.scrollTop=0;fit();card.scrollTop=0;});setTimeout(()=>{fit();},400);
   E.fitAll&&E.fitAll();
 }
 /* fit: keep each screen inside the viewport. Media shrinks (zoom) down to a
@@ -179,7 +179,7 @@ function leave(silent){
 }
 $(".ex-opt",ex).addEventListener("click",()=>E.openOptions(true));
 $(".ex-prev",ex).addEventListener("click",()=>show(cur-1,-1));
-$(".ex-next",ex).addEventListener("click",()=>{
+$(".ex-next",ex).addEventListener("click",()=>{if(card.scrollHeight>card.clientHeight+4&&card.scrollTop+card.clientHeight<card.scrollHeight-4){card.scrollBy({top:Math.max(120,Math.round(card.clientHeight*0.78)),behavior:E.motionOn()?"smooth":"auto"});return;}
   if(screens[cur].kind==="map"){const nx=E.counted.find(c=>!E.isDone(c.id));if(nx&&E.counted.some(c=>E.isDone(c.id))){show(screens.findIndex(s=>s.group===nx.id),1);return}}
   if(cur>=screens.length-1){E.showToast(`<span class="ti">${ic("check")}</span><span>End of the line. Try the practice exam again any time.</span>`);return}show(cur+1,1)});
 $(".ex-menu",ex).addEventListener("click",()=>E.openSheet(true));

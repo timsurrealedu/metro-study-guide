@@ -1376,7 +1376,7 @@ pre code{background:none;padding:0;font-size:inherit}
 .kit .kit-html{padding:16px 22px 6px}
 .kd-given{font:500 15px/1.5 var(--font);color:var(--text-2);margin:0 0 10px}
 .kd{list-style:none;margin:0;padding:0;display:grid;gap:4px;counter-reset:kd}
-.kd li{display:grid;grid-template-columns:26px 1fr;column-gap:12px;align-items:baseline;padding:9px 12px;border-radius:14px;transition:opacity .35s var(--ease),background .35s var(--ease)}
+.kd li{display:grid;grid-template-columns:26px minmax(0,1fr);column-gap:12px;align-items:baseline;padding:9px 12px;border-radius:14px;transition:opacity .35s var(--ease),background .35s var(--ease)}
 .kd li::before{counter-increment:kd;content:counter(kd);grid-row:1/span 2;align-self:start;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--font);background:rgb(var(--fg-rgb) / .08);color:var(--text-2)}
 .kd li.on{background:var(--surface);box-shadow:0 0 0 2px var(--pc)}
 .kd li.on::before{background:var(--acc);color:var(--lc-on)}
