@@ -732,7 +732,7 @@ $$(".drill").forEach(b=>{const k=Object.keys(DRILLS).find(k=>b.classList.contain
 
 /* ---------- math formatting: one equation per row, subscripts, semantic colours ---------- */
 function mapTextSegs(html,fn){return String(html).split(/(<[^>]+>|&[A-Za-z0-9#]+;)/g).map((s,i)=>i%2?s:fn(s)).join("")}
-function subMath(html){return mapTextSegs(html,t=>t.replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>").replace(/\^([A-Za-z0-9'*+-])/g,"<sup>$1</sup>").replace(/([A-Za-z0-9\u0370-\u03FF∑∏])_([A-Za-z0-9']+)/g,"$1<sub>$2</sub>").replace(/([A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+)/g,'<span class="nowrap">$1</span>'))}
+function subMath(html){return mapTextSegs(html,t=>t.replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>").replace(/\^([A-Za-z0-9'*+-])/g,"<sup>$1</sup>").replace(/([A-Za-z0-9\u0370-\u03FF∑∏])_([A-Za-z0-9']+)/g,"$1<sub>$2</sub>").replace(/([A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+)/g,'<span class="nowrap">$1</span>').replace(/([=≈≤≥≠∈]\s*[−-]?[A-Za-z0-9.]+%?)/g,'<span class="nowrap">$1</span>'))}
 function hasEqOp(s){return /[=≈≤≥]/.test(s.replace(/<[^>]+>/g,""))}
 function trimMath(s){return String(s).replace(/^(?:\s|&emsp;|&ensp;|&thinsp;)+|(?:\s|&emsp;|&ensp;|&thinsp;)+$/gi,"")}
 function splitEqRows(html){
@@ -823,6 +823,16 @@ $$(".eq").forEach(el=>{
   el.innerHTML=`<div class="eq-scroll">${rows.map(renderMathRow).join("")}</div>`;
   sm.forEach(n=>el.appendChild(n));
 });
+function alignMath(rootEl=main){
+  $$(".kd-m,.eq.eq-multi .eq-scroll",rootEl).forEach(m=>{
+    const rows=$$(".eq-row",m);if(rows.length<2)return;
+    const ls=rows.map(r=>$(".m-lhs",r)).filter(Boolean);
+    ls.forEach(el=>el.style.minWidth="");
+    const w=Math.max(0,...ls.map(el=>el.getBoundingClientRect().width));
+    if(w>0)ls.forEach(el=>el.style.minWidth=Math.ceil(w)+"px");
+  });
+}
+requestAnimationFrame(()=>alignMath());
 
 const blockEn=new WeakMap(),txtEn=new WeakMap();
 let quizEn=null,flashEn=null;
@@ -854,6 +864,6 @@ function applyLang(l){
 if(lang==="id")requestAnimationFrame(()=>applyLang("id"));
 
 window.Engine={$,$$,h,ic,store,flow,stepper,segc,segSet,rangeFill,sorter,drills:DRILLS,watch,tickers,motionOn,markDone:id=>Engine_markDone(id),isDone:id=>done.has(id),visible,
-  openSheet,openOptions,applyTheme,getTheme:()=>theme,applyMotion,applyLang,getLang:()=>lang,t,showToast,lineVars,chapters,parts,counted,fitAll,paintProgress,phoneMQ,math:formatMath};
+  openSheet,openOptions,applyTheme,getTheme:()=>theme,applyMotion,applyLang,getLang:()=>lang,t,showToast,lineVars,chapters,parts,counted,fitAll,paintProgress,phoneMQ,math:formatMath,alignMath};
 document.dispatchEvent(new Event("engine-ready"));
 })();

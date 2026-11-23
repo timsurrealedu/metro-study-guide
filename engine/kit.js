@@ -30,7 +30,7 @@ V.arrow=(id,cls="f-arrow")=>`<defs><marker id="${id}" viewBox="0 0 10 10" refX="
 V.show=(el,on)=>{if(!el)return;(el.length!=null?[...el]:[el]).forEach(e=>e.classList.toggle("hide",!on))};
 V.dim=(el,on)=>{if(!el)return;(el.length!=null?[...el]:[el]).forEach(e=>e.classList.toggle("dim",!!on))};
 V.lbl=(x,y,t,cls="",anchor="middle")=>`<text x="${x}" y="${y}" text-anchor="${anchor}" class="${cls}">${t}</text>`;
-V.wrap=(txt,max)=>{const safe=String(txt).replace(/^(\d+\.)\s+/,"$1\u00A0").replace(/(\[[^\]]{1,16}\]|\([^)]{1,16}\))/g,m=>m.replace(/ /g,"\u00A0"));const w=safe.split(" ");const out=[];let line="";w.forEach(x=>{if((line+" "+x).trim().length>max&&line){out.push(line);line=x}else line=(line+" "+x).trim()});if(line)out.push(line);return out};
+V.wrap=(txt,max)=>{const safe=String(txt).replace(/^(\d+\.|[A-Za-z]\.|Step\s+\d+:?)\s+/,"$1\u00A0").replace(/(\[[^\]]{1,16}\]|\([^)]{1,16}\))/g,m=>m.replace(/ /g,"\u00A0")).replace(/([=≈≤≥≠∈→])\s+(\S+)/g,"$1\u00A0$2");const w=safe.split(" ");const out=[];let line="";w.forEach(x=>{if((line+" "+x).trim().length>max&&line){out.push(line);line=x}else line=(line+" "+x).trim()});if(line)out.push(line);return out};
 /* tween helper that respects the Animations switch */
 V.tween=(dur,fn,done)=>{if(!E.motionOn()){fn(1);done&&done();return()=>{}}let t0=null,stop=false;function f(now){if(stop)return;if(t0==null)t0=now;const t=Math.min(1,(now-t0)/dur);fn(t);if(t<1)requestAnimationFrame(f);else done&&done()}requestAnimationFrame(f);return()=>{stop=true}};
 V.ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
@@ -108,7 +108,8 @@ Kit.flow=(id,o)=>{
     /* a simple chain (each box leads to the next) may stack in one column on phones;
        a branching flow keeps at least two columns so its arrows can go round the boxes */
     const chain=edges.every(([a,b])=>b===a+1);
-    let cols=Math.max(1,Math.min(o.cols||4,n,Math.floor((W+40)/205)));
+    const minNodeW=Math.min(250,Math.max(190,...N.map(nd=>{const first=(nd.t||"").replace(/^(\d+\.)\s+/,"$1\u00A0").split(" ")[0];return Math.ceil(first.length*CW(15))+34})));
+    let cols=Math.max(1,Math.min(o.cols||4,n,Math.floor((W+36)/(minNodeW+28))));
     if(chain&&W<540)cols=1;else if(!chain&&n>1)cols=Math.max(2,cols);
     const labW=Math.max(0,...edges.map(e=>e[2]?e[2].length*7+22:0));
     const gap=cols>1?Math.max(labW,Math.min(64,Math.max(40,(W-cols*150)/(cols-1)*.35))):0;
@@ -393,11 +394,32 @@ Kit.particles=(id,o)=>{
       Line syntax: [[x]] highlights a change, ~~x~~ crosses out,
       \frac{a}{b}, x^{2}, x_{1}, \sqrt{x}, \times \div \pm \le \ge \neq \approx \to \pi \theta \Delta
    ================================================================= */
-const TEX={"\\times":"×","\\div":"÷","\\pm":"±","\\le":"≤","\\ge":"≥","\\neq":"≠","\\approx":"≈","\\to":"→","\\cdot":"·","\\pi":"π","\\theta":"θ","\\Delta":"Δ","\\alpha":"α","\\beta":"β","\\lambda":"λ","\\mu":"μ","\\omega":"ω","\\rightleftharpoons":"⇌","\\infty":"∞","\\degree":"°","\\quad":"&emsp;","\\qquad":"&emsp;&emsp;","\\min":'<span class="mop">min</span>',"\\max":'<span class="mop">max</span>',"\\lim":'<span class="mop">lim</span>',"\\arg":'<span class="mop">arg</span>',"\\log":'<span class="mop">log</span>',"\\partial":"∂","\\sum":'<span class="mop mop-big">∑</span>',"\\prod":'<span class="mop mop-big">∏</span>',"\\gamma":"γ","\\sigma":"σ","\\phi":"φ","\\in":"∈"};
-Kit.math=(s,o)=>{s=String(s);
-  for(let k=0;k<6;k++)s=s.replace(/\\(?:bar|overline)\{([^{}]*)\}/g,'<span class="m-bar">$1</span>').replace(/\\hat\{([^{}]*)\}/g,'<span class="m-hat">$1</span>').replace(/\\text\{([^{}]*)\}/g,"$1").replace(/\\sqrt\{([^{}]*)\}/g,'<span class="rt">$1</span>').replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>").replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g,'<span class="fr"><span>$1</span><span>$2</span></span>');
+const TEX={"\\times":"×","\\div":"÷","\\pm":"±","\\le":"≤","\\ge":"≥","\\neq":"≠","\\approx":"≈","\\to":"→","\\cdot":"·","\\pi":"π","\\theta":"θ","\\Delta":"Δ","\\alpha":"α","\\beta":"β","\\lambda":"λ","\\mu":"μ","\\omega":"ω","\\rightleftharpoons":"⇌","\\infty":"∞","\\degree":"°","\\quad":"&emsp;","\\qquad":"&emsp;&emsp;","\\min":'<span class="mop">min</span>',"\\max":'<span class="mop">max</span>',"\\lim":'<span class="mop">lim</span>',"\\arg":'<span class="mop">arg</span>',"\\log":'<span class="mop">log</span>',"\\partial":"∂","\\sum":'<span class="mop mop-big">∑</span>',"\\prod":'<span class="mop mop-big">∏</span>',"\\gamma":"γ","\\sigma":"σ","\\phi":"φ","\\in":"∈","\\left":"","\\right":""};
+function readBrace(s,i){if(s[i]!=="{")return null;let d=0,j=i;for(;j<s.length;j++){if(s[j]==="{")d++;else if(s[j]==="}"){d--;if(d===0)return [s.slice(i+1,j),j+1]}}return null}
+function parseTex(s){
+  let out="",i=0;
+  while(i<s.length){
+    if(s[i]==="\\"||s[i]==="^"||s[i]==="_"){
+      if(s.startsWith("\\frac{",i)||s.startsWith("\\dfrac{",i)){
+        const a=readBrace(s,s.indexOf("{",i));const b=a&&readBrace(s,a[1]);
+        if(a&&b){out+=`<span class="fr"><span>${parseTex(a[0])}</span><span>${parseTex(b[0])}</span></span>`;i=b[1];continue}
+      }
+      const m1=s.slice(i).match(/^\\(bar|overline|hat|tilde|vec|text|mathrm|mathbf|operatorname|sqrt)\{/);
+      if(m1){const a=readBrace(s,i+m1[0].length-1);if(a){
+        const inner=parseTex(a[0]),c=m1[1];
+        out+=c==="bar"||c==="overline"?`<span class="m-bar">${inner}</span>`:c==="hat"?`<span class="m-hat">${inner}</span>`:c==="sqrt"?`<span class="rt">${inner}</span>`:inner;
+        i=a[1];continue}}
+      if((s[i]==="^"||s[i]==="_")&&s[i+1]==="{"){
+        const a=readBrace(s,i+1);if(a){out+=s[i]==="^"?`<sup>${parseTex(a[0])}</sup>`:`<sub>${parseTex(a[0])}</sub>`;i=a[1];continue}
+      }
+    }
+    out+=s[i++];
+  }
+  return out;
+}
+Kit.math=(s,o)=>{s=parseTex(String(s));
   s=s.replace(/\^([A-Za-z0-9'*+-])/g,"<sup>$1</sup>").replace(/([A-Za-z0-9\u0370-\u03FF∑∏])_([A-Za-z0-9']+)/g,"$1<sub>$2</sub>");
-  s=s.replace(/\\;/g,"&ensp;").replace(/\\,/g,"&thinsp;").replace(/\\[A-Za-z]+/g,m=>TEX[m]||m);
+  s=s.replace(/\\[;,!: ]/g,"&thinsp;").replace(/\\[A-Za-z]+/g,m=>TEX[m]??m);
   s=s.replace(/\[\[(.+?)\]\]/g,'<span class="hi">$1</span>').replace(/~~(.+?)~~/g,'<span class="x">$1</span>');
   return E.math?E.math(s,o):s};
 Kit.derive=(id,o)=>{
@@ -405,11 +427,11 @@ Kit.derive=(id,o)=>{
   S.stage.classList.add("kit-html");
   const Ls=o.lines;
   S.stage.innerHTML=(o.given?`<div class="kd-given">${Kit.math(o.given)}</div>`:"")+`<ol class="kd">${Ls.map((l,i)=>`<li data-i="${i}"${l.final?' class="final"':""}>${l.why?`<div class="kd-why">${Kit.math(l.why)}</div>`:""}<div class="kd-m">${Kit.math(l.m,{rows:true})}</div></li>`).join("")}</ol>`;
-  const alignLhs=()=>{$$(".kd-m",S.stage).forEach(m=>{const rows=$$(".eq-row",m);if(rows.length<2)return;const ls=rows.map(r=>$(".m-lhs",r)).filter(Boolean);ls.forEach(el=>el.style.minWidth="");const w=Math.max(0,...ls.map(el=>el.getBoundingClientRect().width));if(w>0)ls.forEach(el=>el.style.minWidth=Math.ceil(w)+"px")})};
-  requestAnimationFrame(alignLhs);if(window.ResizeObserver)new ResizeObserver(alignLhs).observe(S.stage);
+  const align=()=>{E.alignMath&&E.alignMath(S.stage)};
+  requestAnimationFrame(align);if(window.ResizeObserver)new ResizeObserver(align).observe(S.stage);
   const steps=stepsOr(o,Ls.map((l,i)=>({t:l.t||(i?`Step ${i}`:"Start"),d:l.d||l.why||"",line:i})));
   return E.stepper(S.viz,steps,(i)=>{const s=steps[i],k=s.line??i;
-    $$(".kd li",S.stage).forEach(li=>{const j=+li.dataset.i;li.classList.toggle("on",j===k);li.classList.toggle("later",j>k)});requestAnimationFrame(alignLhs);if(o.on)o.on(i,S.stage,s);},{ms:o.ms||4200});
+    $$(".kd li",S.stage).forEach(li=>{const j=+li.dataset.i;li.classList.toggle("on",j===k);li.classList.toggle("later",j>k)});requestAnimationFrame(align);if(o.on)o.on(i,S.stage,s);},{ms:o.ms||4200});
 };
 
 /* =================================================================
