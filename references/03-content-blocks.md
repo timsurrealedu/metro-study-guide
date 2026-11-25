@@ -152,9 +152,18 @@ the steps fold to a list of titles.
 ### Equation
 
 ```html
-<div class="eq">v = u + at<small>u = starting velocity, a = acceleration, t = time</small></div>
+<div class="eq">[[3|c|m3]]([[2x - 4|g|gp]]) + 5 = [[2x|v]] + 9
+  <small>Blue = variable · Amber = multiplier · Teal = group</small>
+  <div class="eq-legend" role="group" aria-label="Color key">
+    <button type="button" class="m-leg-item m-t-c" data-role="c" aria-pressed="false"><i></i><span>Multiplier</span></button>
+    <button type="button" class="m-leg-item m-t-g" data-role="g" aria-pressed="false"><i></i><span>Group</span></button>
+  </div>
+  <details class="eq-why"><summary>Why multiply first?</summary><p>Parentheses group terms before addition.</p></details>
+</div>
 ```
-For anything more than one line of algebra, use `Kit.derive` ([04](04-visual-kits.md)).
+- Inline math anywhere (prose, tables, quizzes, flashcards): `<span class="m">\frac{d}{dx}[[sin|f]]([[x^{2}|g]])</span>`.
+- Supports full TeX (`\frac`, `\sqrt[n]{x}`, `\int_{a}^{b}`, `\sum_{k=1}^{n}`, `\lim_{h \to 0}`, `\binom{n}{k}`, `\begin{bmatrix}...\end{bmatrix}`, `\vec`, `\abs`, `\dd{x}`), depth-colored brackets, and semantic role tokens `[[expr|role|tid]]` (`v`/`c`/`f`/`g`/`r`/`k`/`a`).
+- For step-by-step animated solutions, use `Kit.derive` ([04](04-visual-kits.md)).
 
 ### Key–value list
 

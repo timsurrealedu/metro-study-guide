@@ -1,0 +1,14 @@
+{
+  "id": "math-photomath-demo",
+  "title": "Math Studio",
+  "highlight": "Studio",
+  "eyebrow": "Interactive Algebra, Calculus & Matrices",
+  "lede": "Step through algebra, calculus, and matrices with color-coded equations and synced graphs.",
+  "terminus": "Exam",
+  "lines": {
+    "1": { "name": "Algebra & Quadratics", "color": "#1d5fd6" },
+    "2": { "name": "Calculus: Derivatives & Integrals", "color": "#6d28d9" },
+    "3": { "name": "Matrices & Complex Equations", "color": "#0f766e" },
+    "R": { "name": "Review & Reference", "color": "#0b7285" }
+  }
+}

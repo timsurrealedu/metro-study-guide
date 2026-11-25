@@ -1,5 +1,21 @@
 # Changelog
 
+## Metro Engine v1.4 — 25 November 2026
+
+**Photomath-inspired animated math tutorials, semantic equation color-coding, and synced visualizers.**
+
+- **Unified TeX & semantic color engine (`engine/metro.js`)**: `parseTex` and `formatMath` now power `.eq`, inline `<span class="m">`, `Kit.derive`, quizzes, and flashcards from a single parser.
+  - Added semantic role tokens `[[expr|role]]` / `[[expr|role|tid]]` (`v`/`var` blue, `c`/`coef` amber, `f`/`fn` violet, `g`/`grp` teal, `r`/`res` green, `k`/`bad` rose, `a`/`acc` sky, `s`/`stay` neutral untouched stay) with interactive hover/tap cross-highlighting and `.eq-legend` / `legend` pills.
+  - Added multi-frame differential math animations (`frames` with `from` cloning/distributing, `strike` horizontal sweeps, merge pops, and untouched `s`-token stability) with inline **`‹` / `↻ n/N` / `›`** step-frame controls.
+  - Added depth-colored brackets (`()[]{}`), italic math variables, stacked limits on `\int`, `\sum`, `\prod`, `\lim`, nth roots `\sqrt[n]{x}`, `\binom{n}{k}`, `\abs{x}`, `\vec{v}`, `\dot{x}`, and `\dd{x}`.
+  - Added expandable `details.eq-why` explanation drawers inside `.eq` blocks.
+- **Photomath-style `Kit.derive` (`engine/kit.js`)**:
+  - Added `op` operation bridges between lines, clickable step rows, expandable **How** (`how`) and **Why** (`tip`: `title`, `body`, `rule`, `watch`) drawers with smooth CSS Grid `0fr -> 1fr` reveal, and 60fps WAAPI FLIP term-transfer animations (`tid`).
+  - Added synchronized visualizers right beside the steps via `graph` (`mountGraph`) or custom `visual` (`{alt, vb, svg, render}`), stacking cleanly on narrow screens and sitting side-by-side on wide containers.
+- **Upgraded `Kit.graph`**: Added animated curve draw-on (`drawOn`), `tangents` (with slope readout and optional rise/run triangle), live `riemann` sum rectangles (`left`/`right`/`mid`), and `vectors`, with strict SVG label clamping.
+- **Accessible 60fps motion**: Removed `filter: blur()` from `.kd li.later`, added keyboard Arrow/Space navigation inside visuals, tactile press feedback, and tiered `prefers-reduced-motion` / `data-motion="off"` handling.
+- **New showcase guide**: `guides/math-photomath-demo` (**Math Studio** — Algebra, Chain Rule, Riemann Sums, Matrices, and Complex Equations).
+
 ## Metro Engine v1.3 — 23 November 2026
 
 **Drills: hands-on practice written in plain HTML** (made for BI Metro, the Grade 12

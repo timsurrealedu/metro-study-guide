@@ -121,7 +121,7 @@ let moved=[],made=[],arranged=null,nextBase="Next",pendingLast=false,pgEl=null;c
 /* sub-nodes moved for one screen (a visual's caption, player, sliders) go back to their own place */
 function moveTo(n,into){const ph=document.createComment("exm");n.before(ph);into.appendChild(n);moved.push([n,ph])}
 function restoreMoved(){moved.reverse().forEach(([n,ph])=>{if(ph.parentNode)ph.parentNode.insertBefore(n,ph);ph.remove()});moved=[];made.forEach(m=>m.remove());made=[];
-  closeTry();tryBtn.hidden=true;arranged=null;$$(".viz-stage.ex-win",med).forEach(st=>{st.classList.remove("ex-win");st.style.maxHeight=""})}
+  closeTry();tryBtn.hidden=true;arranged=null;$$(".ex-win",med).forEach(st=>{st.classList.remove("ex-win","ex-win-top","ex-win-bot");st.style.maxHeight=""})}
 function returnNodes(){restoreMoved();shown.forEach(n=>{const ph=home.get(n);if(ph&&ph.parentNode)ph.parentNode.insertBefore(n,ph);n.style.zoom=""});shown=[];txt.innerHTML="";txt.style.zoom="";med.innerHTML="";med.style.zoom="";med.style.height="";med.scrollTop=0;med.classList.remove("paged","more");txt.style.height="";txt.scrollTop=0;txt.classList.remove("paged","more");card.style.height="";card.scrollTop=0;card.classList.remove("more");pgEl=null;card.classList.remove("scroll","two","solo","title","paged");pg.stops=[0];pg.i=0;
   painted.forEach((d,q)=>q.dispatchEvent(new CustomEvent("quizpaint",{bubbles:true,detail:d})));painted.clear()}
 function openTry(){trySheet.hidden=false;tryBtn.setAttribute("aria-expanded","true");ex.classList.add("trying")}
@@ -186,23 +186,35 @@ function fit(){
 }
 function roomy(){return innerWidth>=900&&innerWidth>innerHeight*1.1}
 function resetFit(){
-  const w=$(".viz-stage.ex-win",med);if(w){w.classList.remove("ex-win");w.style.maxHeight=""}
+  $$(".ex-win",med).forEach(w=>{w.classList.remove("ex-win","ex-win-top","ex-win-bot");w.style.maxHeight=""});
   $$("svg.ex-fit",med).forEach(g=>{g.classList.remove("ex-fit");g.style.maxHeight=""});med.style.zoom="";
 }
+function winEdges(w){if(!w)return;w.classList.toggle("ex-win-top",w.scrollTop>4);w.classList.toggle("ex-win-bot",w.scrollTop+w.clientHeight<w.scrollHeight-4)}
 /* make the media fit `avail` px without making words smaller: a stepped visual becomes a
    window that follows the step; the tallest drawing gets a little shorter. Returns the px still over. */
 function squeeze(avail,keepTop,keep,floor=.72){
   const over=()=>med.scrollHeight-avail;
   const v=med.querySelector(":scope>.viz"),st=v&&$(":scope>.viz-stage",v);
-  if(over()>0&&st&&$(".player",card)&&(!st.querySelector(":scope>svg")||st.querySelector(".on"))){const want=st.offsetHeight-over();
-    if(want>=110){st.classList.add("ex-win");st.style.maxHeight=want+"px";const left=over();if(left>0)st.style.maxHeight=(want-left)+"px";st.scrollTop=keepTop;follow(!!keep)}}
-  if(over()>0){const svgs=$$("svg",med).filter(g=>!g.closest(".ex-win,.ic,button")&&g.getBoundingClientRect().height>120).sort((a,b)=>b.getBoundingClientRect().height-a.getBoundingClientRect().height);
+  const hasSplit=!!(st&&st.querySelector(".kd-layout.has-viz"));
+  if(hasSplit&&over()>0){
+    const vp=st.querySelector(".kd-viz-pane"),sp=st.querySelector(".kd-steps-pane"),vsvg=vp&&$("svg",vp);
+    const wideLay=st.clientWidth>=680;
+    if(vsvg){const gh=vsvg.getBoundingClientRect().height,cap=wideLay?avail-28:Math.min(gh,Math.max(150,avail*.4));
+      if(gh>cap&&cap>=140){vsvg.classList.add("ex-fit");vsvg.style.maxHeight=Math.floor(cap)+"px"}}
+    if(sp&&over()>0){
+      const vpH=wideLay||!vp?0:vp.offsetHeight+14;
+      const want=Math.floor(avail-vpH-36);
+      if(want>=120){sp.classList.add("ex-win");sp.style.maxHeight=want+"px";const left=over();if(left>0)sp.style.maxHeight=Math.max(110,want-left)+"px";sp.scrollTop=keepTop;follow(!!keep);winEdges(sp)}
+    }
+  } else if(over()>0&&st&&$(".player",card)&&(!st.querySelector(":scope>svg")||st.querySelector(".on"))){const want=st.offsetHeight-over();
+    if(want>=110){st.classList.add("ex-win");st.style.maxHeight=want+"px";const left=over();if(left>0)st.style.maxHeight=(want-left)+"px";st.scrollTop=keepTop;follow(!!keep);winEdges(st)}}
+  if(!hasSplit&&over()>0){const svgs=$$("svg",med).filter(g=>!g.closest(".ex-win,.ic,button")&&g.getBoundingClientRect().height>120).sort((a,b)=>b.getBoundingClientRect().height-a.getBoundingClientRect().height);
     if(svgs[0]){const g=svgs[0],gh=g.getBoundingClientRect().height,want=gh-over();if(want/gh>=floor){g.classList.add("ex-fit");g.style.maxHeight=Math.floor(want)+"px"}}}
   return over();
 }
 function refit(keep){
   if(cur<0)return;
-  const w0=$(".viz-stage.ex-win",med),keepTop=w0?w0.scrollTop:0;
+  const w0=$(".ex-win",med),keepTop=w0?w0.scrollTop:0;
   resetFit();txt.style.zoom="";med.style.height="";med.classList.remove("paged","more");txt.style.height="";txt.classList.remove("paged","more");
   card.style.height="";card.scrollTop=0;card.classList.remove("scroll","paged","more");pgEl=med;
   const wide=card.classList.contains("two");
@@ -237,7 +249,7 @@ function refit(keep){
   parts();
 }
 /* where a part may start: the top of a block, a table row, a list item, an option… */
-const BREAKS=".ex-media>*,.ex-text>*,.ex-media .viz>*,.callout,tr,li,dl>div,.q-top,.q-text,.q-hint,.opt,.q-foot,.q-exp,.grid2>*,.grid3>*,.hn-b,.hn-end,.kd-given,p,h4,.eq,.cp-h,.flash,.sorter";
+const BREAKS=".ex-media>*,.ex-text>*,.ex-media .viz>*,.callout,tr,li,dl>div,.q-top,.q-text,.q-hint,.opt,.q-foot,.q-exp,.grid2>*,.grid3>*,.hn-b,.hn-end,.kd-given,.kd-legend,.kd-drawer,.eq-legend,.eq-why,p,h4,.eq,.cp-h,.flash,.sorter";
 function stopsFor(H){
   const el=pgEl||med,o=el.getBoundingClientRect().top-el.scrollTop,total=el.scrollHeight;
   const bps=[...new Set($$(BREAKS,el).map(e=>Math.round(e.getBoundingClientRect().top-o-6)).filter(y=>y>0&&y<total))].sort((a,b)=>a-b);
@@ -258,12 +270,14 @@ function goPage(i,smooth=true){
   count.textContent=(count.dataset.base||"")+(n>1?` · part ${pg.i+1} of ${n}`:"");
 }
 function follow(smooth=true){
-  const st=$(".viz-stage.ex-win",med);if(!st)return;
-  const c=st.querySelector(".hn-on")||st.querySelector(".hn-b.on,.hn-end.on")||st.querySelector("li.on")||st.querySelector(".on");if(!c)return;
+  const st=$(".ex-win",med);if(!st)return;
+  const c=st.querySelector(".hn-on")||st.querySelector(".hn-b.on,.hn-end.on")||st.querySelector("li.on")||st.querySelector(".on");if(!c){winEdges(st);return}
   const r=c.getBoundingClientRect(),sr=st.getBoundingClientRect(),rel=r.top-sr.top+st.scrollTop;
   const top=Math.max(0,Math.min(rel-(st.clientHeight-r.height)/2,st.scrollHeight-st.clientHeight));
   st.scrollTo({top,behavior:smooth&&E.motionOn()?"smooth":"auto"});
+  winEdges(st);setTimeout(()=>winEdges(st),260);
 }
+med.addEventListener("scroll",e=>{if(e.target.classList&&e.target.classList.contains("ex-win"))winEdges(e.target)},true);
 med.addEventListener("visualstep",()=>requestAnimationFrame(()=>{refit(true);follow(true)}));
 med.addEventListener("quizpaint",e=>{painted.set(e.target,e.detail);requestAnimationFrame(()=>refit(true))});
 med.addEventListener("click",e=>{if(e.target.closest(".quiz,.flash,.sorter,.drill"))setTimeout(()=>refit(true),80)});

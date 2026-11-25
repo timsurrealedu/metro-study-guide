@@ -24,12 +24,31 @@ LAYOUT_JS = r"""(function(phone) {
   });
   document.querySelectorAll(".viz-stage svg").forEach(svg => {
     const f = svg.getBoundingClientRect(), id = svg.closest(".viz")?.id || "?";
+    const strokes = [...svg.querySelectorAll("line,path")].filter(s => !s.closest(".hide,[style*='display: none'],defs") && !s.matches(".k-grid,.k-axis,.k-mark,.k-curve,.k-tan,.k-shade,.k-vl,.k-edge,.k-lead")).map(s => s.getBoundingClientRect()).filter(r => r.width || r.height);
+    const rects = [...svg.querySelectorAll("rect")].filter(b => !b.closest(".hide,[style*='display: none'],defs") && !b.matches(".k-box,.k-riem,.k-bar")).map(b => b.getBoundingClientRect()).filter(r => r.width > 12 && r.height > 12);
     svg.querySelectorAll("text").forEach(t => {
       if (t.closest(".hide,[style*='display: none'],defs")) return;
       const r = t.getBoundingClientRect();
-      if (!r.width) return;
-      if (r.left < f.left - 2 || r.right > f.right + 2) {
+      if (!r.width || !r.height) return;
+      if (r.left < f.left - 2 || r.right > f.right + 2 || r.top < f.top - 1 || r.bottom > f.bottom + 1) {
         bad.push(`text sticks out of #${id}: "${t.textContent.trim().slice(0, 40)}"`);
+      }
+      if (!t.classList.contains("k-halo")) {
+        for (const sr of strokes) {
+          if (sr.right > r.left + 2 && sr.left < r.right - 2 && sr.bottom > r.top + 2 && sr.top < r.bottom - 2) {
+            bad.push(`stroke pierces text in #${id}: "${t.textContent.trim().slice(0, 40)}"`);
+            break;
+          }
+        }
+      }
+      const cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+      for (const rr of rects) {
+        if (cx >= rr.left && cx <= rr.right && cy >= rr.top && cy <= rr.bottom) {
+          if (r.left < rr.left + 3 || r.right > rr.right - 3 || r.top < rr.top + 2 || r.bottom > rr.bottom - 2) {
+            bad.push(`text tight/overflows box in #${id}: "${t.textContent.trim().slice(0, 40)}"`);
+          }
+          break;
+        }
       }
     });
   });
@@ -199,15 +218,39 @@ def main():
                     with open(os.path.join(args.shots, f"{sz}_{theme}_scroll.png"), "wb") as f:
                         f.write(base64.b64decode(shot["data"]))
 
-                # Check Explainer mode
+                # Check Explainer mode (including every .viz screen for cropping/clipping)
                 ex_ok = cdp.eval("window.Explainer ? (Explainer.enter(), true) : false")
                 if ex_ok:
                     time.sleep(0.4)
-                    ex_err = cdp.eval("!document.querySelector('.ex-wrap, #ex, .explainer')")
                     if args.shots and (sz, theme) == ("lap", "light"):
                         shot = cdp.call("Page.captureScreenshot", {"format": "png"})
                         with open(os.path.join(args.shots, "lap_light_explainer.png"), "wb") as f:
                             f.write(base64.b64decode(shot["data"]))
+                    viz_idxs = cdp.eval("(Explainer.screens||[]).map((s,i)=>s.nodes.some(n=>n.matches&&n.matches('.viz')||n.querySelector&&n.querySelector('.viz'))?i:-1).filter(i=>i>=0)") or []
+                    for vi in viz_idxs:
+                        cdp.eval(f"Explainer.show({vi})")
+                        time.sleep(0.25)
+                        ex_bad = cdp.eval(r"""(() => {
+                          const bad = [];
+                          document.querySelectorAll('.ex-media .kd-viz-pane, .ex-media .viz-stage svg').forEach(el => {
+                            const r = el.getBoundingClientRect();
+                            if (!r.width || !r.height) return;
+                            const vid = el.closest('.viz')?.id || '?';
+                            for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+                              const ov = getComputedStyle(p).overflowY;
+                              if (ov === 'hidden' || ov === 'auto' || ov === 'scroll') {
+                                const pr = p.getBoundingClientRect();
+                                if (r.top < pr.top - 1 || r.bottom > pr.bottom + 1) {
+                                  bad.push(`explainer clips #${vid} (${Math.round(r.top)}..${Math.round(r.bottom)} vs ${Math.round(pr.top)}..${Math.round(pr.bottom)})`);
+                                  break;
+                                }
+                              }
+                            }
+                          });
+                          return bad;
+                        })()""") or []
+                        for it in ex_bad:
+                            problems.append(f"{tag} {it}")
 
                 for ev in cdp.events:
                     if ev.get("method") == "Runtime.exceptionThrown":

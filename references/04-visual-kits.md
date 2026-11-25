@@ -182,7 +182,11 @@ Kit.graph("k-floor", {
 | `hlines[]` | `{y, label?, dash?, color?, at?, below?}`: a horizontal line. Label on the right (`at: "left"`), above the line (`below: true` to put it under). |
 | `dots[]` | `{x, y?, fn?, open?, label?, color?}`: an endpoint dot. `open: true` draws a hollow circle (endpoint **not** included); otherwise filled (included). Without `y`, the dot sits on curve `fn`. Colour = that curve's colour. |
 | `shade` | One area or a list: `{fn?, fn2?, from, to, label?, color?, lx?, ly?}`. Fills between curve `fn` (default 0) and curve `fn2`, or the x-axis if `fn2` is left out, from x = `from` to x = `to`. First area uses the line colour, later ones `--c2…`. Use a second colour for parts below the axis (negative integral). The label sits in the middle (`lx`, `ly` move it). |
-| `steps[].vlines`, `hlines`, `dots`, `shade` | Replace the top-level value while that step is shown (`[]` hides them). Leave out to keep the top-level value. |
+| `tangents[]` | `{fn?, x, y?, m?, len?, triangle?, dx?, color?, label?}`: tangent line at `x` (`{x}`, `{y}`, `{m}` supported in `label`), with optional rise/run guide `triangle: true`. |
+| `riemann[]` | `{fn?, from, to, n, mode?, color?, label?}`: Riemann rectangles (`mode`: `"left"`, `"right"`, `"mid"`). `n` may be a function of `p`; `{n}` and `{sum}` work in `label` and `readout(p, info)`. |
+| `vectors[]` | `{from: [x1,y1], to: [x2,y2], color?, label?, dash?}`: vector arrow (endpoints may be functions of `p`). |
+| `drawOn` | Set `false` to disable stroke draw-on animation when a curve first appears. |
+| `steps[].vlines`, `hlines`, `dots`, `shade`, `tangents`, `riemann`, `vectors` | Replace the top-level value while that step is shown (`[]` hides them). Leave out to keep the top-level value. |
 
 Shading is drawn under the axes and curves; dots and labels on top. Everything follows
 light and dark mode (`.k-vl`, `.k-dot`, `.k-dot.open`, `.k-shade`).
@@ -222,32 +226,50 @@ shows wall hits per second (gas pressure). `catalyst` lowers the energy needed t
 react. `n: [16, 16, 0]` in a step re-seeds with new counts. Particles only move while
 Animations are on and the box is on screen.
 
-## Kit.derive — a worked solution
+## Kit.derive — Photomath-style worked solution
 
 ```js
 Kit.derive("k-water", {
-  given: "2H_{2} + O_{2} \\to 2H_{2}O",
+  given: "Solve for [[x|v]]:",
+  legend: [{ role: "c", label: "Multiplier" }, { role: "r", label: "Result" }],
+  graph: { x: {min:-4, max:4}, y: {min:-2, max:10}, fns: [{f: x => x*x}] }, // optional synced graph
   lines: [
-    {m: "n = \\frac{m}{Mr} = \\frac{4}{2} = [[2 mol]]", why: "Grams → moles.", t: "Moles of hydrogen"},
-    {m: "m = 2 \\times 18 = [[36 g]]", why: "Moles → grams.", t: "Grams of water", final: true}
+    {
+      t: "Distribute",
+      op: "3 \\cdot 2x",
+      why: "Multiply [[3|c]] across the group.",
+      frames: [
+        { m: "[[3|c|m3]]([[2x|v|t1]] - [[4|c|t2]]) [[= 12|s|rhs]]", dur: 750 },
+        { m: "[[3 \\cdot 2x|c|p1]] - [[3 \\cdot 4|c|p2]] [[= 12|s|rhs]]", from: { p1: "m3", p2: "m3" }, dur: 900 },
+        { m: "[[6x|v|p1]] - [[12|c|p2]] [[= 12|s|rhs]]" }
+      ],
+      how: ["Multiply 3 × 2x = 6x.", "Multiply 3 × (−4) = −12."],
+      tip: { rule: "a(b - c) = ab - ac", body: "Distribute before combining constants." },
+      graph: { mark: [{x: 2}] } // optional graph override for this step
+    },
+    { m: "[[x = 4|r]]", why: "Add 12 and divide both sides by 6.", t: "Solve", final: true }
   ]
 });
 ```
 
-Line syntax (also usable anywhere via `Kit.math("…")`):
+Line syntax (also usable anywhere via `Kit.math("…")`, `.eq`, and `<span class="m">…</span>`):
 
 | Write | Get |
 |---|---|
 | `[[x]]` | highlighted change |
-| `~~x~~` | crossed out (cancelling) |
-| `\frac{a}{b}` | stacked fraction (nesting works) |
+| `[[expr\|role\|tid]]` | semantic color role (`v` var, `c` coef, `f` fn, `g` grp, `r` res, `k` cancel/bad, `a` accent, `s` neutral untouched stay) + optional `tid` for cross-highlighting and differential FLIP motion |
+| `~~x~~` or `~~x\|tid~~` | animated 3-beat cancel (highlight → horizontal strike → collapse), controllable via inline `‹` / `↻` / `›` frame controls |
+| `frames` (line property) | array of micro-frames `{ m, strike?, from?, dur? }` so every mathematical operation (distributing via `from`, both-sides addition/subtraction/division, merging, simplifying) animates meaningfully while `s`-tagged terms stay untouched |
+| `after` (line property) | shorthand for a post-cancellation simplified frame (`{ m: "4x ~~-7 + 7~~ = 9 + 7", after: "4x = 16" }`) |
+| `\frac{a}{b}`, `\binom{n}{k}` | stacked fraction, binomial coefficient |
 | `x^{2}`, `x_{1}` | superscript, subscript |
-| `\sqrt{x}` | square root |
+| `\sqrt{x}`, `\sqrt[n]{x}` | square root, nth root |
+| `\int_{a}^{b}`, `\sum_{k=1}^{n}`, `\prod`, `\lim_{x \to 0}` | stacked big operators with limits |
+| `\vec{v}`, `\dot{x}`, `\abs{x}`, `\dd{x}` | vector arrow, dot derivative, absolute value bars, differential dx |
+| `\begin{bmatrix}...\end{bmatrix}` | matrix (`bmatrix`, `pmatrix`, `vmatrix`, `cases`) |
 | `\times \div \pm \le \ge \neq \approx \to \cdot \pi \theta \Delta \alpha \beta \lambda \mu \omega \rightleftharpoons \infty \degree` | × ÷ ± ≤ ≥ ≠ ≈ → · π θ Δ α β λ μ ω ⇌ ∞ ° |
 
-In a JS string, write the backslash twice: `"\\frac{1}{2}"`. One step per line by
-default (title `t`, text = `why`); lines after the current one are blurred, so the
-layout never jumps. `final: true` boxes the answer.
+Tap any step row to jump directly to it, click **How** / **Why** tabs to expand micro-steps and rules, or attach `visual: { alt, vb, svg, render(i, svg, step) }` for a custom synced SVG beside the derivation. `final: true` highlights the final answer.
 
 ## Kit.annotate — a passage with notes
 

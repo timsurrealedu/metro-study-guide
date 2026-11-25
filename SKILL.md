@@ -49,7 +49,7 @@ Subject-specific visual patterns for college CS and Cyber Security:
 
 - **AI & Machine Learning**: `Kit.flow` for fuzzy inference pipelines and search; `Kit.graph` with sliders for membership functions, activation curves, and regression lines; `Kit.derive` for Tsukamoto/Mamdani, ID3 entropy/information gain, and backpropagation; `Kit.diagram` for neural network layers and MDP grid worlds.
 - **Cyber Security & Networking**: `Kit.flow` for attack chains, pentest phases, and TLS/TCP handshakes; `Kit.diagram` for network topologies, OSI/TCP-IP layers, and attack surfaces; `Kit.derive` for subnetting/CIDR and RSA/crypto math; short `<pre><code>` blocks for CLI commands.
-- **Algorithms, Math, Physics, Stats**: `Kit.flow` for flowcharts; `Kit.bars` for sorting steps and complexity comparisons; `Kit.derive` for recurrences, traces, and proofs; `Kit.graph` for functions and distributions.
+- **Algorithms, Math, Physics, Stats**: `Kit.flow` for flowcharts; `Kit.bars` for sorting steps and complexity comparisons; `Kit.derive` for Photomath-style step-by-step math (semantic color roles `[[expr|role|tid]]`, `op` bridges, expandable `how`/`tip` How & Why drawers, synced `graph` or custom `visual`); `Kit.graph` for functions, sliders, `tangents`, `riemann` rectangles, and `vectors`; `<span class="m">` for color-coded inline math in prose, quizzes, and flashcards.
 - **Humanities, Civics, Indonesian, Law**: `Kit.annotate` for close reading of articles/texts; `Kit.timeline` for historical/legal sequence; `.sorter` for classification and fact-vs-opinion checks.
 
 ### 4. Animations & Interactive Simulators (Mirroring Bio Metro)

@@ -1,0 +1,270 @@
+<!-- Math Studio · Showcase guide for Metro Engine v1.4 -->
+
+<section class="part" data-part="1" data-title="Algebra &amp; Quadratics" data-kicker="Line 1"
+  data-eyebrow="Line 1 · Equations &amp; Parabolas"
+  data-lede="See every algebraic step move across the equals sign, with a synced balance scale and live parabola graph.">
+
+<article class="chapter" id="c1-1" data-n="1.1" data-short="Balance &amp; Linear" data-title="Linear Equations as a Balanced Scale" data-tag="Core Algebra">
+  <p class="bigidea">An equation is a scale in perfect balance. Whatever operation you perform on the left side, you must mirror on the right side.</p>
+
+  <div class="sec"><h3 data-eb="Color Key">Reading colored equations</h3>
+    <p>Each color tracks one role: <span class="m">[[variable|v]]</span>, <span class="m">[[multiplier|c]]</span>, <span class="m">[[grouped expression|g]]</span>, or <span class="m">[[solved result|r]]</span>.</p>
+    <p>Tap or hover any color badge below an equation to highlight every matching piece across the working.</p>
+    <div class="eq">[[3|c|c3]]([[2x - 4|g|grp]]) + 5 = [[2x|v|rhsx]] + 9
+      <div class="eq-legend" role="group" aria-label="Color key">
+        <button type="button" class="m-leg-item m-t-c" data-role="c" aria-pressed="false"><i></i><span>Multiplier (3)</span></button>
+        <button type="button" class="m-leg-item m-t-g" data-role="g" aria-pressed="false"><i></i><span>Group (2x − 4)</span></button>
+        <button type="button" class="m-leg-item m-t-v" data-role="v" aria-pressed="false"><i></i><span>Variable x</span></button>
+      </div>
+      <details class="eq-why">
+        <summary>Why color the parentheses group separately?</summary>
+        <p>Parentheses lock <span class="m">[[2x - 4|g]]</span> together as one package. You cannot add the outside <span class="m">+5</span> until the multiplier <span class="m">[[3|c]]</span> opens that package.</p>
+      </details>
+    </div>
+    <dl class="terms">
+      <div><b>Coefficient</b><span class="d">The number multiplying a variable or bracket package, such as <span class="m">[[3|c]]</span> in <span class="m">3(2x - 4)</span>.</span></div>
+      <div><b>Inverse operation</b><span class="d">The opposite move that undoes an action (subtracting undoes adding; dividing undoes multiplying) to isolate <span class="m">[[x|v]]</span>.</span></div>
+    </dl>
+  </div>
+
+  <div class="sec"><h3 data-eb="Animated Tutor">Step-by-step with live balance scale</h3>
+    <p class="lead">Step through the solution below. Click any line to jump, or open <b>How</b> and <b>Why</b> for the rule.</p>
+    <div class="viz" id="k-balance"></div>
+    <div class="callout eg"><b>Example</b><div>Think of two identical grocery bags plus a 1 kg weight matching 9 kg on a scale. Removing 1 kg from both pans leaves 2 bags = 8 kg, so each bag weighs 4 kg.</div></div>
+  </div>
+
+  <div class="traps">
+    <div class="callout trap"><b>Adding outside numbers before distributing</b><div>In <span class="m">3(2x - 4) + 5</span>, do not add <span class="m">-4 + 5</span> first. Multiply the <span class="m">3</span> into both terms inside the parentheses before combining constants.</div></div>
+    <div class="callout trap"><b>Forgetting the second term when distributing</b><div><span class="m">3(2x - 4)</span> is <span class="m">6x - 12</span>, never <span class="m">6x - 4</span>. Every term inside the package gets multiplied.</div></div>
+  </div>
+</article>
+
+<article class="chapter" id="c1-2" data-n="1.2" data-short="Quadratics" data-title="Completing the Square &amp; Parabola Roots" data-tag="Quadratics">
+  <p class="bigidea">Completing the square turns any quadratic into vertex form, exposing both the turning point and the exact x-intercepts on the graph.</p>
+
+  <div class="sec"><h3 data-eb="The Formula">Two views of the same parabola</h3>
+    <p>A quadratic equation <span class="m">[[a|c]]x^{2} + [[b|g]]x + [[c|r]] = 0</span> draws a U-shaped curve. The Quadratic Formula solves for where that curve crosses the x-axis.</p>
+    <div class="eq">x = \frac{-[[b|g]] \pm \sqrt{[[b|g]]^{2} - 4[[a|c]][[c|r]]}}{2[[a|c]]}
+      <small>The expression inside the square root (<span class="m">\Delta = b^{2} - 4ac</span>) decides how many times the parabola hits the x-axis.</small>
+    </div>
+    <dl class="terms">
+      <div><b>Completing the square</b><span class="d">Adding <span class="m">(\\frac{b}{2})^{2}</span> to both sides so <span class="m">x^{2} + bx</span> folds neatly into one squared binomial <span class="m">(x + p)^{2}</span>.</span></div>
+      <div><b>Discriminant</b><span class="d">The quantity <span class="m">\Delta = b^{2} - 4ac</span> under the radical that counts real roots before you finish solving.</span></div>
+    </dl>
+  </div>
+
+  <div class="sec"><h3 data-eb="Animated Tutor">Solving 2x² + 8x − 10 = 0 on the graph</h3>
+    <p class="lead">Watch each algebraic line reshape the equation while the synced parabola marks the vertex and roots. Drag the sliders below to explore.</p>
+    <div class="viz" id="k-quad"></div>
+  </div>
+
+  <div class="sec"><h3 data-eb="Compare">What the discriminant tells the graph</h3>
+    <p class="lead">The sign of <span class="m">\Delta = b^{2} - 4ac</span> splits quadratics into three distinct geometric cases.</p>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th></th><th><span class="m">\Delta > 0</span></th><th><span class="m">\Delta = 0</span></th><th><span class="m">\Delta &lt; 0</span></th></tr></thead>
+      <tbody>
+        <tr><td>Real roots</td><td>2 distinct roots</td><td>1 repeated root</td><td class="no">0 real roots</td></tr>
+        <tr><td>x-axis contact</td><td>Crosses twice</td><td>Touches at vertex</td><td>Never touches</td></tr>
+        <tr><td>Square root</td><td>Positive value</td><td><span class="m">\sqrt{0} = 0</span></td><td>Complex pair</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="traps">
+    <div class="callout trap"><b>Dropping the plus-minus (±) sign</b><div>From <span class="m">(x + 2)^{2} = 9</span>, both <span class="m">+3</span> and <span class="m">-3</span> square to 9. Writing only <span class="m">x + 2 = 3</span> deletes the second root <span class="m">x = -5</span>.</div></div>
+    <div class="callout trap"><b>Forgetting to divide by a first</b><div>Never take half of <span class="m">b</span> and square it while <span class="m">x^{2}</span> still has a multiplier <span class="m">a \neq 1</span>. Divide the entire equation by <span class="m">a</span> first.</div></div>
+  </div>
+</article>
+</section>
+
+<section class="part" data-part="2" data-title="Calculus: Derivatives &amp; Integrals" data-kicker="Line 2"
+  data-eyebrow="Line 2 · Rate of Change &amp; Area"
+  data-lede="Peel composite functions layer by layer with the Chain Rule, and watch Riemann rectangles converge to an exact integral.">
+
+<article class="chapter" id="c2-1" data-n="2.1" data-short="Chain Rule" data-title="The Chain Rule &amp; Tangent Slopes" data-tag="Derivatives">
+  <p class="bigidea">A composite function wraps an inner rule inside an outer rule. Differentiate the outside layer first, then multiply by the speed of the inside layer.</p>
+
+  <div class="sec"><h3 data-eb="Layering">Peeling outer and inner functions</h3>
+    <p>Think of gears connected together: if the inner gear turns twice as fast as <span class="m">x</span>, the whole machine changes twice as fast too.</p>
+    <div class="eq">\frac{d}{dx}\bigl[[[\sin|f|out]]([[x^{2} + 1|g|in]])\bigr] = [[\cos|f|out]]([[x^{2} + 1|g|in]]) \cdot [[2x|r|du]]
+      <small>Violet = outer function &amp; derivative · Teal = inner expression kept frozen · Green = inner derivative multiplier</small>
+      <details class="eq-why">
+        <summary>Why does the inside stay x² + 1 during the first step?</summary>
+        <p>The outer rate of change depends on the exact input value currently fed into sine, which is still <span class="m">[[x^{2}+1|g]]</span>, not <span class="m">2x</span>.</p>
+      </details>
+    </div>
+    <dl class="terms">
+      <div><b>Composite function</b><span class="d">A function nested inside another function, written <span class="m">[[f|f]]([[g(x)|g]])</span>.</span></div>
+      <div><b>Tangent line</b><span class="d">A straight line that just grazes the curve at one point <span class="m">x_{0}</span> with slope equal to <span class="m">f'(x_{0})</span>.</span></div>
+    </dl>
+  </div>
+
+  <div class="sec"><h3 data-eb="Animated Tutor">Differentiating sin(x² + 1) with a live tangent</h3>
+    <p class="lead">Follow the two-layer Chain Rule below while the dashed pink tangent line slides along the curve. Drag <span class="m">x_{0}</span> to inspect the slope anywhere.</p>
+    <div class="viz" id="k-chain"></div>
+    <div class="callout eg"><b>Example</b><div>If a car travels <span class="m">x^{2}+1</span> kilometers per hour and fuel burn depends on speed via <span class="m">\sin(u)</span>, changing time shifts speed (<span class="m">2x</span>), which then shifts fuel burn (<span class="m">\cos u</span>).</div></div>
+  </div>
+
+  <div class="traps">
+    <div class="callout trap"><b>Replacing u with u′ inside the outer derivative</b><div>Writing <span class="m">\cos(2x)</span> mixes up the two steps. Keep <span class="m">x^{2}+1</span> inside <span class="m">\cos(...)</span> and multiply by <span class="m">2x</span> outside.</div></div>
+  </div>
+</article>
+
+<article class="chapter" id="c2-2" data-n="2.2" data-short="Definite Integrals" data-title="Definite Integrals &amp; Riemann Sums" data-tag="Integration">
+  <p class="bigidea">A definite integral adds up infinitely many razor-thin rectangles under a curve. Antiderivatives give that exact total in two quick subtractions.</p>
+
+  <div class="sec"><h3 data-eb="Notation">From discrete rectangles to exact area</h3>
+    <p>Approximating area with <span class="m">[[n|c]]</span> rectangles always leaves small gaps. As <span class="m">[[n|c]] \to \infty</span>, the gaps vanish and the sum becomes the definite integral.</p>
+    <div class="eq">\lim_{n \to \infty}\sum_{k=1}^{n} f(x_{k})\,\Delta x = \int_{[[a|c]]}^{[[b|g]]} [[f(x)|f]]\dd{x} = [[F(b)|r]] - [[F(a)|k]]
+      <small>Left: Riemann sum of n boxes · Middle: definite integral from a to b · Right: Fundamental Theorem of Calculus</small>
+    </div>
+    <dl class="terms">
+      <div><b>Riemann sum</b><span class="d">Adding rectangle areas <span class="m">f(x_{k}) \cdot \Delta x</span> across equal subintervals of width <span class="m">\Delta x = \frac{b-a}{n}</span>.</span></div>
+      <div><b>Antiderivative</b><span class="d">A function <span class="m">F(x)</span> whose derivative brings back <span class="m">f(x)</span>, such as <span class="m">\frac{x^{3}}{3}</span> for <span class="m">x^{2}</span>.</span></div>
+    </dl>
+  </div>
+
+  <div class="sec"><h3 data-eb="Animated Tutor">Integrating x² from 0 to 3 with live rectangles</h3>
+    <p class="lead">Watch the rectangles refine from <span class="m">n = 3</span> to <span class="m">n = 24</span> until they match the exact shaded area of 9. Use the slider to test any box count.</p>
+    <div class="viz" id="k-integral"></div>
+  </div>
+
+  <div class="traps">
+    <div class="callout trap"><b>Subtracting lower limit first</b><div>Always compute <span class="m">F(\text{top}) - F(\text{bottom})</span>. Reversing the order flips the sign of the entire integral.</div></div>
+    <div class="callout trap"><b>Adding + C to a definite integral without limits</b><div>Even if you write <span class="m">+ C</span>, subtracting <span class="m">(F(b)+C) - (F(a)+C)</span> cancels <span class="m">C</span> away completely. Definite integrals output a number.</div></div>
+  </div>
+</article>
+</section>
+
+<section class="part" data-part="3" data-title="Matrices &amp; Complex Equations" data-kicker="Line 3"
+  data-eyebrow="Line 3 · Linear Systems &amp; Multi-Layer Formulas"
+  data-lede="Read 2x2 matrices geometrically as intersecting lines and vectors, then master complex multi-layer equations.">
+
+<article class="chapter" id="c3-1" data-n="3.1" data-short="Matrices &amp; Systems" data-title="Linear Systems, Matrices &amp; Determinants" data-tag="Linear Algebra">
+  <p class="bigidea">An augmented matrix strips away variable names so row operations solve two lines at once. A zero determinant shows the lines are parallel and never meet at one point.</p>
+
+  <div class="sec"><h3 data-eb="Matrix Anatomy">Augmented matrix and determinant</h3>
+    <p>Each row encodes one straight line in the xy-plane. A nonzero determinant guarantees the two lines cross at one unique point.</p>
+    <div class="eq">\begin{bmatrix} [[2|c]] &amp; [[1|c]] &amp; [[5|g]] \\ [[1|c]] &amp; [[-1|c]] &amp; [[1|g]] \end{bmatrix} \quad \text{and} \quad \begin{vmatrix} 2 &amp; 1 \\ 1 &amp; -1 \end{vmatrix} = (2)(-1) - (1)(1) = [[-3|r]]
+      <small>Left: augmented matrix [A | b] · Right: determinant ad − bc ≠ 0 confirms a unique crossing point</small>
+    </div>
+    <dl class="terms">
+      <div><b>Augmented matrix</b><span class="d">A compact grid packing the coefficient matrix <span class="m">A</span> beside the target constants <span class="m">b</span>.</span></div>
+      <div><b>Determinant</b><span class="d">The scalar <span class="m">ad - bc</span> measuring area scaling; if zero, the two lines never cross at a single point.</span></div>
+    </dl>
+  </div>
+
+  <div class="sec"><h3 data-eb="Animated Tutor">Row reduction synced with the line intersection</h3>
+    <p class="lead">Step through Gaussian elimination while the graph draws each equation as a line and reveals the solution vector <span class="m">\vec{v} = (2, 1)</span>.</p>
+    <div class="viz" id="k-matrix"></div>
+  </div>
+
+  <div class="traps">
+    <div class="callout trap"><b>Adding columns instead of rows</b><div>Elementary row operations combine horizontal rows (equations). Never add vertical columns together in an augmented matrix.</div></div>
+    <div class="callout trap"><b>Using + instead of − in ad − bc</b><div>The off-diagonal product <span class="m">bc</span> is always subtracted from the main diagonal <span class="m">ad</span>.</div></div>
+  </div>
+</article>
+
+<article class="chapter" id="c3-2" data-n="3.2" data-short="Complex Equations" data-title="Decoding Complex Multi-Layer Equations" data-tag="Equation Strategy">
+  <p class="bigidea">Every complex equation is a stack of simple layers. Match brackets by depth and peel one layer at a time.</p>
+
+  <div class="sec"><h3 data-eb="Anatomy">Depth-colored brackets, roots, and sums</h3>
+    <p>Nested brackets shift color by depth so you can pair each delimiter with its match before touching the algebra.</p>
+    <div class="eq">S_{n} = \frac{1}{1 + \frac{1}{[[x|v]]}} + \sqrt[3]{[[8x^{3}|g]]} + \binom{n}{2}
+      <small>Nested fractions, cube roots, and binomial coefficients stay vertically centered and readable even on phones.</small>
+    </div>
+    <p class="lead">Follow this decision flow whenever an unfamiliar multi-layer equation appears on an exam.</p>
+    <div class="viz" id="k-strategy"></div>
+  </div>
+
+  <div class="sec"><h3 data-eb="Practice">Hands-on equation drills</h3>
+    <p class="lead">Arrange the algebra sequence in exact legal order before touching numbers.</p>
+    <div class="drill order">
+      <p>Record domain restrictions where denominators could equal zero.</p>
+      <p>Distribute multipliers and clear inner fractions using the LCD.</p>
+      <p>Combine like terms on each side separately.</p>
+      <p>Use inverse operations to isolate the variable term.</p>
+      <p>Substitute the candidate value back into the original equation.</p>
+    </div>
+
+    <p class="lead">Spot and fix the three classic algebra mistakes hidden in this worked paragraph.</p>
+    <div class="drill spot">
+      To simplify <span class="m">\frac{1}{1 + \frac{1}{x}}</span>, first invert each piece to get <s data-fix="x / (x + 1)" data-why="Combine 1 + 1/x = (x + 1)/x before inverting, or multiply top and bottom by x.">1 + x</s>. Next, when expanding <span class="m">(x + 3)^{2}</span>, write <s data-fix="x^2 + 6x + 9" data-why="FOIL includes the middle cross term 2(3x) = 6x.">x^2 + 9</s>. Finally, when solving <span class="m">x^{2} = 16</span>, write <s data-fix="x = ±4" data-why="Both +4 and -4 square to 16.">x = 4</s>.
+    </div>
+
+    <p class="lead">Match each color role or symbol to what it represents in a math tutorial.</p>
+    <div class="drill match">
+      <p><b>Blue token</b>The unknown variable you are isolating</p>
+      <p><b>Amber token</b>A constant multiplier or coefficient</p>
+      <p><b>Teal token</b>An inner grouped expression kept together</p>
+      <p><b>Green token</b>The solved target value or final result</p>
+      <p><b>Red slash</b>Cancelled pair that sums to 0 or divides to 1</p>
+    </div>
+  </div>
+
+  <div class="traps">
+    <div class="callout trap"><b>Distributing exponents across addition</b><div><span class="m">(a + b)^{2}</span> equals <span class="m">a^{2} + 2ab + b^{2}</span>, never <span class="m">a^{2} + b^{2}</span>. Always include the middle cross-term <span class="m">2ab</span>.</div></div>
+  </div>
+</article>
+</section>
+
+<section class="part" data-part="R" data-title="Review &amp; Reference" data-kicker="Review"
+  data-eyebrow="Review · Exam Night"
+  data-lede="One-page formula sheet, interactive flashcards, practice exam, and notation notes.">
+
+<article class="chapter" id="r-cheat" data-n="R1" data-short="Cheat sheet" data-title="Master Formula &amp; Color Key Sheet" data-count="no">
+  <p class="bigidea">Every core formula and color rule from Lines 1 to 3 on one quick-scan page.</p>
+
+  <div class="sec"><h3 data-eb="Formulas">Essential equations</h3>
+    <div class="eq">
+      x = \frac{-[[b|g]] \pm \sqrt{[[b|g]]^{2} - 4[[a|c]][[c|r]]}}{2[[a|c]]}
+      <br>
+      \frac{d}{dx}\bigl[[[f|f]]([[g(x)|g]])\bigr] = [[f'|f]]([[g(x)|g]]) \cdot [[g'(x)|r]]
+      <br>
+      \int_{[[a|c]]}^{[[b|g]]} f(x)\dd{x} = F(b) - F(a)
+      <br>
+      \det \begin{bmatrix} a &amp; b \\ c &amp; d \end{bmatrix} = [[ad|r]] - [[bc|k]]
+      <small>Aligned at each equals sign; scroll horizontally on narrow phones if needed.</small>
+    </div>
+  </div>
+
+  <div class="sec"><h3 data-eb="Color System">Semantic role reference</h3>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Role</th><th>Color</th><th>Meaning in equations</th></tr></thead>
+      <tbody>
+        <tr><td>Variable</td><td>Blue</td><td>Unknown <span class="m">[[x|v]]</span> or <span class="m">[[y|v]]</span> being solved</td></tr>
+        <tr><td>Coefficient</td><td>Amber</td><td>Scale factor or multiplier</td></tr>
+        <tr><td>Group</td><td>Teal</td><td>Parentheses package or inner function <span class="m">[[u|g]]</span></td></tr>
+        <tr><td>Function</td><td>Violet</td><td>Outer rule or operator (<span class="m">[[sin|f]]</span>, <span class="m">[[f'|f]]</span>)</td></tr>
+        <tr><td>Result</td><td>Green</td><td>Evaluated or isolated final output</td></tr>
+        <tr><td>Cancel / Danger</td><td>Rose</td><td>Cancelled term or subtracted off-diagonal</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</article>
+
+<article class="chapter" id="r-cards" data-n="R2" data-short="Flashcards" data-title="Flashcards" data-count="no">
+  <p class="bigidea">Say the next step out loud before flipping each card.</p>
+  <div class="flash"></div>
+</article>
+
+<article class="chapter" id="r-exam" data-n="R3" data-short="Practice exam" data-title="Practice Exam" data-count="no">
+  <p class="bigidea">Mixed questions across Algebra, Calculus, and Matrices. Wrong options explain the exact slip.</p>
+  <div class="quiz" data-set="exam"></div>
+</article>
+
+<article class="chapter" id="r-notes" data-n="R4" data-short="Study notes" data-title="Notation &amp; Interactive Controls" data-count="no">
+  <p class="bigidea">Keyboard and touch controls for stepping through derivations on laptop and phone.</p>
+  <div class="sec"><h3 data-eb="Tips">How to interact with Math Studio</h3>
+    <p class="lead">Four controls work across every derivation on laptop and phone.</p>
+    <ol class="steps">
+      <li><b>Jump to any line</b>Click or tap any step card inside a derivation to jump directly there and animate matching terms.</li>
+      <li><b>Open How &amp; Why</b>Expand the How and Why pills inside any step to inspect micro-steps, theorems, and common slips.</li>
+      <li><b>Isolate color roles</b>Hover or tap color badges above a derivation to dim everything except that variable, group, or layer.</li>
+      <li><b>Keyboard step control</b>Focus any visual and press Left or Right arrows to step, or Space to play and pause.</li>
+    </ol>
+  </div>
+</article>
+</section>
+
+<p class="foot">Math Studio · Algebra, Calculus &amp; Matrices. Progress and quiz answers stay in this browser.</p>

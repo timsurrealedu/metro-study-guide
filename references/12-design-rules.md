@@ -34,7 +34,9 @@ are about how content is written. `check.py` enforces the ones it can.
 | **Animated** wherever it helps | Kits animate; custom visuals use `V.tween`, `E.flow`, `E.tickers` |
 | **Every visual has Play and Next** (play through, or one step at a time) | Built in (the player) |
 | **Structure sections get visuals too** (parts of a seed, of a cell, of a text) | `Kit.diagram`, `Kit.annotate` |
-| Visuals fit phone screens: **no sideways scrolling** | Kits redraw; custom SVGs scale; `shots.js` checks |
+| Visuals fit phone screens: **no sideways scrolling** | Kits redraw; custom SVGs scale; `shots.js` and `verify_chromium.py` check |
+| **Strict SVG hygiene** | Keep all SVG text ≥ 3 px inside any enclosing pill/box and inside `viewBox` on all 4 sides; never let strokes/beams pierce labels (use opaque surfaces above connector stems) |
+| **Uncropped Explainer visuals** | Synced `.kd-viz-pane` visuals never scroll or fade-clip inside Explainer mode; only `.kd-steps-pane` scrolls when needed |
 | An Animations switch turns all motion off; reduced-motion devices start with it off | Built in |
 
 ## Content

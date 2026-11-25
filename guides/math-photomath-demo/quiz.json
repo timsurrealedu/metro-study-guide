@@ -1,0 +1,218 @@
+[
+  {
+    "see": "c1-1", "exam": true,
+    "q": "In <span class=\"m\">[[3|c]]([[2x - 4|g]]) + 5 = 2x + 9</span>, what is the correct first step?",
+    "o": [
+      ["Distribute <span class=\"m\">[[3|c]]</span> across both terms inside parentheses to get <span class=\"m\">[[6x - 12|r]] + 5 = 2x + 9</span>", true, ""],
+      ["Add 5 to <span class=\"m\">-4</span> inside the parentheses first", false, "Multiplication by 3 binds tighter than adding 5 outside."],
+      ["Divide only the left side by 3", false, "Dividing only one side breaks the balance of the equation."],
+      ["Subtract <span class=\"m\">2x</span> from <span class=\"m\">2x</span> without changing <span class=\"m\">3(2x - 4)</span>", false, "You still must subtract 2x from the left side too."]
+    ],
+    "e": "Distributing clears parentheses first so like terms can be combined safely.",
+    "src": "1.1 Balance"
+  },
+  {
+    "see": "c1-1",
+    "q": "After simplifying <span class=\"m\">[[6x|v]] - 7 = [[2x|v]] + 9</span>, what happens when you subtract <span class=\"m\">[[2x|v]]</span> from both sides?",
+    "o": [
+      ["<span class=\"m\">[[4x|v]] - 7 = 9</span>", true, ""],
+      ["<span class=\"m\">[[8x|v]] - 7 = 9</span>", false, "Subtracting 2x reduces 6x to 4x, not 8x."],
+      ["<span class=\"m\">[[4x|v]] - 7 = 9 + 2x</span>", false, "2x - 2x cancels to 0 on the right side."],
+      ["<span class=\"m\">[[4x|v]] = 2</span>", false, "You have not added 7 to both sides yet."]
+    ],
+    "e": "Moving variables to one side collects 6x - 2x = 4x while keeping equality intact.",
+    "src": "1.1 Balance"
+  },
+  {
+    "see": "c1-1", "exam": true,
+    "q": "Which check proves <span class=\"m\">[[x = 4|r]]</span> solves <span class=\"m\">3(2x - 4) + 5 = 2x + 9</span>?",
+    "o": [
+      ["Left side gives <span class=\"m\">3(4) + 5 = 17</span> and right side gives <span class=\"m\">8 + 9 = 17</span>", true, ""],
+      ["Left side gives 12 and right side gives 17", false, "You forgot to add the +5 term on the left side."],
+      ["Substituting x = 4 makes both sides equal 0", false, "Both sides only need to equal each other, not 0."],
+      ["Multiplying 3 by 4 equals 12", false, "Checking a root requires evaluating the full original equation."]
+    ],
+    "e": "Plugging x = 4 back into both sides yields 17 = 17.",
+    "src": "1.1 Balance"
+  },
+  {
+    "see": "c1-2", "exam": true,
+    "q": "Before completing the square on <span class=\"m\">[[2|c]]x^{2} + 8x - 10 = 0</span>, why divide every term by <span class=\"m\">[[2|c]]</span>?",
+    "o": [
+      ["So the coefficient of <span class=\"m\">x^{2}</span> becomes 1, making <span class=\"m\">(x + p)^{2}</span> easy to form", true, ""],
+      ["Because 10 cannot be moved to the right side otherwise", false, "You can add 10 to both sides before or after dividing."],
+      ["To make the discriminant equal to zero", false, "Dividing by a nonzero constant scales the equation without changing its roots."],
+      ["To turn the parabola upside down", false, "Dividing by positive 2 keeps the parabola opening upward."]
+    ],
+    "e": "The half-b-squared shortcut <span class=\"m\">(\\frac{b}{2})^{2}</span> assumes the leading coefficient is 1.",
+    "src": "1.2 Quadratics"
+  },
+  {
+    "see": "c1-2", "exam": true,
+    "q": "When <span class=\"m\">(x + 2)^{2} = 9</span>, what is the next line?",
+    "o": [
+      ["<span class=\"m\">x + 2 = [[\\pm 3|r]]</span>", true, ""],
+      ["<span class=\"m\">x + 2 = 3</span> only", false, "Squaring -3 also gives 9, so dropping the minus sign loses a root."],
+      ["<span class=\"m\">x + 4 = 9</span>", false, "Taking a square root removes the power of 2 on (x + 2)."],
+      ["<span class=\"m\">x = \\pm 9 - 2</span>", false, "You must take the square root of 9 before subtracting 2."]
+    ],
+    "e": "Both +3 and -3 square to 9, yielding x = 1 and x = -5.",
+    "src": "1.2 Quadratics"
+  },
+  {
+    "see": "c1-2",
+    "q": "What is the vertex of <span class=\"m\">y = 2(x + 2)^{2} - 18</span>?",
+    "o": [
+      ["<span class=\"m\">(-2, -18)</span>", true, ""],
+      ["<span class=\"m\">(2, -18)</span>", false, "In (x - h)^{2} + k, x + 2 means h = -2."],
+      ["<span class=\"m\">(-2, 18)</span>", false, "The vertical shift k keeps its negative sign: -18."],
+      ["<span class=\"m\">(1, -5)</span>", false, "1 and -5 are the x-intercepts, not the vertex."]
+    ],
+    "e": "Set the squared group x + 2 = 0 to read the x-coordinate (-2) and read k = -18 directly.",
+    "src": "1.2 Quadratics"
+  },
+  {
+    "see": "c2-1", "exam": true,
+    "q": "In <span class=\"m\">y = [[\\sin|f]]([[x^{2}+1|g]])</span>, what is the inner function <span class=\"m\">u</span>?",
+    "o": [
+      ["<span class=\"m\">[[x^{2} + 1|g]]</span>", true, ""],
+      ["<span class=\"m\">\\sin(x)</span>", false, "Sine is the outer wrapper function, not the inner expression."],
+      ["<span class=\"m\">2x</span>", false, "2x is the derivative of the inner function, not the inner function itself."],
+      ["<span class=\"m\">\\cos(x^{2} + 1)</span>", false, "Cosine appears only after differentiating the outer function."]
+    ],
+    "e": "Whatever sits inside the outer wrapper parentheses is the inner function u.",
+    "src": "2.1 Chain Rule"
+  },
+  {
+    "see": "c2-1", "exam": true,
+    "q": "What is the most common mistake when differentiating <span class=\"m\">[[\\sin|f]]([[x^{2}+1|g]])</span>?",
+    "o": [
+      ["Forgetting to multiply by the inner derivative <span class=\"m\">[[2x|g]]</span>", true, ""],
+      ["Keeping <span class=\"m\">x^{2}+1</span> inside cosine before multiplying", false, "Keeping u inside f'(u) is actually required by the Chain Rule."],
+      ["Changing sine to cosine", false, "The derivative of sin(u) with respect to u is cos(u)."],
+      ["Evaluating at x = 0", false, "Evaluating at a specific point finds the tangent slope there."]
+    ],
+    "e": "Both layers matter: differentiate the outer function at u, then multiply by u'.",
+    "src": "2.1 Chain Rule"
+  },
+  {
+    "see": "c2-1",
+    "q": "At <span class=\"m\">x = 1</span>, what is the tangent slope of <span class=\"m\">y = \\sin(x^{2}+1)</span>?",
+    "o": [
+      ["<span class=\"m\">2\\cos(2)</span> (about <span class=\"m\">-0.83</span>)", true, ""],
+      ["<span class=\"m\">\\cos(2)</span> (about <span class=\"m\">-0.42</span>)", false, "This misses the inner factor 2x = 2 at x = 1."],
+      ["<span class=\"m\">2\\sin(2)</span> (about <span class=\"m\">1.82</span>)", false, "The derivative of sine is cosine, not sine."],
+      ["<span class=\"m\">0</span>", false, "2x cos(x^{2}+1) is zero at x = 0, not x = 1."]
+    ],
+    "e": "Substitute x = 1 into 2x cos(x^{2}+1) to get 2(1) cos(2) ≈ -0.83.",
+    "src": "2.1 Chain Rule"
+  },
+  {
+    "see": "c2-2", "exam": true,
+    "q": "What geometric quantity does <span class=\"m\">\\int_{0}^{3} [[x^{2}|f]]\\dd{x}</span> measure?",
+    "o": [
+      ["The signed area under <span class=\"m\">y = x^{2}</span> from <span class=\"m\">x = 0</span> to <span class=\"m\">x = 3</span>", true, ""],
+      ["The slope of <span class=\"m\">y = x^{2}</span> at <span class=\"m\">x = 3</span>", false, "Slope is measured by the derivative, not the definite integral."],
+      ["The length of the curve from 0 to 3", false, "Arc length uses a square-root integral, not ∫ f(x) dx."],
+      ["The average height alone without multiplying by width", false, "Each slice is height f(x) times width dx."]
+    ],
+    "e": "Definite integrals sum infinitely thin rectangles of height f(x) and width dx.",
+    "src": "2.2 Integrals"
+  },
+  {
+    "see": "c2-2", "exam": true,
+    "q": "With 3 left-endpoint rectangles on <span class=\"m\">[0, 3]</span> for <span class=\"m\">f(x) = x^{2}</span>, what is the Riemann sum?",
+    "o": [
+      ["<span class=\"m\">0 + 1 + 4 = [[5|r]]</span>", true, ""],
+      ["<span class=\"m\">1 + 4 + 9 = 14</span>", false, "1 + 4 + 9 is the right-endpoint sum, not the left-endpoint sum."],
+      ["<span class=\"m\">9</span>", false, "9 is the exact integral, not the 3-rectangle left approximation."],
+      ["<span class=\"m\">0.25 + 2.25 + 6.25 = 8.75</span>", false, "Those are the midpoint heights, not left-endpoint heights."]
+    ],
+    "e": "Width Δx = 1, and left endpoints are x = 0, 1, 2, giving 0^{2}(1) + 1^{2}(1) + 2^{2}(1) = 5.",
+    "src": "2.2 Integrals"
+  },
+  {
+    "see": "c2-2",
+    "q": "Using <span class=\"m\">F(x) = \\frac{x^{3}}{3}</span>, why do we evaluate <span class=\"m\">F(3) - F(0)</span>?",
+    "o": [
+      ["The Fundamental Theorem of Calculus links net area to change in antiderivative", true, ""],
+      ["Because 3 - 0 = 3 is the midpoint", false, "F(b) - F(a) measures total accumulated change, not a midpoint."],
+      ["To cancel out the integration constant C", false, "Cancelling + C is a helpful consequence, not the core reason."],
+      ["Only when f(x) is linear", false, "The Fundamental Theorem works for any continuous function with an antiderivative."]
+    ],
+    "e": "The integral from a to b equals the total accumulated change F(b) - F(a).",
+    "src": "2.2 Integrals"
+  },
+  {
+    "see": "c3-1", "exam": true,
+    "q": "For <span class=\"m\">\\begin{bmatrix} 2 & 1 & 5 \\\\ 1 & -1 & 1 \\end{bmatrix}</span>, what is the determinant of the 2x2 coefficient matrix?",
+    "o": [
+      ["<span class=\"m\">2(-1) - 1(1) = [[-3|r]]</span>", true, ""],
+      ["<span class=\"m\">2(-1) + 1(1) = -1</span>", false, "Subtract the off-diagonal product bc instead of adding it."],
+      ["<span class=\"m\">2(1) - 1(-1) = 3</span>", false, "The main diagonal is (2, -1), not (2, 1)."],
+      ["<span class=\"m\">5(1) - 1(1) = 4</span>", false, "The coefficient matrix uses only the first two columns."]
+    ],
+    "e": "det = ad - bc = (2)(-1) - (1)(1) = -3 ≠ 0, so a unique intersection exists.",
+    "src": "3.1 Matrices"
+  },
+  {
+    "see": "c3-1", "exam": true,
+    "q": "In the system <span class=\"m\">2x + y = 5</span> and <span class=\"m\">x - y = 1</span>, what does adding the two equations do?",
+    "o": [
+      ["Eliminates <span class=\"m\">y</span> immediately to give <span class=\"m\">3x = 6</span>, so <span class=\"m\">x = 2</span>", true, ""],
+      ["Eliminates x to give 2y = 4", false, "2x + x gives 3x, while +y + (-y) cancels y."],
+      ["Multiplies the two equations together", false, "Row operations add equations linearly, never multiply them together."],
+      ["Proves the lines are parallel", false, "Parallel lines have the same left-hand ratio and fail to give a single solution."]
+    ],
+    "e": "Opposite y-coefficients (+1 and -1) cancel cleanly when the rows are added.",
+    "src": "3.1 Matrices"
+  },
+  {
+    "see": "c3-1",
+    "q": "Geometrically, what is the solution <span class=\"m\">(x, y) = (2, 1)</span>?",
+    "o": [
+      ["The exact intersection point where both line equations hold true", true, ""],
+      ["The y-intercept of the first line", false, "A y-intercept always has x = 0."],
+      ["The slope of the second line", false, "The slope of x - y = 1 is +1, a rate, not a coordinate pair."],
+      ["The area between the two lines", false, "Two lines intersect at a single point when det ≠ 0."]
+    ],
+    "e": "Every row in the linear system is a line; solving finds where they meet.",
+    "src": "3.1 Matrices"
+  },
+  {
+    "see": "c3-2", "exam": true,
+    "q": "What is the safest way to simplify <span class=\"m\">\\frac{1}{1 + \\frac{1}{x}}</span>?",
+    "o": [
+      ["Multiply numerator and denominator by <span class=\"m\">x</span> (with <span class=\"m\">x \\neq 0</span>) to get <span class=\"m\">\\frac{x}{x + 1}</span>", true, ""],
+      ["Flip the bottom fraction to get <span class=\"m\">1 + x</span>", false, "You cannot invert a sum term by term; combine 1 + 1/x first."],
+      ["Cancel the 1 in the numerator with the 1 in the denominator", false, "Only common factors of the whole numerator and denominator can cancel."],
+      ["Set x = 0 to remove the inner fraction", false, "Dividing by zero is undefined."]
+    ],
+    "e": "Multiplying top and bottom by the inner LCD (x) clears nested fractions in one clean step.",
+    "src": "3.2 Complex"
+  },
+  {
+    "see": "c3-2", "exam": true,
+    "q": "Why should you write <span class=\"m\">x \\neq 0</span> and <span class=\"m\">x \\neq -1</span> before simplifying <span class=\"m\">\\frac{x}{x+1}</span>?",
+    "o": [
+      ["Multiplying by x can hide where the original inner denominator <span class=\"m\">1/x</span> was undefined", true, ""],
+      ["Because fractions cannot have negative answers", false, "Fractions can be negative; only zero denominators are illegal."],
+      ["Because x + 1 is always larger than x", false, "The restriction comes from division by zero, not size."],
+      ["To double the final answer", false, "Domain restrictions protect validity without changing values."]
+    ],
+    "e": "Always record domain exclusions from the original expression before cancelling.",
+    "src": "3.2 Complex"
+  },
+  {
+    "see": "c3-2",
+    "q": "Which tool is best when an equation mixes powers, radicals, and nested brackets?",
+    "o": [
+      ["Match outer brackets first, clear inner fractions/roots layer by layer, then check domain", true, ""],
+      ["Guess a random number and skip parentheses", false, "Skipping grouping order changes the meaning of the formula."],
+      ["Distribute exponents over sums like <span class=\"m\">(a+b)^{2} = a^{2}+b^{2}</span>", false, "Exponents do not distribute over addition."],
+      ["Drop negative signs inside roots", false, "Dropping signs alters the expression completely."]
+    ],
+    "e": "Work from the deepest inner layer outward (or peel outer wrappers cleanly) while guarding domain.",
+    "src": "3.2 Complex"
+  }
+]

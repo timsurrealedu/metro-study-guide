@@ -62,7 +62,8 @@ const I18N={
     try_again:"Try again",check_ans:"Check answer",ans:"Answer",flip:"Flip",shuffle:"Shuffle",
     stations:"Stations",ex_scroll:"Scroll",back:"Back",finish:"Finish",start_ride:"Start riding",
     try_it:"Try it yourself",try_d:"Drag a slider and watch the visual.",mark_sm:"Mark as learned",
-    full_scr:"Full screen",free:"Or try it yourself"},
+    full_scr:"Full screen",free:"Or try it yourself",
+    how:"How",why:"Why",hide:"Hide",rule:"Rule",watch_out:"Watch out",replay:"Replay"},
   id:{opt:"Opsi",done:"Selesai",mode:"Mode baca",scroll:"Gulir halaman",explain:"Penjelas",
     mode_ex:"Layar penuh, satu ide tiap langkah. Ketuk Lanjut.",
     mode_sc:"Seluruh panduan dalam satu halaman. Gulir sesuai ritme Anda.",
@@ -77,7 +78,8 @@ const I18N={
     try_again:"Coba lagi",check_ans:"Periksa jawaban",ans:"Jawaban",flip:"Balik",shuffle:"Acak",
     stations:"Stasiun",ex_scroll:"Gulir",back:"Kembali",finish:"Selesai",start_ride:"Mulai belajar",
     try_it:"Coba sendiri",try_d:"Geser pengatur dan amati visualnya.",mark_sm:"Tandai dipelajari",
-    full_scr:"Layar penuh",free:"Atau coba sendiri"}
+    full_scr:"Layar penuh",free:"Atau coba sendiri",
+    how:"Cara",why:"Mengapa",hide:"Tutup",rule:"Aturan",watch_out:"Hati-hati",replay:"Putar ulang"}
 };
 const origLang=root.lang==="id"?"id":"en";
 let lang=store.get("lang",origLang);
@@ -389,6 +391,8 @@ function stepper(viz,steps,render,o={}){
   function refill(){[$('.pdots button[aria-current="true"]',bar),$(".vprog button.now",viz)].forEach(cur=>{if(!cur)return;const old=$("i",cur);const n=document.createElement("i");old.replaceWith(n)})}
   function show(k,fromPlay){const prev=i;i=Math.max(0,Math.min(steps.length-1,k));
     const s=steps[i];cap.innerHTML=`<div class="st">Step ${i+1} of ${steps.length}</div><h4>${s.t.replace(/^\d+\s·\s/,"")}</h4><p>${s.d}</p>`;
+    if(i!==prev&&motionOn()){cap.classList.remove("cap-in");void cap.offsetWidth;cap.classList.add("cap-in")}
+    renderInlineMath(cap);
     $$(".pdots button",bar).forEach((b,j)=>b.setAttribute("aria-current",String(j===i)));
     $$(".vprog button",viz).forEach((b,j)=>{b.classList.toggle("past",j<i);b.classList.toggle("now",j===i);b.setAttribute("aria-current",String(j===i))});
     $(".pcount2",bar).textContent=`${i+1}/${steps.length}`;
@@ -400,6 +404,10 @@ function stepper(viz,steps,render,o={}){
   bar.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
     if(b.dataset.i!=null){play(false);show(+b.dataset.i)}
     const a=b.dataset.a;if(a==="back"){play(false);show(i-1)}if(a==="next"){play(false);show(i+1)}if(a==="play")play(!timer);if(a==="reset"){play(false);show(0)}});
+  viz.addEventListener("keydown",e=>{if(e.target.closest("input[type=range],textarea,select,[contenteditable]"))return;
+    if(e.key==="ArrowLeft"){e.preventDefault();e.stopPropagation();play(false);show(i-1)}
+    else if(e.key==="ArrowRight"){e.preventDefault();e.stopPropagation();play(false);show(i+1)}
+    else if(e.key===" "&&!e.target.closest("button,a,summary")){e.preventDefault();play(!timer)}});
   const api={show,stop:()=>play(false),get i(){return i},bar,cap};players.push(api);
   show(0);
   return api;
@@ -413,6 +421,9 @@ document.addEventListener("input",e=>{if(e.target.matches&&e.target.matches('inp
 function segSet(el,v){$$("button",el).forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.v===String(v))))}
 function segc(el,onchange){el.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;$$("button",el).forEach(x=>x.setAttribute("aria-pressed",String(x===b)));onchange(b.dataset.v,b)});
   const cur=$('button[aria-pressed="true"]',el)||$("button",el);cur.setAttribute("aria-pressed","true");return cur.dataset.v}
+
+const TEX={"\\times":"×","\\div":"÷","\\pm":"±","\\mp":"∓","\\le":"≤","\\ge":"≥","\\leq":"≤","\\geq":"≥","\\neq":"≠","\\ne":"≠","\\equiv":"≡","\\approx":"≈","\\simeq":"≃","\\cong":"≅","\\sim":"∼","\\propto":"∝","\\to":"→","\\rightarrow":"→","\\leftarrow":"←","\\leftrightarrow":"↔","\\implies":"⇒","\\Rightarrow":"⇒","\\Leftarrow":"⇐","\\iff":"⇔","\\Leftrightarrow":"⇔","\\mapsto":"↦","\\cdot":"·","\\bullet":"•","\\circ":"∘","\\star":"⋆","\\pi":"π","\\theta":"θ","\\Delta":"Δ","\\alpha":"α","\\beta":"β","\\gamma":"γ","\\delta":"δ","\\epsilon":"ε","\\varepsilon":"ε","\\zeta":"ζ","\\eta":"η","\\lambda":"λ","\\mu":"μ","\\nu":"ν","\\xi":"ξ","\\rho":"ρ","\\sigma":"σ","\\tau":"τ","\\phi":"φ","\\varphi":"φ","\\chi":"χ","\\psi":"ψ","\\omega":"ω","\\Gamma":"Γ","\\Theta":"Θ","\\Lambda":"Λ","\\Sigma":"Σ","\\Phi":"Φ","\\Psi":"Ψ","\\Omega":"Ω","\\rightleftharpoons":"⇌","\\infty":"∞","\\degree":"°","\\partial":"∂","\\nabla":"∇","\\forall":"∀","\\exists":"∃","\\emptyset":"∅","\\varnothing":"∅","\\in":"∈","\\notin":"∉","\\subset":"⊂","\\subseteq":"⊆","\\supset":"⊃","\\supseteq":"⊇","\\cup":"∪","\\cap":"∩","\\land":"∧","\\lor":"∨","\\lnot":"¬","\\neg":"¬","\\therefore":"∴","\\because":"∵","\\perp":"⊥","\\parallel":"∥","\\angle":"∠","\\triangle":"△","\\ldots":"…","\\cdots":"⋯","\\vdots":"⋮","\\ddots":"⋱","\\dots":"…","\\quad":"&emsp;","\\qquad":"&emsp;&emsp;","\\min":'<span class="mop">min</span>',"\\max":'<span class="mop">max</span>',"\\lim":'<span class="mop">lim</span>',"\\arg":'<span class="mop">arg</span>',"\\log":'<span class="mop">log</span>',"\\ln":'<span class="mop">ln</span>',"\\exp":'<span class="mop">exp</span>',"\\sin":'<span class="mop">sin</span>',"\\cos":'<span class="mop">cos</span>',"\\tan":'<span class="mop">tan</span>',"\\sec":'<span class="mop">sec</span>',"\\csc":'<span class="mop">csc</span>',"\\cot":'<span class="mop">cot</span>',"\\det":'<span class="mop">det</span>',"\\sum":'<span class="mop mop-big">∑</span>',"\\prod":'<span class="mop mop-big">∏</span>',"\\int":'<span class="mop mop-big">∫</span>',"\\left":"","\\right":"","\\bigl":"","\\bigr":"","\\Bigl":"","\\Bigr":"","\\big":"","\\Big":"","\\$":"$","\\%":"%","\\&":"&amp;","\\{":"{","\\}":"}"};
+const ROLE_MAP={var:"v",v:"v",coef:"c",c:"c",fn:"f",f:"f",grp:"g",g:"g",res:"r",r:"r",bad:"k",k:"k",acc:"a",a:"a",stay:"s",s:"s"};
 
 /* ---------- quizzes ---------- */
 const QUIZ=window.QUIZ||[];
@@ -455,6 +466,7 @@ function qCard(q,k,n,set){
   const sel=new Set();
   q.o.forEach((o,i)=>{const b=h("button",{class:"opt",type:"button"},`<span class="mk">${L[i]}</span><span>${o[0]}<span class="why" hidden>${o[2]||""}</span></span><span class="tk"></span>`);
     b.addEventListener("click",()=>{if(c.dataset.locked)return;if(multi){sel.has(i)?sel.delete(i):sel.add(i);b.classList.toggle("sel")}else{sel.clear();sel.add(i);grade()}});opts.appendChild(b)});
+  renderInlineMath(c);
   if(multi){const chk=h("button",{class:"vbtn pri",type:"button"},"Check answer");chk.onclick=()=>{if(sel.size)grade()};foot.appendChild(chk)}
   function grade(save=true){
     c.dataset.locked="1";const bs=$$(".opt",opts);let ok=true;
@@ -470,6 +482,7 @@ function qCard(q,k,n,set){
     const praise=["Nice!","Correct!","Exactly.","You got it."][k%4];
     exp.hidden=false;exp.className="q-fb "+(ok?"ok":"no");
     exp.innerHTML=`<span class="fi">${ic(ok?"check":"x")}</span><span class="fh">${ok?praise:"Not quite"}</span><span class="fx">${ok?(q.e||""):`Answer: <b>${right}</b>. ${q.e||""}${q.see?` <a href="#${q.see}">Review the lesson</a>`:""}`}</span>`;
+    renderInlineMath(exp);
     if(save){qstate[set+'|'+q.id]={done:1,ok,sel:[...sel]};store.set("quiz",qstate);c.closest(".quiz")?.dispatchEvent(new Event("answered"))}
   }
   const st=qstate[set+'|'+q.id];if(st&&st.done){st.sel.forEach(i=>sel.add(i));grade(false)}
@@ -483,7 +496,7 @@ function flashcards(box){
   box.innerHTML=`<div class="fc"><div class="fc-card" tabindex="0" role="button" aria-label="Flip card"><div class="fc-face fc-front"><div class="k"></div><div class="v"></div></div><div class="fc-face fc-back"><div class="k">Answer</div><div class="v"></div></div></div></div>
    <div class="fc-bar"><button class="vbtn" type="button" data-a="p" aria-label="Previous card">${ic("back")}</button><button class="vbtn pri" type="button" data-a="f">Flip</button><button class="vbtn" type="button" data-a="n" aria-label="Next card">${ic("next")}</button><span class="caption num" data-c></span><span class="spacer"></span><button class="vbtn" type="button" data-a="s">${ic("shuffle")}<span>Shuffle</span></button></div>`;
   const card=$(".fc-card",box);
-  function show(){const c=cards[i];card.classList.remove("flip");$(".fc-front .k",box).textContent=c.k||"Question";$(".fc-front .v",box).innerHTML=c.f;$(".fc-back .v",box).innerHTML=c.b;$("[data-c]",box).textContent=`${i+1} / ${cards.length}`}
+  function show(){const c=cards[i];card.classList.remove("flip");$(".fc-front .k",box).textContent=c.k||"Question";$(".fc-front .v",box).innerHTML=c.f;$(".fc-back .v",box).innerHTML=c.b;renderInlineMath(card);$("[data-c]",box).textContent=`${i+1} / ${cards.length}`}
   card.addEventListener("click",()=>card.classList.toggle("flip"));
   card.addEventListener("keydown",e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();card.classList.toggle("flip")}});
   $(".fc-bar",box).addEventListener("click",e=>{const a=e.target.closest("button")?.dataset.a;if(a==="f")card.classList.toggle("flip");if(a==="n"){i=(i+1)%cards.length;show()}if(a==="p"){i=(i-1+cards.length)%cards.length;show()}if(a==="s"){cards.sort(()=>Math.random()-.5);i=0;show()}});
@@ -731,9 +744,81 @@ function drillMatch(box){
 const DRILLS={order:drillOrder,cloze:drillCloze,spot:drillSpot,match:drillMatch};
 $$(".drill").forEach(b=>{const k=Object.keys(DRILLS).find(k=>b.classList.contains(k));if(k)try{DRILLS[k](b)}catch(e){console.error(e)}});
 
-/* ---------- math formatting: one equation per row, subscripts, semantic colours ---------- */
+/* ---------- math formatting: unified TeX, semantic roles, brackets, cross-highlighting ---------- */
+function readBrace(s,i){if(s[i]!=="{")return null;let d=0,j=i;for(;j<s.length;j++){if(s[j]==="{")d++;else if(s[j]==="}"){d--;if(d===0)return [s.slice(i+1,j),j+1]}}return null}
+function readDoubleBracket(s,i){if(s.slice(i,i+2)!=="[[")return null;let d=0,j=i;while(j<s.length){if(s.slice(j,j+2)==="[["){d++;j+=2;continue}if(s.slice(j,j+2)==="]]"){d--;if(d===0)return [s.slice(i+2,j),j+2];j+=2;continue}j++}return null}
+function splitTopPipes(s){const out=[];let d=0,p=0,last=0;for(let i=0;i<s.length;i++){const c=s[i];if(c==="{")d++;else if(c==="}"&&d>0)d--;else if(c==="(")p++;else if(c===")"&&p>0)p--;else if(c==="|"&&d===0&&p===0){out.push(s.slice(last,i));last=i+1}}out.push(s.slice(last));return out}
+function recoverEscapes(s){return s.replace(/\x08(egin|ar|inom)\b/g,"\\$1").replace(/\t(ext|heta|imes|o|au|riangle|herefore|ilde)\b/g,"\\t$1").replace(/\x0c(rac|orall)\b/g,"\\f$1")}
+function parseMatrix(env,body){
+  const rows=body.trim().split(/\\\\|\\(?=\s|[-\dA-Za-z\\])/).map(r=>r.trim()).filter(Boolean);
+  const grid=rows.map(r=>r.split("&").map(c=>`<span>${parseTex(c.trim())}</span>`));
+  const cols=Math.max(1,...grid.map(r=>r.length));
+  return `<span class="m-mat m-${env}" style="--mc:${cols}">${grid.map(r=>r.join("")).join("")}</span>`;
+}
+function readLimitArg(s,i){while(i<s.length&&s[i]===" ")i++;if(s[i]==="{"){const a=readBrace(s,i);if(a)return [parseTex(a[0]),a[1]]}const m=s.slice(i).match(/^([A-Za-z0-9∞+-]|\\[A-Za-z]+)/);if(m)return [parseTex(m[0]),i+m[0].length];return null}
+function normMinus(html){return mapTextSegs(html,t=>t.replace(/(^|\s)-(\s*(?:\d|[A-Za-z(]))/g,"$1−$2").replace(/(\d|\)|[A-Za-z])\s*-\s*(\d|\(|[A-Za-z])/g,"$1 − $2"))}
+function parseTex(s){
+  let out="",i=0;
+  while(i<s.length){
+    if(s.slice(i,i+2)==="[["){
+      const db=readDoubleBracket(s,i);
+      if(db){const pts=splitTopPipes(db[0]);const inner=normMinus(parseTex(pts[0]));
+        if(pts.length>=2&&pts[1].trim()){const r=ROLE_MAP[pts[1].trim()]||pts[1].trim(),tid=pts[2]?pts[2].trim():"";
+          out+=r==="s"?`<span class="m-stay"${tid?` data-tid="${tid}"`:""}>${inner}</span>`:`<span class="m-tok m-t-${r}" data-role="${r}"${tid?` data-tid="${tid}"`:""}>${inner}</span>`;}
+        else out+=`<span class="hi">${inner}</span>`;
+        i=db[1];continue}
+    }
+    if(s.slice(i,i+2)==="~~"){
+      const j=s.indexOf("~~",i+2);
+      if(j>=0){const pts=splitTopPipes(s.slice(i+2,j));const inner=normMinus(parseTex(pts[0])),tid=pts[1]?pts[1].trim():"";
+        out+=`<span class="x m-cancel"${tid?` data-tid="${tid}"`:""}>${inner}</span>`;i=j+2;continue}
+    }
+    if(s[i]==="\\"||s[i]==="^"||s[i]==="_"){
+      const bm=s.slice(i).match(/^\\begin\{(bmatrix|pmatrix|vmatrix|Bmatrix|Vmatrix|matrix|cases)\}/);
+      if(bm){const end=`\\end{${bm[1]}}`,j=s.indexOf(end,i+bm[0].length);if(j>=0){out+=parseMatrix(bm[1],s.slice(i+bm[0].length,j));i=j+end.length;continue}}
+      if(s.startsWith("\\frac{",i)||s.startsWith("\\dfrac{",i)){
+        const a=readBrace(s,s.indexOf("{",i)),b=a&&readBrace(s,a[1]);
+        if(a&&b){out+=`<span class="fr"><span>${parseTex(a[0])}</span><span>${parseTex(b[0])}</span></span>`;i=b[1];continue}
+      }
+      if(s.startsWith("\\binom{",i)){
+        const a=readBrace(s,i+6),b=a&&readBrace(s,a[1]);
+        if(a&&b){out+=`<span class="m-binom"><span>${parseTex(a[0])}</span><span>${parseTex(b[0])}</span></span>`;i=b[1];continue}
+      }
+      if(s.slice(i).match(/^\\sqrt(?:\[([^\]]+)\])?\{/)){
+        const rm=s.slice(i).match(/^\\sqrt(?:\[([^\]]+)\])?\{/);
+        const a=readBrace(s,i+rm[0].length-1);
+        if(a){out+=`<span class="rt">${rm[1]?`<sup class="rt-n">${parseTex(rm[1])}</sup>`:""}${parseTex(a[0])}</span>`;i=a[1];continue}
+      }
+      const bigm=s.slice(i).match(/^\\(int|sum|prod|lim)\b/);
+      if(bigm){
+        let j=i+bigm[0].length,lo="",hi="";
+        for(let k=0;k<2;k++){while(j<s.length&&s[j]===" ")j++;
+          if(s[j]==="_"&&!lo){const a=readLimitArg(s,j+1);if(a){lo=a[0];j=a[1];continue}}
+          if(s[j]==="^"&&!hi){const a=readLimitArg(s,j+1);if(a){hi=a[0];j=a[1];continue}}
+          break}
+        const sym=bigm[1]==="lim"?"lim":bigm[1]==="int"?"∫":bigm[1]==="sum"?"∑":"∏";
+        if(lo||hi){out+=`<span class="m-big${bigm[1]==="lim"?" m-lim":""}">${hi?`<span class="m-hi">${hi}</span>`:""}<span class="mop${bigm[1]==="lim"?"":" mop-big"}">${sym}</span>${lo?`<span class="m-lo">${lo}</span>`:""}</span>`;i=j;continue}
+        out+=TEX["\\"+bigm[1]];i=j;continue
+      }
+      const m1=s.slice(i).match(/^\\(bar|overline|hat|tilde|vec|dot|abs|dd|text|mathrm|mathbf|operatorname)\{/);
+      if(m1){const a=readBrace(s,i+m1[0].length-1);if(a){
+        const inner=parseTex(a[0]),c=m1[1];
+        out+=c==="bar"||c==="overline"?`<span class="m-bar">${inner}</span>`:c==="hat"?`<span class="m-hat">${inner}</span>`:c==="vec"?`<span class="m-vec">${inner}</span>`:c==="dot"?`<span class="m-dot">${inner}</span>`:c==="abs"?`<span class="m-abs">${inner}</span>`:c==="dd"?`&thinsp;<i class="m-d">d</i>${inner}`:inner;
+        i=a[1];continue}}
+      if((s[i]==="^"||s[i]==="_")&&s[i+1]==="{"){
+        const a=readBrace(s,i+1);if(a){out+=s[i]==="^"?`<sup>${parseTex(a[0])}</sup>`:`<sub>${parseTex(a[0])}</sub>`;i=a[1];continue}
+      }
+      if(s[i]==="\\"){
+        const cmd=s.slice(i).match(/^\\([$%&{}]|[;,!: ]|[A-Za-z]+)/);
+        if(cmd){const tok=cmd[0];out+=TEX[tok]??(cmd[1].length===1&&/[$%&{}]/.test(cmd[1])?cmd[1]:/^[;,!: ]$/.test(cmd[1])?"&thinsp;":tok);i+=tok.length;continue}
+      }
+    }
+    out+=s[i++];
+  }
+  return out;
+}
 function mapTextSegs(html,fn){return String(html).split(/(<[^>]+>|&[A-Za-z0-9#]+;)/g).map((s,i)=>i%2?s:fn(s)).join("")}
-function subMath(html){return mapTextSegs(html,t=>t.replace(/\^\{([^{}]*)\}/g,"<sup>$1</sup>").replace(/_\{([^{}]*)\}/g,"<sub>$1</sub>").replace(/\^([A-Za-z0-9'*+-])/g,"<sup>$1</sup>").replace(/([A-Za-z0-9\u0370-\u03FF∑∏])_([A-Za-z0-9']+)/g,"$1<sub>$2</sub>").replace(/(\d|\))\s*-\s*(\d|\()/g,"$1 − $2").replace(/((?:(?:for|if|untuk|jika)\s+)?[A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+)/gi,'<span class="nowrap">$1</span>').replace(/(\([^()]{1,22}[→=≤≥<>][^()]{0,22}\))/g,'<span class="nowrap">$1</span>').replace(/([=≈≤≥≠∈]\s*[−-]?[A-Za-z0-9.]+%?)/g,'<span class="nowrap">$1</span>'))}
+function subMath(html){return mapTextSegs(html,t=>t.replace(/\^([A-Za-z0-9'*+-])/g,"<sup>$1</sup>").replace(/([A-Za-z0-9\u0370-\u03FF∑∏])_([A-Za-z0-9']+)/g,"$1<sub>$2</sub>").replace(/(\d|\))\s*-\s*(\d|\()/g,"$1 − $2").replace(/((?:(?:for|if|untuk|jika)\s+)?[A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+\s*[≤≥<>]\s*[A-Za-z0-9.]+)/gi,'<span class="nowrap">$1</span>').replace(/(\([^()]{1,22}[→=≤≥<>][^()]{0,22}\))/g,'<span class="nowrap">$1</span>').replace(/([=≈≤≥≠∈]\s*[−-]?[A-Za-z0-9.]+%?)/g,'<span class="nowrap">$1</span>'))}
 function hasEqOp(s){return /[=≈≤≥⇒⇔]/.test(s.replace(/<[^>]+>/g,""))}
 function trimMath(s){return String(s).replace(/^(?:\s|&emsp;|&ensp;|&thinsp;)+|(?:\s|&emsp;|&ensp;|&thinsp;)+$/gi,"")}
 function splitEqRows(html){
@@ -761,23 +846,29 @@ function splitEqRows(html){
   return out;
 }
 function colorMathRow(row){
-  let idx=-1,td=0,pd=0;
+  let idx=-1,td=0,pd=0,sd=0;
   for(let i=0;i<row.length;i++){
     const c=row[i];
-    if(c==="<"){td++;continue}if(c===">"&&td>0){td--;continue}if(td>0)continue;
+    if(c==="<"){
+      if(row.slice(i,i+5).toLowerCase()==="<span")sd++;
+      else if(row.slice(i,i+7).toLowerCase()==="</span>"&&sd>0)sd--;
+      td++;continue}
+    if(c===">"&&td>0){td--;continue}if(td>0)continue;
     if(c==="("||c==="["||c==="{")pd++;else if((c===")"||c==="]"||c==="}")&&pd>0)pd--;
-    if(pd===0&&/[=≈≤≥]/.test(c)){idx=i;break}
+    if(pd===0&&sd===0&&/[=≈≤≥]/.test(c)){idx=i;break}
   }
+  let bDepth=0;
   const paintSeg=(seg,inLhs)=>{
-    let sub=0,hi=0;
-      return seg.split(/(<[^>]+>|&[A-Za-z0-9#]+;)/g).map((tok,i)=>{
+    let sub=0,skipD=0;
+    return seg.split(/(<[^>]+>|&[A-Za-z0-9#]+;)/g).map((tok,i)=>{
       if(i%2){
         if(/^<(sub|sup)\b/i.test(tok))sub++;else if(/^<\/(sub|sup)>/i.test(tok)&&sub>0)sub--;
-        if(/^<span class="(?:hi|x)"/i.test(tok))hi++;else if(/^<\/span>/i.test(tok)&&hi>0)hi--;
+        if(skipD>0){if(/^<span\b/i.test(tok))skipD++;else if(/^<\/span>/i.test(tok))skipD--}
+        else if(/^<span class="(?:hi|x|mop|m-tok)\b/i.test(tok))skipD=1;
         return tok;
       }
-      if(hi>0)return tok;
-      return tok.replace(/([=≈≤≥≠⇒⇔+\-−×÷±→·|()[\]]|\d+(?:\.\d+)?%?)/g,(m,_,off,str)=>{
+      if(skipD>0)return tok;
+      return tok.replace(/([=≈≤≥≠⇒⇔+\-−×÷±→·|()[\]{}]|\d+(?:\.\d+)?%?|(?<![A-Za-z0-9_])[A-Za-z](?![A-Za-z0-9_]))/g,(m,_,off,str)=>{
         if(/^[=≈≤≥≠→⇒⇔]$/.test(m))return `<span class="m-op m-rel">${m}</span>`;
         if(/^[+\-−×÷±]$/.test(m)){
           const op=m==="-"?"−":m;
@@ -785,7 +876,10 @@ function colorMathRow(row){
           const una=/^[+\-−]$/.test(op)&&(!prev||/[(=≈≤≥≠→,[+\-−×÷±]/.test(prev));
           return `<span class="m-op ${una?"m-una":"m-bin"}">${op}</span>`;
         }
-        if(/^[·|()[\]]$/.test(m))return `<span class="m-op">${m}</span>`;
+        if(/^[(\[{]$/.test(m)){const cl=`m-op m-brk m-brk-${bDepth%3}`;bDepth++;return `<span class="${cl}">${m}</span>`}
+        if(/^[)\]}]$/.test(m)){bDepth=Math.max(0,bDepth-1);return `<span class="m-op m-brk m-brk-${bDepth%3}">${m}</span>`}
+        if(/^[·|]$/.test(m))return `<span class="m-op">${m}</span>`;
+        if(/^[A-Za-z]$/.test(m))return sub>0?m:`<i class="m-var">${m}</i>`;
         if(inLhs||sub>0)return m;
         return `<span class="m-num">${m}</span>`;
       });
@@ -815,17 +909,52 @@ function renderMathRow(r){
   return `<span class="eq-row">${colorMathRow(r)}</span>`;
 }
 function formatMath(s,o){
-  const h=subMath(s);
-  if(!o||!o.rows)return h;
+  const h=subMath(parseTex(recoverEscapes(String(s))));
+  if(!o||!o.rows)return o&&o.inline?colorMathRow(h):h;
   return splitEqRows(h).map(renderMathRow).join("");
 }
+function renderInlineMath(rootEl=main){
+  if(!rootEl)return;
+  $$(".m:not([data-m-done])",rootEl).forEach(el=>{el.dataset.mDone="1";el.innerHTML=formatMath(el.innerHTML,{inline:true})});
+}
 $$(".eq").forEach(el=>{
-  const sm=[...el.querySelectorAll(":scope>small")];
-  sm.forEach(n=>n.remove());
-  const rows=splitEqRows(subMath(el.innerHTML));
+  const keep=[...el.querySelectorAll(":scope>small,:scope>.eq-legend,:scope>details.eq-why")];
+  keep.forEach(n=>n.remove());
+  const rows=splitEqRows(subMath(parseTex(recoverEscapes(el.innerHTML))));
   if(rows.length>1)el.classList.add("eq-multi");
   el.innerHTML=`<div class="eq-scroll">${rows.map(renderMathRow).join("")}</div>`;
-  sm.forEach(n=>el.appendChild(n));
+  keep.forEach(n=>el.appendChild(n));
+});
+renderInlineMath(main);
+
+/* ---------- interactive cross-highlighting across math tokens and legend pills ---------- */
+function setMathFocus(scope,tok,on){
+  if(!scope)return;
+  $$(".m-focus",scope).forEach(e=>e.classList.remove("m-focus"));
+  scope.classList.remove("m-has-focus");
+  if(!on||!tok)return;
+  const tid=tok.dataset.tid,role=tok.dataset.role;
+  const sel=tid?`[data-tid="${tid}"]`:role?`[data-role="${role}"]`:"";
+  if(!sel)return;
+  scope.classList.add("m-has-focus");
+  $$(sel,scope).forEach(e=>e.classList.add("m-focus"));
+}
+document.addEventListener("pointerenter",e=>{
+  const t=e.target.closest&&e.target.closest(".m-tok[data-tid],.m-tok[data-role],.m-leg-item[data-role]");
+  if(!t)return;const sc=t.closest(".viz,.eq,.sec")||main;if(!sc.dataset.pinRole)setMathFocus(sc,t,true);
+},true);
+document.addEventListener("pointerleave",e=>{
+  const t=e.target.closest&&e.target.closest(".m-tok[data-tid],.m-tok[data-role],.m-leg-item[data-role]");
+  if(!t)return;const sc=t.closest(".viz,.eq,.sec")||main;if(!sc.dataset.pinRole)setMathFocus(sc,null,false);
+},true);
+document.addEventListener("click",e=>{
+  const leg=e.target.closest&&e.target.closest(".m-leg-item[data-role]");
+  if(!leg)return;
+  const sc=leg.closest(".viz,.eq,.sec")||main,role=leg.dataset.role;
+  const same=sc.dataset.pinRole===role;
+  $$(".m-leg-item[aria-pressed]",sc).forEach(b=>b.setAttribute("aria-pressed","false"));
+  if(same){delete sc.dataset.pinRole;setMathFocus(sc,null,false)}
+  else{sc.dataset.pinRole=role;leg.setAttribute("aria-pressed","true");setMathFocus(sc,leg,true)}
 });
 function alignMath(rootEl=main){
   $$(".kd-m,.eq.eq-multi .eq-scroll",rootEl).forEach(m=>{
@@ -845,7 +974,7 @@ requestAnimationFrame(()=>alignMath());
 
 const blockEn=new WeakMap(),txtEn=new WeakMap(),trCache=new Map();
 let quizEn=null,flashEn=null,quizTr=null,flashTr=null,trBusy=false;
-const TR_SKIP="script,style,code,pre,svg,.eq,.kd-m,.fr,.m-mat,.optsheet,.topbar,.phonebar,.vprog,.player,.q-steps,.num";
+const TR_SKIP="script,style,code,pre,svg,.eq,.kd-m,.fr,.m-mat,.m,.m-tok,.eq-legend,.kd-op,.optsheet,.topbar,.phonebar,.vprog,.player,.q-steps,.num";
 function collectTextNodes(roots){
   const nodes=[];
   roots.forEach(r=>{if(!r)return;const w=document.createTreeWalker(r,NodeFilter.SHOW_TEXT);let n;
@@ -947,6 +1076,6 @@ function applyLang(l){
 if(lang!==origLang)requestAnimationFrame(()=>applyLang(lang));
 
 window.Engine={$,$$,h,ic,store,flow,stepper,segc,segSet,rangeFill,sorter,drills:DRILLS,watch,tickers,motionOn,markDone:id=>Engine_markDone(id),isDone:id=>done.has(id),visible,
-  openSheet,openOptions,applyTheme,getTheme:()=>theme,applyMotion,applyLang,getLang:()=>lang,t,showToast,lineVars,chapters,parts,counted,fitAll,paintProgress,phoneMQ,math:formatMath,alignMath};
+  openSheet,openOptions,applyTheme,getTheme:()=>theme,applyMotion,applyLang,getLang:()=>lang,t,showToast,lineVars,chapters,parts,counted,fitAll,paintProgress,phoneMQ,math:formatMath,alignMath,renderInlineMath};
 document.dispatchEvent(new Event("engine-ready"));
 })();

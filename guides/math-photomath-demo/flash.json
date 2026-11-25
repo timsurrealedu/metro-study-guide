@@ -1,0 +1,16 @@
+[
+  { "k": "1.1", "f": "What does distributing <span class=\"m\">[[3|c]]([[2x - 4|g]])</span> mean?", "b": "Multiply the outside factor <span class=\"m\">[[3|c]]</span> by every term inside the parentheses: <span class=\"m\">[[6x - 12|r]]</span>." },
+  { "k": "1.1", "f": "Why must every operation on an equation happen to both sides?", "b": "An equals sign is a balanced scale. Changing only one side breaks equality." },
+  { "k": "1.2", "f": "What value completes the square for <span class=\"m\">[[x^{2} + 4x|g]]</span>?", "b": "Half the coefficient of <span class=\"m\">[[x|v]]</span> squared: <span class=\"m\">(\\frac{4}{2})^{2} = [[4|r]]</span>, giving <span class=\"m\">(x + 2)^{2}</span>." },
+  { "k": "1.2", "f": "What does the discriminant <span class=\"m\">\\Delta = [[b^{2} - 4ac|c]]</span> tell you when <span class=\"m\">\\Delta > 0</span>?", "b": "The parabola crosses the x-axis at two distinct real roots." },
+  { "k": "1.2", "f": "State the Quadratic Formula for <span class=\"m\">[[a|c]]x^{2} + [[b|g]]x + [[c|r]] = 0</span>.", "b": "<span class=\"m\">x = \\frac{-[[b|g]] \\pm \\sqrt{[[b|g]]^{2} - 4[[a|c]][[c|r]]}}{2[[a|c]]}</span>" },
+  { "k": "2.1", "f": "State the Chain Rule for <span class=\"m\">[[f|f]]([[g(x)|g]])</span>.", "b": "<span class=\"m\">\\frac{d}{dx}[[f|f]]([[g(x)|g]]) = [[f'|f]]([[g(x)|g]]) \\cdot [[g'(x)|g]]</span>: outer derivative at inner, times inner derivative." },
+  { "k": "2.1", "f": "Differentiate <span class=\"m\">[[\\sin|f]]([[x^{2}+1|g]])</span> with respect to <span class=\"m\">x</span>.", "b": "<span class=\"m\">[[\\cos|f]]([[x^{2}+1|g]]) \\cdot [[2x|g]] = [[2x\\cos(x^{2}+1)|r]]</span>" },
+  { "k": "2.2", "f": "What happens to a Riemann sum as rectangle count <span class=\"m\">[[n|c]] \\to \\infty</span>?", "b": "Rectangle width <span class=\"m\">\\Delta x \\to 0</span> and the sum converges to the exact definite integral <span class=\"m\">\\int_{a}^{b} f(x)\\dd{x}</span>." },
+  { "k": "2.2", "f": "Compute <span class=\"m\">\\int_{0}^{3} [[x^{2}|f]]\\dd{x}</span>.", "b": "<span class=\"m\">[\\frac{x^{3}}{3}]_{0}^{3} = \\frac{27}{3} - 0 = [[9|r]]</span>" },
+  { "k": "3.1", "f": "What is the determinant of <span class=\"m\">\\begin{vmatrix} a & b \\\\ c & d \\end{vmatrix}</span>?", "b": "<span class=\"m\">[[ad|r]] - [[bc|k]]</span>. When this equals 0, the rows are parallel and no unique inverse exists." },
+  { "k": "3.1", "f": "In row reduction, what are the three allowed elementary row operations?", "b": "Swap two rows, multiply a row by a nonzero scalar, or add a multiple of one row to another." },
+  { "k": "3.2", "f": "How do you recognize a nested fraction problem like <span class=\"m\">\\frac{1}{1 + \\frac{1}{x}}</span>?", "b": "Clear inner denominators first by multiplying top and bottom by <span class=\"m\">x</span> (noting <span class=\"m\">x \\neq 0</span>)." },
+  { "k": "3.2", "f": "What does <span class=\"m\">\\sum_{k=1}^{4} k</span> equal?", "b": "<span class=\"m\">1 + 2 + 3 + 4 = [[10|r]]</span>." },
+  { "k": "3.2", "f": "What does <span class=\"m\">\\sqrt[3]{27}</span> mean in plain words?", "b": "The cube root of 27: the number whose third power is 27, which is <span class=\"m\">[[3|r]]</span>." }
+]
