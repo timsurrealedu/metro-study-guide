@@ -239,8 +239,8 @@ Kit.derive("k-water", {
       op: "3 \\cdot 2x",
       why: "Multiply [[3|c]] across the group.",
       frames: [
-        { m: "[[3|c|m3]]([[2x|v|t1]] - [[4|c|t2]]) [[= 12|s|rhs]]", dur: 750 },
-        { m: "[[3 \\cdot 2x|c|p1]] - [[3 \\cdot 4|c|p2]] [[= 12|s|rhs]]", from: { p1: "m3", p2: "m3" }, dur: 900 },
+        { m: "[[3|c|m3]]([[2x|v|t1]] - [[4|c|t2]]) [[= 12|s|rhs]]", dur: 1450 },
+        { m: "[[3 \\cdot 2x|c|p1]] - [[3 \\cdot 4|c|p2]] [[= 12|s|rhs]]", from: { p1: "m3", p2: "m3" }, dur: 1700 },
         { m: "[[6x|v|p1]] - [[12|c|p2]] [[= 12|s|rhs]]" }
       ],
       how: ["Multiply 3 × 2x = 6x.", "Multiply 3 × (−4) = −12."],
@@ -269,7 +269,7 @@ Line syntax (also usable anywhere via `Kit.math("…")`, `.eq`, and `<span class
 | `\begin{bmatrix}...\end{bmatrix}` | matrix (`bmatrix`, `pmatrix`, `vmatrix`, `cases`) |
 | `\times \div \pm \le \ge \neq \approx \to \cdot \pi \theta \Delta \alpha \beta \lambda \mu \omega \rightleftharpoons \infty \degree` | × ÷ ± ≤ ≥ ≠ ≈ → · π θ Δ α β λ μ ω ⇌ ∞ ° |
 
-Tap any step row to jump directly to it, click **How** / **Why** tabs to expand micro-steps and rules, or attach `visual: { alt, vb, svg, render(i, svg, step) }` for a custom synced SVG beside the derivation. `final: true` highlights the final answer.
+Tap any step row to jump directly to it, use `[ ‹ | ⏸ n/N | › ]` to step or pause frames, click **How** / **Why** tabs to expand micro-steps and rules, or attach `visual: { alt, vb, svg, render(i, svg, step) }` for a custom synced SVG beside the derivation. `final: true` highlights the final answer. Legacy plain `m` lines without `frames` automatically split multi-row or chained equations into progressive reveal frames (`autoFrames: false` opts out) and auto-color variables, math functions, currency/percentages, and bracket depth.
 
 ## Kit.annotate — a passage with notes
 

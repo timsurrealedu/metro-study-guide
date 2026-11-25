@@ -416,6 +416,43 @@ Kit.particles=(id,o)=>{
    8. derive — Photomath-style animated tutorial, one step at a time
    ================================================================= */
 Kit.math=(s,o)=>E.math(s,o);
+function splitTopAuto(s){
+  const rows=[],rels=[];
+  let bd=0,pd=0,md=0,last=0;
+  for(let i=0;i<s.length;i++){
+    if(s.slice(i,i+7)==="\\begin{"){const em=s.slice(i).match(/^\\begin\{([^}]+)\}/);if(em){const end=`\\end{${em[1]}}`,j=s.indexOf(end,i+em[0].length);if(j>=0){i=j+end.length-1;continue}}}
+    if(s.slice(i,i+2)==="[["){md++;i++;continue}
+    if(s.slice(i,i+2)==="]]"&&md>0){md--;i++;continue}
+    const c=s[i];
+    if(c==="{")bd++;else if(c==="}"&&bd>0)bd--;
+    else if(c==="(")pd++;else if(c===")"&&pd>0)pd--;
+    if(bd||pd||md)continue;
+    const br=s.slice(i).match(/^<br\s*\/?>/i);
+    if(br||c==="\n"){const p=s.slice(last,i).trim();if(p)rows.push(p);last=i+(br?br[0].length:1);i=last-1;continue}
+    const vs=s.slice(i).match(/^\s+vs\.?\s+/i);
+    if(vs){const L=s.slice(last,i).trim(),R=s.slice(i+vs[0].length).trim();if(/[=≈≤≥]/.test(L)&&/[=≈≤≥]/.test(R)){rows.push(L);last=i+vs[0].length;i=last-1;continue}}
+    if(s.slice(i).match(/^\\(?:implies|Rightarrow)\b/)||s.slice(i,i+2)==="=>"||c==="="||c==="≈"||c==="⇒"){
+      if(s[i]==="<"||s.slice(i-1,i+1)==="<=")continue;
+      rels.push(i);
+      if(s.slice(i).match(/^\\(?:implies|Rightarrow)\b/))i+=s.slice(i).match(/^\\(?:implies|Rightarrow)\b/)[0].length-1;
+      else if(s.slice(i,i+2)==="=>")i++;
+    }
+  }
+  const tail=s.slice(last).trim();if(tail)rows.push(tail);
+  return {rows,rels};
+}
+function autoSplitFrames(m){
+  if(!m||!String(m).trim())return [{m}];
+  const {rows,rels}=splitTopAuto(String(m));
+  if(rows.length>=2&&rows.length<=4)
+    return rows.map((_,k)=>({m:rows.slice(0,k+1).join(" <br> "),...(k<rows.length-1?{dur:1550}:{}),_autoRow:k}));
+  if(rows.length<=1&&rels.length>=2){
+    const cuts=rels.length>=3?rels.slice(-2):rels.slice(-1);
+    const fs=cuts.map(c=>({m:m.slice(0,c).trim(),dur:1550})).filter(f=>f.m);
+    if(fs.length){fs.push({m,_autoTail:true});return fs}
+  }
+  return [{m}];
+}
 function getFrames(l){
   let raw;
   if(Array.isArray(l.frames)&&l.frames.length){
@@ -424,6 +461,8 @@ function getFrames(l){
     raw=[{m:l.m,dur:1400}];
     if(/~~/.test(l.m||""))raw.push({strike:true,dur:1550});
     if(l.after)raw.push({m:l.after,dur:1450});
+  } else if(l.autoFrames!==false){
+    raw=autoSplitFrames(l.m);
   } else raw=[{m:l.m}];
   let lastM=l.m||"";
   return raw.map(f=>{if(f.m!=null)lastM=f.m;return {...f,_m:f.m!=null?f.m:lastM}});
@@ -497,7 +536,25 @@ Kit.derive=(id,o)=>{
     const cs=$$(".m-cancel",box);
     cs.forEach(c=>c.setAttribute("data-cstate",(f.strike||!animate||!E.motionOn())?"strike":"show"));
     align();
-    if(!animate||!E.motionOn()||!prevMap.size)return;
+    if(!animate||!E.motionOn())return;
+    if(f._autoRow>0){
+      $$(".eq-row",box).slice(f._autoRow).forEach(r=>r.animate([{transform:"translateY(7px)",opacity:0},{transform:"none",opacity:1}],{duration:480,easing:"cubic-bezier(0.23,1,0.32,1)"}));
+      return;
+    }
+    if(f._autoTail){
+      const row=$$(".eq-row",box).pop();
+      if(row){
+        let targets=$$(".eq-tail",row);
+        if(!targets.length){
+          const kids=[...row.children],ri=kids.map(k=>k.classList.contains("m-rel")).lastIndexOf(true);
+          if(ri>=0)targets=kids.slice(ri);
+        }
+        targets.forEach(t=>t.animate([{transform:"translateY(5px) scale(.95)",opacity:0},{transform:"none",opacity:1}],{duration:520,easing:"cubic-bezier(0.23,1,0.32,1)"}));
+        $$(".hi",row).forEach(h=>{h.classList.remove("m-merged");void h.offsetWidth;h.classList.add("m-merged")});
+      }
+      return;
+    }
+    if(!prevMap.size)return;
     const els=$$("[data-tid],.m-cancel",box),rects=els.map(el=>el.getBoundingClientRect());
     els.forEach((el,k)=>{
       const dr=rects[k],tid=el.dataset.tid,fromTid=f.from&&tid&&f.from[tid];
@@ -581,6 +638,14 @@ Kit.derive=(id,o)=>{
     const sm=new Map();$$("[data-tid]",src).forEach(el=>{if(!sm.has(el.dataset.tid))sm.set(el.dataset.tid,el)});
     const pairs=[];
     $$("[data-tid]",dst).forEach(el=>{const s=sm.get(el.dataset.tid);if(s)pairs.push([s.getBoundingClientRect(),el.getBoundingClientRect(),el])});
+    if(!pairs.length){
+      const vm=new Map();
+      $$(".m-var",src).forEach(el=>{const t=el.textContent.trim();if(t)vm.set(t,vm.has(t)?null:el)});
+      $$(".m-var",dst).forEach(el=>{const t=el.textContent.trim(),s=vm.get(t);if(s)pairs.push([s.getBoundingClientRect(),el.getBoundingClientRect(),el])});
+      const dm=$(".kd-m",dst);
+      if(dm)dm.animate([{transform:"translateY(6px)",opacity:.25},{transform:"none",opacity:1}],{duration:420,easing:"cubic-bezier(0.23,1,0.32,1)"});
+      $$(".hi",dst).forEach(h=>{h.classList.remove("m-merged");void h.offsetWidth;h.classList.add("m-merged")});
+    }
     pairs.forEach(([sr,dr,el])=>{
       const dx=sr.left-dr.left,dy=sr.top-dr.top;
       if(Math.abs(dx)+Math.abs(dy)<4||Math.abs(dx)+Math.abs(dy)>700)return;

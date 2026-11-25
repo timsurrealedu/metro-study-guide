@@ -47,9 +47,9 @@ Create self-contained, interactive Metro Engine HTML study guides tailored to co
 
 Subject-specific visual patterns for college CS and Cyber Security:
 
-- **AI & Machine Learning**: `Kit.flow` for fuzzy inference pipelines and search; `Kit.graph` with sliders for membership functions, activation curves, and regression lines; `Kit.derive` for Tsukamoto/Mamdani, ID3 entropy/information gain, and backpropagation; `Kit.diagram` for neural network layers and MDP grid worlds.
-- **Cyber Security & Networking**: `Kit.flow` for attack chains, pentest phases, and TLS/TCP handshakes; `Kit.diagram` for network topologies, OSI/TCP-IP layers, and attack surfaces; `Kit.derive` for subnetting/CIDR and RSA/crypto math; short `<pre><code>` blocks for CLI commands.
-- **Algorithms, Math, Physics, Stats**: `Kit.flow` for flowcharts; `Kit.bars` for sorting steps and complexity comparisons; `Kit.derive` for Photomath-style step-by-step math (semantic color roles `[[expr|role|tid]]`, `op` bridges, expandable `how`/`tip` How & Why drawers, synced `graph` or custom `visual`); `Kit.graph` for functions, sliders, `tangents`, `riemann` rectangles, and `vectors`; `<span class="m">` for color-coded inline math in prose, quizzes, and flashcards.
+- **AI & Machine Learning**: `Kit.flow` for fuzzy inference pipelines and search; `Kit.graph` with sliders for membership functions, activation curves, and regression lines; Photomath-style `Kit.derive` (with `[[expr|role|tid]]` color roles, `legend`, multi-frame `frames`, `op` bridges, and `how`/`tip` drawers) for Tsukamoto/Mamdani COG, MDP expected utility, ID3 entropy/information gain, and backpropagation; `Kit.diagram` for neural network layers and MDP grid worlds.
+- **Cyber Security & Networking**: `Kit.flow` for attack chains, pentest phases, and TLS/TCP handshakes; `Kit.diagram` for network topologies, OSI/TCP-IP layers, and attack surfaces; Photomath-style `Kit.derive` (`[[expr|role|tid]]`, `frames`, `legend`, `how`/`tip`) for subnetting/CIDR and RSA/crypto math; short `<pre><code>` blocks for CLI commands.
+- **Algorithms, Math, Physics, Stats**: `Kit.flow` for flowcharts; `Kit.bars` for sorting steps and complexity comparisons; `Kit.derive` for Photomath-style step-by-step math (semantic color roles `[[expr|role|tid]]`, `legend`, multi-frame `frames`, `op` bridges, expandable `how`/`tip` How & Why drawers, synced `graph` or custom `visual`); `Kit.graph` for functions, sliders, `tangents`, `riemann` rectangles, and `vectors`; `<span class="m">` for color-coded inline math in prose, quizzes, and flashcards.
 - **Humanities, Civics, Indonesian, Law**: `Kit.annotate` for close reading of articles/texts; `Kit.timeline` for historical/legal sequence; `.sorter` for classification and fact-vs-opinion checks.
 
 ### 4. Animations & Interactive Simulators (Mirroring Bio Metro)
@@ -78,7 +78,10 @@ python3 tools/new.py guides/<semester>/<subject> "<Title>" --lines <n> --id <uni
   1. Explain the idea in plain, simple words *first*, then introduce `<b>exact term</b>` (plus `<span class="id">local term</span>` when helpful).
   2. Add a clear, plain-English definition in `<dl class="terms">` along with **relevant context** (why it exists, where it fits in the big picture, and when you use it).
   3. Pair abstract ideas with a concrete, real-world `<div class="callout eg"><b>Example</b><div>...</div></div>` (using everyday objects/situations—never metro analogies).
-- **Show every step of math & logic**: In `Kit.derive` and `<ol class="steps">`, include every intermediate step and explain *why* each step happens in plain words.
+- **Show every step of math & logic (`Kit.derive` Standard)**: Across every quantitative subject (Math, AI/ML, Physics, Chemistry, Stats, Cyber), author every `Kit.derive` with:
+  1. `legend` + semantic color roles `[[expr|role|tid]]` (`v` var, `c` coef/weight, `f` fn, `g` group/inner, `r` result, `k` cancel, `s` untouched stay).
+  2. Meaningful multi-frame `frames` (`dur: 1450–1750`, `from` for copies/distributions, `strike` + `~~...~~` for cancellations on **both** sides) so operations animate step by step instead of cramming long arithmetic onto a single static `m` line.
+  3. `op` transform bridges and expandable `how` / `tip` (`rule`, `watch`, `body`) drawers explaining the rule behind every move.
 
 #### Files in `guides/<slug>/`
 
@@ -128,5 +131,6 @@ Fix any sideways scrolling, clipped SVG text, small phone tap targets, or JS err
 - Keep paragraphs under 60 words (`check.py` warns over 90); never create walls of text on phones.
 - Every visual, table, and steps block must have a `<p class="lead">` immediately before it.
 - Never put metro analogies inside explanations or examples; the metro motif is strictly for navigation and layout.
+- Always tag every `Kit.derive` calculation with semantic color roles (`[[expr|role|tid]]`), `legend`, multi-frame `frames` (never one long static overflow line), `op`, and `how`/`tip` drawers (`check.py` warns if any are omitted).
 - Never put traps or quizzes directly inside stations as standalone blocks; always wrap traps in `<div class="traps">` so `build.py` moves them to the line checkpoint.
 - Use `references/02-file-structure.md`, `references/04-visual-kits.md`, and `references/05-custom-visuals.md` for exact JSON keys, `Kit.*` signatures, and `V.tween`/`E.stepper` APIs rather than guessing.

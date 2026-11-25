@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Metro Engine v1.3 — check a guide folder before building it.
+Metro Engine v1.4 — check a guide folder before building it.
 
     python3 tools/check.py <guide-folder>
 
@@ -170,6 +170,23 @@ def main(folder):
         kind, vid = m.group(1), m.group(2)
         if kind not in ("diagram", "flow", "cycle", "timeline", "graph", "bars", "particles", "derive", "annotate"): err(f"visuals.js: Kit.{kind} does not exist")
         if vid not in all_ids: err(f"visuals.js: Kit.{kind}(\"{vid}\") but content.html has no element with id=\"{vid}\"")
+        if kind == "derive":
+            bstart = vis.find("{", m.end())
+            if bstart >= 0:
+                depth, bend = 0, bstart
+                while bend < len(vis):
+                    if vis[bend] == "{": depth += 1
+                    elif vis[bend] == "}":
+                        depth -= 1
+                        if depth == 0: break
+                    bend += 1
+                block = vis[bstart:bend + 1]
+                if not re.search(r"\[\[[^|\]]+\|[vcfgrkas](?:\|[^\]]+)?\]\]", block):
+                    warn(f"visuals.js: Kit.derive(\"{vid}\") has no semantic color roles [[expr|role|tid]]")
+                if not re.search(r"\bframes\s*:", block) and "~~" not in block and not re.search(r"\bafter\s*:", block):
+                    warn(f"visuals.js: Kit.derive(\"{vid}\") has no micro-frame animations (frames / ~~...~~ / after)")
+                if not re.search(r"\b(?:how|tip)\s*:", block):
+                    warn(f"visuals.js: Kit.derive(\"{vid}\") has no how or tip explanations")
     for m in re.finditer(r"V\.svg\(\s*[\"'`]([\w-]+)[\"'`]\)", vis):
         if m.group(1) not in all_ids: err(f"visuals.js: V.svg(\"{m.group(1)}\") but there is no element with that id")
 

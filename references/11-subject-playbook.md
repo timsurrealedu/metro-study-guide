@@ -70,8 +70,8 @@ affecting rate; Equilibrium & Le Chatelier; Kc and Kp; pH of strong acids; …).
   curves, titration curves (pH vs volume), energy profiles (a function with a hump;
   a dashed second curve for the catalysed path).
 - `Kit.derive` for every calculation type: moles, limiting reagent, % yield,
-  concentration, pH, Kc, cell potential. One worked example per type, with `[[ ]]`
-  on what changes each line.
+  concentration, pH, Kc, cell potential. Tag changing terms with `[[expr|role|tid]]`,
+  include `legend`, split multi-step algebra/arithmetic into `frames`, and add `how`/`tip` drawers.
 - `Kit.flow` for methods (the mole map; titration procedure; naming organic
   compounds) and reaction pathways.
 - `Kit.bars` for comparing amounts (moles from the same mass, bond energies, ΔH).
@@ -102,8 +102,9 @@ Chain rule; Normal distribution …).
   a second dashed function for comparison (f and f′, before and after a
   transformation).
 - `Kit.derive` for every method: factorising, the quadratic formula, solving
-  simultaneous equations, differentiating, integrating, proof steps. `why` says the
-  rule used; `~~ ~~` shows cancelling; `final: true` boxes the answer.
+  simultaneous equations, differentiating, integrating, proof steps. Use `[[expr|role|tid]]`
+  semantic roles, `legend`, multi-frame `frames` (`from`, `strike`, `dur`), `op`,
+  `~~ ~~` cancelling on both sides, `how`/`tip` drawers, and `final: true` for the answer.
 - `Kit.diagram` for geometry (triangles, the unit circle, angle rules) with parts
   lighting up; `Kit.bars` for data and distributions; `Kit.flow` for decision
   procedures ("which integration method?").

@@ -836,7 +836,7 @@ function splitEqRows(html){
       if((c===","&&/^(?:\s|&(?:emsp|ensp|thinsp);)/.test(s.slice(i+1)))||c===";"){
         const m=s.slice(i+1).match(/^(?:\s|&(?:emsp|ensp|thinsp);)*/);
         sep=1+(m?m[0].length:0);
-      } else if(s.slice(i).match(/^\s+and\s+/i))sep=s.slice(i).match(/^\s+and\s+/i)[0].length;
+      } else if(s.slice(i).match(/^\s+(?:and|vs\.?)\s+/i))sep=s.slice(i).match(/^\s+(?:and|vs\.?)\s+/i)[0].length;
       if(sep){const L=trimMath(s.slice(last,i)),R=trimMath(s.slice(i+sep));
         if(hasEqOp(L)&&hasEqOp(R)){parts.push(L);last=i+sep;i+=sep-1}}
     }
@@ -846,6 +846,7 @@ function splitEqRows(html){
   return out;
 }
 function colorMathRow(row){
+  const auto=!/class="m-tok\b/.test(row);
   let idx=-1,td=0,pd=0,sd=0;
   for(let i=0;i<row.length;i++){
     const c=row[i];
@@ -868,7 +869,7 @@ function colorMathRow(row){
         return tok;
       }
       if(skipD>0)return tok;
-      return tok.replace(/([=≈≤≥≠⇒⇔+\-−×÷±→·|()[\]{}]|\d+(?:\.\d+)?%?|(?<![A-Za-z0-9_])[A-Za-z](?![A-Za-z0-9_]))/g,(m,_,off,str)=>{
+      return tok.replace(/([=≈≤≥≠⇒⇔+\-−×÷±→·|()[\]{}]|\$?\d{1,3}(?:,\d{3})+(?:\.\d+)?%?|\$?\d+(?:\.\d+)?%?|\b(?:sin|cos|tan|cot|sec|csc|log|ln|exp|max|min|argmax|argmin|det|lim|mod|abs|sgn)\b|(?<![A-Za-z0-9_])[A-Za-z](?![A-Za-z0-9_]))/g,(m,_,off,str)=>{
         if(/^[=≈≤≥≠→⇒⇔]$/.test(m))return `<span class="m-op m-rel">${m}</span>`;
         if(/^[+\-−×÷±]$/.test(m)){
           const op=m==="-"?"−":m;
@@ -879,19 +880,23 @@ function colorMathRow(row){
         if(/^[(\[{]$/.test(m)){const cl=`m-op m-brk m-brk-${bDepth%3}`;bDepth++;return `<span class="${cl}">${m}</span>`}
         if(/^[)\]}]$/.test(m)){bDepth=Math.max(0,bDepth-1);return `<span class="m-op m-brk m-brk-${bDepth%3}">${m}</span>`}
         if(/^[·|]$/.test(m))return `<span class="m-op">${m}</span>`;
+        if(/^(?:sin|cos|tan|cot|sec|csc|log|ln|exp|max|min|argmax|argmin|det|lim|mod|abs|sgn)$/.test(m))return `<span class="m-fn">${m}</span>`;
         if(/^[A-Za-z]$/.test(m))return sub>0?m:`<i class="m-var">${m}</i>`;
         if(inLhs||sub>0)return m;
-        return `<span class="m-num">${m}</span>`;
+        return `<span class="m-num${auto&&(/^\$|%$/.test(m))?" m-auto-c":""}">${m}</span>`;
       });
     }).join("");
   };
   if(idx>0){
     const lhs=row.slice(0,idx).trim(),rhs=row.slice(idx);
-    if(lhs)return `<span class="m-lhs">${paintSeg(lhs,true)}</span>${paintSeg(rhs,false)}`;
+    const lhsTxt=lhs.replace(/<[^>]+>/g,"").trim();
+    if(lhs&&lhsTxt.length<=18&&!/class="m-tok\b/.test(lhs)&&!/[+−\-×÷]/.test(lhsTxt))
+      return `<span class="m-lhs">${paintSeg(lhs,true)}</span>${paintSeg(rhs,false)}`;
   }
   return paintSeg(row,false);
 }
 function renderMathRow(r){
+  const ac=!/class="m-tok\b/.test(r)?" m-auto":"";
   if(r.includes('class="fr"')){
     let td=0,pd=0,frEnd=r.lastIndexOf('class="fr"'),lastEq=-1;
     for(let i=0;i<r.length;i++){
@@ -903,10 +908,10 @@ function renderMathRow(r){
     if(lastEq>0){
       const head=trimMath(r.slice(0,lastEq)),tail=trimMath(r.slice(lastEq));
       if(head&&tail&&!tail.includes('class="fr"'))
-        return `<span class="eq-row eq-split"><span class="eq-head">${colorMathRow(head)}</span><span class="eq-tail">${colorMathRow(tail)}</span></span>`;
+        return `<span class="eq-row eq-split${ac}"><span class="eq-head">${colorMathRow(head)}</span><span class="eq-tail">${colorMathRow(tail)}</span></span>`;
     }
   }
-  return `<span class="eq-row">${colorMathRow(r)}</span>`;
+  return `<span class="eq-row${ac}">${colorMathRow(r)}</span>`;
 }
 function formatMath(s,o){
   const h=subMath(parseTex(recoverEscapes(String(s))));
