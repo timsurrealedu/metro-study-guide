@@ -133,7 +133,7 @@ function mountAnatomy(S,o={}){
 }
 function mountCamera(S,svg,opts={}){
   svg.classList.add("k-cam");
-  let mode="auto",natW=640,natH=360,narrow=false,targetAR=640/360,boxes=[],curVB=null,stopTw=null;
+  let mode="auto",natW=640,natH=360,viewW=640,enabled=true,verticalOnly=false,targetAR=640/360,boxes=[],curVB=null,stopTw=null;
   const bar=h("div",{class:"k-cam-bar",role:"group","aria-label":"View zoom"},
     `<button type="button" class="k-cam-btn" data-cam="auto" aria-pressed="true">Auto</button>`+
     `<button type="button" class="k-cam-btn" data-cam="zoom" aria-pressed="false">Zoomed</button>`+
@@ -146,16 +146,17 @@ function mountCamera(S,svg,opts={}){
   });
   const applyVB=vb=>{curVB=vb;svg.setAttribute("viewBox",vb.map(n=>n.toFixed(1)).join(" "))};
   const focus=(box,cfg={})=>{
+    if(stopTw){stopTw();stopTw=null}
+    if(!enabled){svg.dataset.camZoom="0";applyVB([0,0,natW,natH]);return}
     const isOv=!!cfg.isOverview,instant=!!cfg.instant;
     const zoomActive=!!box&&mode!=="all"&&!(mode==="auto"&&isOv);
     let target;
     if(!zoomActive){
       target=[0,0,natW,natH];
-    } else if(narrow){
+    } else if(verticalOnly){
       const padY=46;
       let y1=Math.max(0,box.y1-padY),y2=Math.min(natH,box.y2+padY);
       if(y2-y1<Math.min(natH,330)){const c=(y1+y2)/2,h=Math.min(natH,340);y1=V.clamp(c-h/2,0,Math.max(0,natH-h));y2=y1+h}
-      // Snap top/bottom edges into open gaps so non-focused cards are never sliced through text
       if(boxes.length){
         const topCut=boxes.find(b=>b.y1<y1&&b.y2>y1&&b.y2<=box.y1-2);
         if(topCut)y1=Math.min(box.y1-6,topCut.y2+3);
@@ -164,11 +165,14 @@ function mountCamera(S,svg,opts={}){
       }
       target=[0,y1,natW,Math.max(120,y2-y1)];
     } else {
-      const padX=56,padY=46,minW=Math.min(natW,Math.max(430,natW*.44));
+      const isPhone=viewW<540;
+      const padX=isPhone?30:56,padY=isPhone?30:46;
+      const minW=isPhone?Math.min(natW,Math.max(360,viewW*1.06)):Math.min(natW,Math.max(430,natW*.44));
+      const ar=isPhone?Math.min(1.25,Math.max(.88,targetAR)):targetAR;
       let bw=Math.min(natW,Math.max(minW,(box.x2-box.x1)+padX*2));
-      let bh=Math.min(natH,Math.max(minW/targetAR,(box.y2-box.y1)+padY*2));
-      if(bw/bh<targetAR)bw=Math.min(natW,bh*targetAR);
-      if(bw/bh>targetAR)bh=Math.min(natH,bw/targetAR);
+      let bh=Math.min(natH,Math.max(minW/ar,(box.y2-box.y1)+padY*2));
+      if(bw/bh<ar)bw=Math.min(natW,bh*ar);
+      if(bw/bh>ar)bh=Math.min(natH,bw/ar);
       bw=Math.min(natW,bw);bh=Math.min(natH,bh);
       const cx=(box.x1+box.x2)/2,cy=(box.y1+box.y2)/2;
       const vx=V.clamp(cx-bw/2,0,Math.max(0,natW-bw));
@@ -176,7 +180,6 @@ function mountCamera(S,svg,opts={}){
       target=[vx,vy,bw,bh];
     }
     svg.dataset.camZoom=zoomActive?"1":"0";
-    if(stopTw){stopTw();stopTw=null}
     if(instant||!curVB||!E.motionOn()){applyVB(target);return}
     const from=[...curVB];
     stopTw=V.tween(460,p=>{const t=V.ease(p);applyVB(from.map((a,k)=>a+(target[k]-a)*t))},()=>{stopTw=null});
@@ -184,7 +187,7 @@ function mountCamera(S,svg,opts={}){
   return {
     bar,
     get mode(){return mode},
-    setNatural(w,h,cfg={}){natW=w;natH=h;narrow=!!cfg.narrow;targetAR=cfg.targetAR||(w/Math.max(1,h));boxes=cfg.boxes||[];if(!curVB)applyVB([0,0,natW,natH])},
+    setNatural(w,h,cfg={}){natW=w;natH=h;viewW=cfg.viewW||w;enabled=cfg.enabled!==false;verticalOnly=!!(cfg.verticalOnly??cfg.narrow);targetAR=cfg.targetAR||(w/Math.max(1,h));boxes=cfg.boxes||[];bar.hidden=!enabled;if(!curVB||!enabled){applyVB([0,0,natW,natH]);if(!enabled)svg.dataset.camZoom="0"}},
     focus
   };
 }
@@ -1036,7 +1039,7 @@ Kit.tree=(id,o)=>{
     return {di,id:d.id!=null?String(d.id):"d"+di,from:f.id,fromAttr:d.fromAttr||f.attr,to:t.id,toAttr:d.toAttr||t.attr,kind,role:roleKey(d.role)||(kind==="inh"?"c":kind==="merge"?"f":"r"),label:d.label||"",use:d.use||"",curve:d.curve||0};
   });
   const hasDeps=deps.length>0,compact=o.compact!==undefined?!!o.compact:(hasDeps||nodes.length>9);
-  const useCamera=o.zoom!==undefined?!!o.zoom:(hasDeps||nodes.length>9);
+  const wantCam=o.zoom!==false;
   const bfs=[],q=[0];while(q.length){const u=q.shift();bfs.push(u);nodes[u].children.forEach(c=>q.push(c))}
   const steps=stepsOr(o,bfs.map((u,k)=>({t:nodes[u].t,d:nodes[u].use||nodes[u].sub||"",on:[nodes[u].id],reveal:bfs.slice(0,k+1).map(x=>nodes[x].id)})));
   const idxOf=x=>typeof x==="number"?x:byId.get(String(x));
@@ -1046,23 +1049,27 @@ Kit.tree=(id,o)=>{
   const kindGlyph={root:"◎",decision:"◆",branch:"▸",leaf:"✓",pruned:"✕",nt:"◇",term:"●"};
   const wantLeg=o.legend!==false;
   const an=wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:hasDeps?"Hover any node to isolate its attribute flow and grammar edges, or tap to jump to its evaluation step.":"Hover or tap any node to trace its path from the root and see its role."}):null;
-  let curP=[],curDepPillBoxes=new Map();
+  let curP=[],curDepPillBoxes=new Map(),curEdgePillBoxes=new Map(),camEnabled=false;
   let cur=0,prevRev=new Set(nodes.map(n=>n.i)),prevDeps=new Set(),player=null;
   let cam=null;
   const updateCam=(instant=false)=>{
-    if(!cam)return;
+    if(!cam||!camEnabled)return;
     const s=steps[cur]||{},hasOv=steps.some(st=>st.overview);
     const isOv=s.overview===true||(cur===steps.length-1&&!hasOv);
     if((isOv&&cam.mode==="auto")||cam.mode==="all"){cam.focus(null,{isOverview:true,instant});return}
     const focusSet=new Set((s.on||[]).map(idxOf).filter(k=>k!=null));
+    if(!hasDeps){
+      [...focusSet].forEach(k=>{if(nodes[k].parent>=0)focusSet.add(nodes[k].parent)});
+      (s.prune||[]).map(idxOf).filter(k=>k!=null).forEach(k=>{focusSet.add(k);if(nodes[k].parent>=0)focusSet.add(nodes[k].parent)});
+    }
     const actD=new Set((s.deps||[]).map(depIdxOf).filter(k=>k!=null));
     deps.forEach(dp=>{if(actD.has(dp.di)){const fi=byId.get(dp.from),ti=byId.get(dp.to);if(fi!=null)focusSet.add(fi);if(ti!=null)focusSet.add(ti)}});
     let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9,any=false;
-    focusSet.forEach(k=>{const p=curP[k];if(!p)return;any=true;x1=Math.min(x1,p.x);y1=Math.min(y1,p.y);x2=Math.max(x2,p.x+p.w);y2=Math.max(y2,p.y+p.h)});
+    focusSet.forEach(k=>{const p=curP[k];if(!p)return;any=true;x1=Math.min(x1,p.x);y1=Math.min(y1,p.y);x2=Math.max(x2,p.x+p.w);y2=Math.max(y2,p.y+p.h);const ep=curEdgePillBoxes.get(k);if(ep){x1=Math.min(x1,ep.x1);y1=Math.min(y1,ep.y1);x2=Math.max(x2,ep.x2);y2=Math.max(y2,ep.y2)}});
     actD.forEach(di=>{const r=curDepPillBoxes.get(di);if(r){any=true;x1=Math.min(x1,r.x1);y1=Math.min(y1,r.y1);x2=Math.max(x2,r.x2);y2=Math.max(y2,r.y2)}});
     cam.focus(any?{x1,y1,x2,y2}:null,{isOverview:isOv,instant});
   };
-  cam=useCamera?mountCamera(S,svg,{onMode:()=>updateCam(false)}):null;
+  cam=wantCam?mountCamera(S,svg,{onMode:()=>updateCam(false)}):null;
   if(an){
     let defLeg=[];
     if(hasDeps){
@@ -1084,7 +1091,7 @@ Kit.tree=(id,o)=>{
     const leafN=countLeaves(0);
     const maxWord=Math.max(4,...nodes.map(nd=>Math.max(...String(nd.t).split(/\s+/).map(w=>w.length))));
     const minBw=Math.max(96,Math.min(156,Math.ceil(maxWord*8.1)+30));
-    let gapX=compact?(hasDeps&&useCamera?24:(leafN>8?6:10)):(leafN>4?10:16);
+    let gapX=compact?(hasDeps?24:(leafN>8?8:12)):(leafN>4?12:18);
     const rawBw=Math.floor((W-20-(leafN-1)*gapX)/Math.max(1,leafN));
     const attrTxt=a=>a.v?(a.k?`${a.k} = ${a.v}`:a.v):a.k;
     const estWidth=nd=>{
@@ -1095,19 +1102,19 @@ Kit.tree=(id,o)=>{
         const sw=nd.sub?Math.ceil(nd.sub.length*7)+22:0;
         return Math.max(66,Math.min(o.boxWidth||150,Math.max(tw,aw,sw)));
       }
-      return Math.min(o.boxWidth||186,rawBw);
+      return Math.min(o.boxWidth||186,Math.max(minBw,rawBw));
     };
     let nodeW=nodes.map(estWidth);
     const computeSubW=(nw,gx)=>{const sw=new Array(nodes.length).fill(0);for(let i=nodes.length-1;i>=0;i--){const nd=nodes[i];if(!nd.children.length)sw[i]=nw[i];else{const cw=nd.children.reduce((a,c)=>a+sw[c],0)+(nd.children.length-1)*gx;sw[i]=Math.max(nw[i],cw)}}return sw};
     let subW=compact?computeSubW(nodeW,gapX):[];
-    let totalW=compact?subW[0]:(leafN*Math.min(o.boxWidth||186,rawBw)+(leafN-1)*gapX);
-    if(compact&&!useCamera&&W>=540&&o.orientation!=="left"&&totalW>W-16){
+    let totalW=compact?subW[0]:(leafN*nodeW[0]+(leafN-1)*gapX);
+    if(compact&&o.zoom===false&&W>=540&&o.orientation!=="left"&&totalW>W-16){
       const sc=Math.max(.68,(W-20)/totalW);
       gapX=Math.max(4,Math.floor(gapX*sc));
       nodeW=nodes.map((nd,i)=>Math.max(nd.kind==="term"?32:54,Math.floor(nodeW[i]*sc)));
       subW=computeSubW(nodeW,gapX);totalW=subW[0];
     }
-    const useWide=W>=540&&o.orientation!=="left"&&(compact?(useCamera||totalW<=W-8):(rawBw>=minBw));
+    const useWide=o.orientation!=="left";
     const P=[];
     let natW=W,natH=200;
     const nodeText=(nd,bw)=>{
@@ -1121,14 +1128,14 @@ Kit.tree=(id,o)=>{
       return 14+15+w.t.length*18+(w.s.length?3+w.s.length*15.5:0)+(nd.tag?28:0)+12;
     };
     if(useWide){
-      if(compact&&useCamera)natW=Math.max(W,Math.ceil(totalW+56));
+      natW=compact?Math.max(W,Math.ceil(totalW+56)):Math.max(W,Math.ceil(totalW+28));
       const wr=nodes.map((nd,i)=>nodeText(nd,nodeW[i]));
       const hh=wr.map((w,i)=>nodeHeight(nodes[i],w));
       const maxD=Math.max(...nodes.map(nd=>nd.depth));
       const rowH=[],hasEdge=[];
       for(let d=0;d<=maxD;d++){rowH[d]=Math.max(...nodes.filter(n=>n.depth===d).map(n=>hh[n.i]));hasEdge[d]=nodes.some(n=>n.depth===d&&n.edge)}
-      const gapY=hasDeps?(useCamera?46:30):38;
-      const yAt=[];let y=18;for(let d=0;d<=maxD;d++){if(d>0)y+=rowH[d-1]+(hasEdge[d]?56:gapY);yAt[d]=y}
+      const gapY=hasDeps?46:38;
+      const yAt=[];let y=18;for(let d=0;d<=maxD;d++){if(d>0)y+=rowH[d-1]+(hasEdge[d]?64:gapY);yAt[d]=y}
       if(compact){
         const ox=Math.max(24,(natW-totalW)/2);
         const place=(i,leftX)=>{
@@ -1163,16 +1170,19 @@ Kit.tree=(id,o)=>{
       });
       natH=y+16;
     }
-    curP=P;curDepPillBoxes=new Map();
+    curP=P;curDepPillBoxes=new Map();curEdgePillBoxes=new Map();
+    camEnabled=wantCam&&(hasDeps||nodes.length>9||natW>W+24);
     const attrPos=(nd,p)=>{const out={};if(!nd.attrs.length)return out;
       const base=p.y+8+p.wr.t.length*16+3;
       nd.attrs.forEach((a,ai)=>{out[a.k]={y:base+ai*16+8,ai}});
       return out;
     };
     const Apos=nodes.map(nd=>attrPos(nd,P[nd.i]));
-    if(cam)cam.setNatural(natW,natH,{narrow:!useWide,boxes:P.map(p=>({y1:p.y,y2:p.y+p.h}))});else svg.setAttribute("viewBox",`0 0 ${natW} ${natH}`);
+    if(cam)cam.setNatural(natW,natH,{enabled:camEnabled,viewW:W,verticalOnly:!useWide,boxes:P.map(p=>({y1:p.y,y2:p.y+p.h}))});else svg.setAttribute("viewBox",`0 0 ${natW} ${natH}`);
     const edgeRoles=[...new Set([...nodes.map(nd=>nd.edgeRole||nd.role),...deps.map(d=>d.role)].filter(Boolean))];
     let s=edgeMarkers(S.uid,edgeRoles);
+    const treeBoxes=P.map(p=>({x1:p.x-4,y1:p.y-4,x2:p.x+p.w+4,y2:p.y+p.h+4})),treePlaced=[];
+    let edgePillsHtml="";
     s+=`<g class="k-skel-layer">`;
     nodes.forEach(nd=>{
       if(nd.parent<0)return;
@@ -1191,7 +1201,11 @@ Kit.tree=(id,o)=>{
       }
       const cls=hasDeps?"k-tree-edge k-tree-skel":"k-tree-edge";
       s+=`<path class="${cls}" data-c="${nd.i}"${erk?` data-er="${erk}"`:""} style="--rc:${rc}" d="${d}"/>`;
-      if(nd.edge)s+=`<g class="k-edge-pill" data-c="${nd.i}">${pillSvg(px,py,nd.edge,{W:natW,H:natH,fs:11,cls:"k-epill",tcls:"k-epill-t",role:erk,minW:26})}</g>`;
+      if(nd.edge){
+        const pos=placeClearPill(px,py,nd.edge,treeBoxes,treePlaced,natW,natH,11,26);
+        curEdgePillBoxes.set(nd.i,pos.r);
+        edgePillsHtml+=`<g class="k-edge-pill" data-c="${nd.i}">${pillSvg(pos.x,pos.y,nd.edge,{W:natW,H:natH,fs:11,cls:"k-epill",tcls:"k-epill-t",role:erk,minW:26})}</g>`;
+      }
     });
     s+=`</g><g class="k-node-layer">`;
     nodes.forEach(nd=>{
@@ -1226,7 +1240,7 @@ Kit.tree=(id,o)=>{
       }
       s+=t+"</g>";
     });
-    s+=`</g>`;
+    s+=`</g>`+edgePillsHtml;
     if(hasDeps){
       const boxes=P.map(p=>({x1:p.x-5,y1:p.y-5,x2:p.x+p.w+5,y2:p.y+p.h+5}));
       const placedPills=[];
@@ -1467,11 +1481,11 @@ Kit.dag=(id,o)=>{
   const idxOf=x=>typeof x==="number"?x:byId.get(String(x));
   const eById=new Map(edges.map(e=>[e.id,e.ei]));
   const eIdxOf=x=>typeof x==="number"?x:eById.get(String(x));
-  const wantLeg=o.legend!==false,useCamera=o.zoom!==undefined?!!o.zoom:(nodes.length>=7||maxL>=3);
+  const wantLeg=o.legend!==false,wantCam=o.zoom!==false;
   const an=wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:"Hover any node to trace every upstream input and downstream dependent."}):null;
-  let curP=[],curPillBoxes=new Map(),cur=0,prevRev=new Set(nodes.map(n=>n.i)),prevActEdges=new Set(),player=null,cam=null;
+  let curP=[],curPillBoxes=new Map(),camEnabled=false,cur=0,prevRev=new Set(nodes.map(n=>n.i)),prevActEdges=new Set(),player=null,cam=null;
   const updateCam=(instant=false)=>{
-    if(!cam)return;
+    if(!cam||!camEnabled)return;
     const s=steps[cur]||{},hasOv=steps.some(st=>st.overview);
     const isOv=s.overview===true||(cur===steps.length-1&&!hasOv);
     if((isOv&&cam.mode==="auto")||cam.mode==="all"){cam.focus(null,{isOverview:true,instant});return}
@@ -1483,7 +1497,7 @@ Kit.dag=(id,o)=>{
     actE.forEach(ei=>{const r=curPillBoxes.get(ei);if(r){any=true;x1=Math.min(x1,r.x1);y1=Math.min(y1,r.y1);x2=Math.max(x2,r.x2);y2=Math.max(y2,r.y2)}});
     cam.focus(any?{x1,y1,x2,y2}:null,{isOverview:isOv,instant});
   };
-  cam=useCamera?mountCamera(S,svg,{onMode:()=>updateCam(false)}):null;
+  cam=wantCam?mountCamera(S,svg,{onMode:()=>updateCam(false)}):null;
   if(an){
     const defLeg=[];const seen=new Set();
     const lbl={v:"Source / Input",f:"Shared / Merge (×2+)",c:"Intermediate Op",r:"Output / Sink",g:"Group",k:"Cut",a:"Highlight"};
@@ -1492,42 +1506,26 @@ Kit.dag=(id,o)=>{
     an.setItems(Array.isArray(o.legend)?o.legend:defLeg);an.wire(svg);
   }
   function layout(W){
-    const useWide=W>=500;
-    const P=[];let natW=W,H=200;
-    if(useWide){
-      const maxPer=Math.max(1,...layers.map(a=>a.length));
-      const gapX=maxPer>4?22:32;
-      const bw=Math.max(92,Math.min(o.boxWidth||144,Math.floor((W-56-(maxPer-1)*gapX)/maxPer)));
-      natW=Math.max(W,maxPer*(bw+gapX)+48);
-      const wr=nodes.map(nd=>({t:fit(nd.t,bw-(nd.order!=null?30:18),13.5),s:nd.sub?fit(nd.sub,bw-18,11.5):[]}));
-      const hh=wr.map((w,i)=>10+w.t.length*16.5+(w.s.length?3+w.s.length*14.5:0)+(nodes[i].tag?24:0)+10);
-      const hasSkip=edges.some(e=>Math.abs(rank[e.v]-rank[e.u])>1);
-      const gapY=hasSkip?56:46;
-      const rowH=layers.map(arr=>arr.length?Math.max(...arr.map(i=>hh[i])):44);
-      const yAt=[];let y=18;for(let L=0;L<=maxL;L++){if(L>0)y+=rowH[L-1]+gapY;yAt[L]=y}
-      layers.forEach((arr,L)=>{
-        const rw=arr.length*bw+(arr.length-1)*gapX,ox=(natW-rw)/2;
-        arr.forEach((i,k)=>{const x=ox+k*(bw+gapX);P[i]={x,cx:x+bw/2,y:yAt[L],w:bw,h:rowH[L],wr:wr[i]}});
-      });
-      H=yAt[maxL]+rowH[maxL]+24;
-    } else {
-      const gutter=34,gapX=10;
-      const lGap=edges.some(e=>e.label)?48:32;
-      let y=14;
-      layers.forEach(arr=>{
-        if(!arr.length)return;
-        const cols=arr.length>1?2:1,bw=Math.floor((W-24-gutter-(cols-1)*gapX)/cols);
-        for(let s0=0;s0<arr.length;s0+=cols){
-          const chunk=arr.slice(s0,s0+cols),wrs=chunk.map(i=>({t:fit(nodes[i].t,bw-(nodes[i].order!=null?28:16),13),s:nodes[i].sub?fit(nodes[i].sub,bw-16,11.5):[]}));
-          const rh=Math.max(...chunk.map((i,ci)=>10+wrs[ci].t.length*16+(wrs[ci].s.length?3+wrs[ci].s.length*14:0)+(nodes[i].tag?22:0)+9));
-          chunk.forEach((i,ci)=>{const x=12+ci*(bw+gapX);P[i]={x,cx:x+bw/2,y,w:bw,h:rh,wr:wrs[ci]}});
-          y+=rh+(s0+cols<arr.length?14:lGap);
-        }
-      });
-      H=y-(lGap-16);
-    }
+    const maxPer=Math.max(1,...layers.map(a=>a.length));
+    const gapX=maxPer>4?22:32;
+    const effW=Math.max(W,560);
+    const bw=Math.max(106,Math.min(o.boxWidth||144,Math.floor((effW-56-(maxPer-1)*gapX)/maxPer)));
+    const natW=Math.max(W,maxPer*(bw+gapX)+48);
+    const P=[];
+    const wr=nodes.map(nd=>({t:fit(nd.t,bw-(nd.order!=null?30:18),13.5),s:nd.sub?fit(nd.sub,bw-18,11.5):[]}));
+    const hh=wr.map((w,i)=>10+w.t.length*16.5+(w.s.length?3+w.s.length*14.5:0)+(nodes[i].tag?24:0)+10);
+    const hasSkip=edges.some(e=>Math.abs(rank[e.v]-rank[e.u])>1);
+    const gapY=hasSkip?56:46;
+    const rowH=layers.map(arr=>arr.length?Math.max(...arr.map(i=>hh[i])):44);
+    const yAt=[];let y=18;for(let L=0;L<=maxL;L++){if(L>0)y+=rowH[L-1]+gapY;yAt[L]=y}
+    layers.forEach((arr,L)=>{
+      const rw=arr.length*bw+(arr.length-1)*gapX,ox=(natW-rw)/2;
+      arr.forEach((i,k)=>{const x=ox+k*(bw+gapX);P[i]={x,cx:x+bw/2,y:yAt[L],w:bw,h:rowH[L],wr:wr[i]}});
+    });
+    const H=yAt[maxL]+rowH[maxL]+24;
     curP=P;curPillBoxes=new Map();
-    if(cam)cam.setNatural(natW,H,{narrow:!useWide,boxes:P.map(p=>({y1:p.y,y2:p.y+p.h}))});else svg.setAttribute("viewBox",`0 0 ${natW} ${H}`);
+    camEnabled=wantCam&&(nodes.length>=7||maxL>=3||natW>W+24);
+    if(cam)cam.setNatural(natW,H,{enabled:camEnabled,viewW:W,verticalOnly:false,boxes:P.map(p=>({y1:p.y,y2:p.y+p.h}))});else svg.setAttribute("viewBox",`0 0 ${natW} ${H}`);
     const eRoles=[...new Set(edges.map(e=>e.role).filter(Boolean))];
     let s=edgeMarkers(S.uid,eRoles);
     let skipLane=0;const pills=[],boxes=P.map(p=>({x1:p.x-6,y1:p.y-6,x2:p.x+p.w+6,y2:p.y+p.h+6})),placedPills=[];
@@ -1535,63 +1533,40 @@ Kit.dag=(id,o)=>{
     edges.forEach(ed=>{
       const A=P[ed.u],B=P[ed.v],rc=roleCol(ed.role,"var(--pc)"),lu=rank[ed.u],lv=rank[ed.v];
       let dPath,mx,my;
-      if(useWide){
-        const down=B.y>A.y,x1=A.cx,y1=down?A.y+A.h:A.y,x2=B.cx,y2=down?B.y-1:B.y+B.h+1;
-        const lMin=Math.min(lu,lv),lMax=Math.max(lu,lv);
-        let blocked=false,minX=natW,maxX=0;
-        if(lMax-lMin>1){
-          const bx1=Math.min(x1,x2)-20,bx2=Math.max(x1,x2)+20;
-          nodes.forEach(nd=>{const r=rank[nd.i];if(r>lMin&&r<lMax){const q=P[nd.i];minX=Math.min(minX,q.x);maxX=Math.max(maxX,q.x+q.w);if(q.x<=bx2&&q.x+q.w>=bx1)blocked=true}});
+      const down=B.y>A.y,x1=A.cx,y1=down?A.y+A.h:A.y,x2=B.cx,y2=down?B.y-1:B.y+B.h+1;
+      const lMin=Math.min(lu,lv),lMax=Math.max(lu,lv);
+      let blocked=false,minX=natW,maxX=0;
+      if(lMax-lMin>1){
+        const bx1=Math.min(x1,x2)-20,bx2=Math.max(x1,x2)+20;
+        nodes.forEach(nd=>{const r=rank[nd.i];if(r>lMin&&r<lMax){const q=P[nd.i];minX=Math.min(minX,q.x);maxX=Math.max(maxX,q.x+q.w);if(q.x<=bx2&&q.x+q.w>=bx1)blocked=true}});
+      }
+      let corridor=null;
+      if(blocked||(!down&&lu===lv)){
+        const mids=nodes.filter(nd=>rank[nd.i]>lMin&&rank[nd.i]<lMax).map(nd=>P[nd.i]);
+        if(mids.length){
+          const spans=[...mids].sort((a,b)=>a.x-b.x);
+          const gaps=[];
+          for(let gi=0;gi<spans.length-1;gi++){const g0=spans[gi].x+spans[gi].w,g1=spans[gi+1].x;if(g1-g0>=14)gaps.push((g0+g1)/2)}
+          const freeGaps=gaps.filter(gx=>!mids.some(q=>gx>q.x-5&&gx<q.x+q.w+5));
+          if(freeGaps.length){freeGaps.sort((a,b)=>Math.abs(a-(x1+x2)/2)-Math.abs(b-(x1+x2)/2));corridor=freeGaps[0]}
         }
-        let corridor=null;
-        if(blocked||(!down&&lu===lv)){
-          const mids=nodes.filter(nd=>rank[nd.i]>lMin&&rank[nd.i]<lMax).map(nd=>P[nd.i]);
-          if(mids.length){
-            const spans=[...mids].sort((a,b)=>a.x-b.x);
-            const gaps=[];
-            for(let gi=0;gi<spans.length-1;gi++){const g0=spans[gi].x+spans[gi].w,g1=spans[gi+1].x;if(g1-g0>=14)gaps.push((g0+g1)/2)}
-            const freeGaps=gaps.filter(gx=>!mids.some(q=>gx>q.x-5&&gx<q.x+q.w+5));
-            if(freeGaps.length){freeGaps.sort((a,b)=>Math.abs(a-(x1+x2)/2)-Math.abs(b-(x1+x2)/2));corridor=freeGaps[0]}
-          }
-        }
-        if(corridor!=null){
-          const sx=x1+(corridor>x1?A.w*.22:-A.w*.22),ex=x2+(corridor>x2?B.w*.22:-B.w*.22),ym=(y1+y2)/2;
-          dPath=`M${sx.toFixed(1)},${y1.toFixed(1)} C${corridor.toFixed(1)},${(y1+(ym-y1)*.55).toFixed(1)} ${corridor.toFixed(1)},${(y2-(y2-ym)*.55).toFixed(1)} ${ex.toFixed(1)},${y2.toFixed(1)}`;
-          // Anchor skip-corridor pill in the open gap below the source layer so it clears intermediate rows
-          mx=(sx+corridor)/2;my=y1+26;
-        } else if(blocked){
-          const sideR=Math.abs(A.cx-natW/2)>=Math.abs(B.cx-natW/2)?A.cx>=natW/2:B.cx>=natW/2;
-          const chX=sideR?Math.min(natW-10,maxX+18+(skipLane%3)*9):Math.max(10,minX-18-(skipLane%3)*9);
-          skipLane++;
-          const sy1=A.y+A.h/2,sy2=B.y+B.h/2,sx1=sideR?A.x+A.w:A.x,sx2=sideR?B.x+B.w+1:B.x-1;
-          dPath=`M${sx1.toFixed(1)},${sy1.toFixed(1)} C${chX.toFixed(1)},${sy1.toFixed(1)} ${chX.toFixed(1)},${sy2.toFixed(1)} ${sx2.toFixed(1)},${sy2.toFixed(1)}`;
-          mx=(sx1+6*chX+sx2)/8;my=(sy1+sy2)/2;
-        } else {
-          const ym=(y1+y2)/2;
-          dPath=`M${x1.toFixed(1)},${y1.toFixed(1)} C${x1.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
-          mx=(x1+x2)/2;my=ym;
-        }
+      }
+      if(corridor!=null){
+        const sx=x1+(corridor>x1?A.w*.22:-A.w*.22),ex=x2+(corridor>x2?B.w*.22:-B.w*.22),ym=(y1+y2)/2;
+        dPath=`M${sx.toFixed(1)},${y1.toFixed(1)} C${corridor.toFixed(1)},${(y1+(ym-y1)*.55).toFixed(1)} ${corridor.toFixed(1)},${(y2-(y2-ym)*.55).toFixed(1)} ${ex.toFixed(1)},${y2.toFixed(1)}`;
+        // Anchor skip-corridor pill in the open gap below the source layer so it clears intermediate rows
+        mx=(sx+corridor)/2;my=y1+26;
+      } else if(blocked){
+        const sideR=Math.abs(A.cx-natW/2)>=Math.abs(B.cx-natW/2)?A.cx>=natW/2:B.cx>=natW/2;
+        const chX=sideR?Math.min(natW-10,maxX+18+(skipLane%3)*9):Math.max(10,minX-18-(skipLane%3)*9);
+        skipLane++;
+        const sy1=A.y+A.h/2,sy2=B.y+B.h/2,sx1=sideR?A.x+A.w:A.x,sx2=sideR?B.x+B.w+1:B.x-1;
+        dPath=`M${sx1.toFixed(1)},${sy1.toFixed(1)} C${chX.toFixed(1)},${sy1.toFixed(1)} ${chX.toFixed(1)},${sy2.toFixed(1)} ${sx2.toFixed(1)},${sy2.toFixed(1)}`;
+        mx=(sx1+6*chX+sx2)/8;my=(sy1+sy2)/2;
       } else {
-        const lMax=Math.max(lu,lv),lMin=Math.min(lu,lv);
-        if(lMax-lMin>1||B.y<=A.y){
-          const mids=nodes.filter(nd=>rank[nd.i]>lMin&&rank[nd.i]<lMax).map(nd=>P[nd.i]).sort((a,b)=>a.x-b.x);
-          let corridor=null;
-          for(let gi=0;gi<mids.length-1;gi++){const g0=mids[gi].x+mids[gi].w,g1=mids[gi+1].x;if(g1-g0>=8&&!mids.some(q=>(g0+g1)/2>q.x-3&&(g0+g1)/2<q.x+q.w+3)){corridor=(g0+g1)/2;break}}
-          if(corridor!=null&&Math.abs(A.cx-B.cx)>20){
-            const y1=A.y+A.h,y2=B.y-1,sx=A.cx+(corridor>A.cx?A.w*.2:-A.w*.2),ex=B.cx+(corridor>B.cx?B.w*.2:-B.w*.2),ym=(y1+y2)/2;
-            dPath=`M${sx.toFixed(1)},${y1.toFixed(1)} C${corridor.toFixed(1)},${(y1+(ym-y1)*.55).toFixed(1)} ${corridor.toFixed(1)},${(y2-(y2-ym)*.55).toFixed(1)} ${ex.toFixed(1)},${y2.toFixed(1)}`;
-            mx=(sx+corridor)/2;my=y1+24;
-          } else {
-            const laneX=natW-10-(skipLane%3)*8;skipLane++;
-            const sy1=A.y+A.h/2,sy2=B.y+B.h/2,sx1=A.x+A.w,sx2=B.x+B.w+1;
-            dPath=`M${sx1.toFixed(1)},${sy1.toFixed(1)} C${laneX.toFixed(1)},${sy1.toFixed(1)} ${laneX.toFixed(1)},${sy2.toFixed(1)} ${sx2.toFixed(1)},${sy2.toFixed(1)}`;
-            mx=laneX-14;my=(sy1+sy2)/2;
-          }
-        } else {
-          const x1=A.cx,y1=A.y+A.h,x2=B.cx,y2=B.y-1,ym=(y1+y2)/2;
-          dPath=`M${x1.toFixed(1)},${y1.toFixed(1)} C${x1.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
-          mx=(x1+x2)/2;my=ym;
-        }
+        const ym=(y1+y2)/2;
+        dPath=`M${x1.toFixed(1)},${y1.toFixed(1)} C${x1.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+        mx=(x1+x2)/2;my=ym;
       }
       s+=`<path class="k-dag-edge" data-e="${ed.ei}" data-f="${ed.u}" data-t="${ed.v}" data-role="${ed.role}" style="--rc:${rc}" d="${dPath}"/>`;
       if(ed.label){

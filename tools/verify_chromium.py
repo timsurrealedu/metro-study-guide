@@ -22,21 +22,27 @@ LAYOUT_JS = r"""(function(phone) {
       bad.push(`wider than screen: <${e.tagName.toLowerCase()} class="${e.getAttribute("class") || ""}"> (${Math.round(r.left)}..${Math.round(r.right)}px vs ${W}px)`);
     }
   });
-  document.querySelectorAll(".viz-stage svg").forEach(svg => {
+  document.querySelectorAll(".viz-stage > svg").forEach(svg => {
     const f = svg.getBoundingClientRect(), id = svg.closest(".viz")?.id || "?";
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    const sc = (vb && vb.width > 0) ? Math.min(1, f.width / vb.width) : 1;
+    const padX = 3 * sc, padY = 2 * sc;
     const strokes = [...svg.querySelectorAll("line,path")].filter(s => !s.closest(".hide,[style*='display: none'],defs") && !s.matches(".k-grid,.k-axis,.k-mark,.k-curve,.k-tan,.k-shade,.k-vl,.k-edge,.k-lead,.k-tree-edge,.k-tree-skel,.k-dep-edge,.k-dag-edge,.k-axis-arr,.k-prog-line,.k-vec,.k-tan-tri,.k-slash,.k-curve-halo,.k-probe-line")).map(s => s.getBoundingClientRect()).filter(r => r.width || r.height);
-    const rects = [...svg.querySelectorAll("rect")].filter(b => !b.closest(".hide,[style*='display: none'],defs") && !b.matches(".k-box,.k-riem,.k-bar,.k-zone,.k-dag-shared")).map(b => b.getBoundingClientRect()).filter(r => r.width > 12 && r.height > 12);
+    const rects = [...svg.querySelectorAll("rect")].filter(b => !b.closest(".hide,[style*='display: none'],defs") && !b.matches(".k-box,.k-riem,.k-bar,.k-zone,.k-dag-shared")).map(b => b.getBoundingClientRect()).filter(r => r.width > 12 * sc && r.height > 12 * sc);
     svg.querySelectorAll("text").forEach(t => {
       if (t.closest(".hide,[style*='display: none'],defs")) return;
       const r = t.getBoundingClientRect();
       if (!r.width || !r.height) return;
-      if (svg.dataset.camZoom === "1" && (r.right <= f.left || r.left >= f.right || r.bottom <= f.top || r.top >= f.bottom)) return;
+      if (svg.dataset.camZoom === "1") {
+        if (r.right <= f.left || r.left >= f.right || r.bottom <= f.top || r.top >= f.bottom) return;
+        if (!t.closest(".on") && (r.left < f.left - 2 || r.right > f.right + 2 || r.top < f.top - 1 || r.bottom > f.bottom + 1)) return;
+      }
       if (r.left < f.left - 2 || r.right > f.right + 2 || r.top < f.top - 1 || r.bottom > f.bottom + 1) {
         bad.push(`text sticks out of #${id}: "${t.textContent.trim().slice(0, 40)}"`);
       }
       if (!t.classList.contains("k-halo")) {
         for (const sr of strokes) {
-          if (sr.right > r.left + 2 && sr.left < r.right - 2 && sr.bottom > r.top + 2 && sr.top < r.bottom - 2) {
+          if (sr.right > r.left + 2 * sc && sr.left < r.right - 2 * sc && sr.bottom > r.top + 2 * sc && sr.top < r.bottom - 2 * sc) {
             bad.push(`stroke pierces text in #${id}: "${t.textContent.trim().slice(0, 40)}"`);
             break;
           }
@@ -45,7 +51,7 @@ LAYOUT_JS = r"""(function(phone) {
       const cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
       for (const rr of rects) {
         if (cx >= rr.left && cx <= rr.right && cy >= rr.top && cy <= rr.bottom) {
-          if (r.left < rr.left + 3 || r.right > rr.right - 3 || r.top < rr.top + 2 || r.bottom > rr.bottom - 2) {
+          if (r.left < rr.left + padX || r.right > rr.right - padX || r.top < rr.top + padY || r.bottom > rr.bottom - padY) {
             bad.push(`text tight/overflows box in #${id}: "${t.textContent.trim().slice(0, 40)}"`);
           }
           break;
@@ -108,6 +114,9 @@ STEPPED_VIZ_JS = r"""(async function() {
     const auditStep = label => {
       const f = svg.getBoundingClientRect();
       if (!f.width || !f.height) return;
+      const vb = svg.viewBox && svg.viewBox.baseVal;
+      const sc = (vb && vb.width > 0) ? Math.min(1, f.width / vb.width) : 1;
+      const padX = 3 * sc, padY = 2 * sc, ov = 2 * sc;
       svg.querySelectorAll("[pathLength]").forEach(el => {
         if (!vis(el)) return;
         const da = getComputedStyle(el).strokeDasharray;
@@ -117,14 +126,14 @@ STEPPED_VIZ_JS = r"""(async function() {
       });
       const rects = [...svg.querySelectorAll("rect")]
         .filter(b => vis(b) && !b.matches(".k-box,.k-riem,.k-bar,.k-zone,.k-dag-shared"))
-        .map(b => b.getBoundingClientRect()).filter(r => r.width > 12 && r.height > 12);
+        .map(b => b.getBoundingClientRect()).filter(r => r.width > 12 * sc && r.height > 12 * sc);
       svg.querySelectorAll("text").forEach(t => {
         if (!vis(t)) return;
         const r = t.getBoundingClientRect();
         if (!r.width || !r.height) return;
         if (svg.dataset.camZoom === "1") {
           if (r.right <= f.left || r.left >= f.right || r.bottom <= f.top || r.top >= f.bottom) return;
-          if (!t.closest(".on,.k-ord") && (r.left < f.left - 2 || r.right > f.right + 2 || r.top < f.top - 1 || r.bottom > f.bottom + 1)) return;
+          if (!t.closest(".on") && (r.left < f.left - 2 || r.right > f.right + 2 || r.top < f.top - 1 || r.bottom > f.bottom + 1)) return;
         }
         if (r.left < f.left - 2 || r.right > f.right + 2 || r.top < f.top - 1 || r.bottom > f.bottom + 1) {
           bad.push(`stepped text sticks out of #${id} ${label}: "${t.textContent.trim().slice(0, 32)}"`);
@@ -132,7 +141,7 @@ STEPPED_VIZ_JS = r"""(async function() {
         const cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
         for (const rr of rects) {
           if (cx >= rr.left && cx <= rr.right && cy >= rr.top && cy <= rr.bottom) {
-            if (r.left < rr.left + 3 || r.right > rr.right - 3 || r.top < rr.top + 2 || r.bottom > rr.bottom - 2) {
+            if (r.left < rr.left + padX || r.right > rr.right - padX || r.top < rr.top + padY || r.bottom > rr.bottom - padY) {
               bad.push(`stepped text tight/overflows box in #${id} ${label}: "${t.textContent.trim().slice(0, 32)}"`);
             }
             break;
@@ -142,15 +151,15 @@ STEPPED_VIZ_JS = r"""(async function() {
       const pills = [...svg.querySelectorAll(".k-dep-pill rect, .k-dag-pill rect, .k-edge-pill rect, rect.k-epill")]
         .filter(p => !p.closest(".k-tag") && vis(p))
         .map(p => ({ el: p, r: p.getBoundingClientRect(), txt: (p.parentElement?.textContent || "").trim().slice(0, 24) }))
-        .filter(p => p.r.width > 4 && p.r.height > 4);
+        .filter(p => p.r.width > 4 * sc && p.r.height > 4 * sc);
       const targets = [...svg.querySelectorAll(".k-node, .k-ord circle")]
         .filter(n => vis(n))
         .map(n => ({ el: n, host: n.closest(".k-n,.k-tn,.k-dn"), r: n.getBoundingClientRect() }))
-        .filter(n => n.r.width > 4 && n.r.height > 4);
+        .filter(n => n.r.width > 4 * sc && n.r.height > 4 * sc);
       for (const p of pills) {
         for (const t of targets) {
           if (t.host && p.el.closest(".k-n,.k-tn,.k-dn") === t.host) continue;
-          if (p.r.left + 2 < t.r.right && p.r.right - 2 > t.r.left && p.r.top + 2 < t.r.bottom && p.r.bottom - 2 > t.r.top) {
+          if (p.r.left + ov < t.r.right && p.r.right - ov > t.r.left && p.r.top + ov < t.r.bottom && p.r.bottom - ov > t.r.top) {
             bad.push(`pill overlaps node/badge in #${id} ${label}: "${p.txt}"`);
             break;
           }
