@@ -127,7 +127,7 @@ def main(folder):
     for s in R.find(lambda n: "sec" in n.cls):
         h3 = [k for k in s.kids if k.tag == "h3"]
         if not h3: warn(f"line {s.line}: a .sec has no <h3> heading")
-        heavy = s.find(lambda n: n.cls & {"viz", "tbl-wrap", "steps", "sorter", "grid2", "grid3", "drill"})
+        heavy = s.find(lambda n: n.cls & {"viz", "tbl-wrap", "steps", "sorter", "grid2", "grid3", "drill", "proof-tpl"})
         lead = s.find(lambda n: n.tag == "p" and "lead" in n.cls)
         if heavy and not lead and not s.up(lambda n: "checkpoint" in n.cls) and not s.up(lambda n: n.attrs.get("data-part") == "R"):
             warn(f"line {s.line}: section \"{h3[0].alltext().strip() if h3 else '?'}\" has a visual/table/steps but no <p class=\"lead\"> to introduce it")
@@ -178,7 +178,7 @@ def main(folder):
         if not re.search(r"[\"'`#]" + re.escape(vid) + r"[\"'` ]", vis): warn(f"visual #{vid} is never used in visuals.js (it will be an empty box)")
     for m in re.finditer(r"Kit\.(\w+)\(\s*[\"'`]([\w-]+)[\"'`]", vis):
         kind, vid = m.group(1), m.group(2)
-        if kind not in ("diagram", "flow", "cycle", "timeline", "graph", "bars", "particles", "derive", "annotate", "tree", "dag"): err(f"visuals.js: Kit.{kind} does not exist")
+        if kind not in ("diagram", "flow", "cycle", "timeline", "graph", "bars", "particles", "derive", "annotate", "tree", "dag", "dp", "network", "trim", "venn"): err(f"visuals.js: Kit.{kind} does not exist")
         if vid not in all_ids: err(f"visuals.js: Kit.{kind}(\"{vid}\") but content.html has no element with id=\"{vid}\"")
         if kind == "derive":
             bstart = vis.find("{", m.end())

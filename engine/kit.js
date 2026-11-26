@@ -131,63 +131,132 @@ function mountAnatomy(S,o={}){
   if(!hasUse&&!o.legend)useBox.hidden=true;
   return {leg,useBox,setItems,showUse,wire,ensureUse(){if(useBox.hidden){useBox.hidden=false;if(!useBox.parentNode)S.stage.append(useBox);showUse(null,defUse)}}};
 }
+function mountTabs(S,tabs,onPick){
+  if(!tabs||tabs.length<2)return null;
+  const bar=h("div",{class:"k-tabs segc",role:"group","aria-label":"Examples"});
+  bar.innerHTML=tabs.map((tb,i)=>`<button type="button" data-tab="${i}" aria-pressed="${i===0}">${escHtml(tb.label||tb.t||("Mode "+(i+1)))}</button>`).join("");
+  S.stage.prepend(bar);
+  bar.addEventListener("click",e=>{const b=e.target.closest("button[data-tab]");if(!b)return;const idx=+b.dataset.tab;
+    $$("button",bar).forEach((x,j)=>x.setAttribute("aria-pressed",String(j===idx)));onPick(idx);
+  });
+  return {bar,set(idx){$$("button",bar).forEach((x,j)=>x.setAttribute("aria-pressed",String(j===idx)))}};
+}
 function mountCamera(S,svg,opts={}){
   svg.classList.add("k-cam");
   let mode="auto",natW=640,natH=360,viewW=640,enabled=true,verticalOnly=false,targetAR=640/360,boxes=[],curVB=null,stopTw=null;
+  let userZoom=1,panX=0,panY=0,lastBox=null,lastIsOv=false;
   const bar=h("div",{class:"k-cam-bar",role:"group","aria-label":"View zoom"},
     `<button type="button" class="k-cam-btn" data-cam="auto" aria-pressed="true">Auto</button>`+
     `<button type="button" class="k-cam-btn" data-cam="zoom" aria-pressed="false">Zoomed</button>`+
-    `<button type="button" class="k-cam-btn" data-cam="all" aria-pressed="false">Overview</button>`
+    `<button type="button" class="k-cam-btn" data-cam="all" aria-pressed="false">Overview</button>`+
+    `<span class="k-cam-sep" aria-hidden="true"></span>`+
+    `<button type="button" class="k-cam-btn k-cam-zbtn" data-cam="out" aria-label="Zoom out">−</button>`+
+    `<span class="k-cam-z" hidden>100%</span>`+
+    `<button type="button" class="k-cam-btn k-cam-zbtn" data-cam="in" aria-label="Zoom in">+</button>`
   );
   if(svg.parentNode===S.stage)S.stage.insertBefore(bar,svg);else S.stage.append(bar);
-  const setPressed=()=>{$$(".k-cam-btn",bar).forEach(b=>b.setAttribute("aria-pressed",b.dataset.cam===mode?"true":"false"))};
-  bar.addEventListener("click",e=>{const b=e.target.closest(".k-cam-btn");if(!b||b.dataset.cam===mode)return;
-    mode=b.dataset.cam;setPressed();if(opts.onMode)opts.onMode(mode);
-  });
+  const zBadge=$(".k-cam-z",bar);
+  const setPressed=()=>{$$(".k-cam-btn[data-cam='auto'],.k-cam-btn[data-cam='zoom'],.k-cam-btn[data-cam='all']",bar).forEach(b=>b.setAttribute("aria-pressed",b.dataset.cam===mode?"true":"false"))};
+  const syncBadge=active=>{if(!zBadge)return;zBadge.hidden=!active||userZoom<=1.01;zBadge.textContent=Math.round(userZoom*100)+"%"};
   const applyVB=vb=>{curVB=vb;svg.setAttribute("viewBox",vb.map(n=>n.toFixed(1)).join(" "))};
   const focus=(box,cfg={})=>{
     if(stopTw){stopTw();stopTw=null}
-    if(!enabled){svg.dataset.camZoom="0";applyVB([0,0,natW,natH]);return}
+    if(!enabled){svg.dataset.camZoom="0";svg.classList.remove("is-zoomed");syncBadge(false);applyVB([0,0,natW,natH]);return}
+    if(!cfg.keepManual){userZoom=1;panX=0;panY=0}
+    lastBox=box;lastIsOv=!!cfg.isOverview;
     const isOv=!!cfg.isOverview,instant=!!cfg.instant;
-    const zoomActive=!!box&&mode!=="all"&&!(mode==="auto"&&isOv);
+    const effBox=box||(mode==="zoom"?{x1:natW*.18,y1:natH*.15,x2:natW*.82,y2:natH*.85}:null);
+    const zoomActive=(!!effBox&&mode!=="all"&&!(mode==="auto"&&isOv))||(userZoom>1.01&&mode!=="all");
     let target;
     if(!zoomActive){
       target=[0,0,natW,natH];
     } else if(verticalOnly){
-      const padY=46;
-      let y1=Math.max(0,box.y1-padY),y2=Math.min(natH,box.y2+padY);
+      const padY=42;
+      let y1=Math.max(0,effBox.y1-padY),y2=Math.min(natH,effBox.y2+padY);
       if(y2-y1<Math.min(natH,330)){const c=(y1+y2)/2,h=Math.min(natH,340);y1=V.clamp(c-h/2,0,Math.max(0,natH-h));y2=y1+h}
       if(boxes.length){
-        const topCut=boxes.find(b=>b.y1<y1&&b.y2>y1&&b.y2<=box.y1-2);
-        if(topCut)y1=Math.min(box.y1-6,topCut.y2+3);
-        const botCut=boxes.find(b=>b.y1<y2&&b.y2>y2&&b.y1>=box.y2+2);
-        if(botCut)y2=Math.max(box.y2+6,botCut.y1-3);
+        const topCut=boxes.find(b=>b.y1<y1&&b.y2>y1&&b.y2<=effBox.y1-2);
+        if(topCut)y1=Math.min(effBox.y1-6,topCut.y2+3);
+        const botCut=boxes.find(b=>b.y1<y2&&b.y2>y2&&b.y1>=effBox.y2+2);
+        if(botCut)y2=Math.max(effBox.y2+6,botCut.y1-3);
       }
-      target=[0,y1,natW,Math.max(120,y2-y1)];
+      let bw=natW/userZoom,bh=Math.max(120,(y2-y1)/userZoom);
+      const cx=natW/2+panX,cy=(y1+y2)/2+panY;
+      target=[V.clamp(cx-bw/2,0,Math.max(0,natW-bw)),V.clamp(cy-bh/2,0,Math.max(0,natH-bh)),bw,bh];
     } else {
       const isPhone=viewW<540;
-      const padX=isPhone?30:56,padY=isPhone?30:46;
-      const minW=isPhone?Math.min(natW,Math.max(360,viewW*1.06)):Math.min(natW,Math.max(430,natW*.44));
-      const ar=isPhone?Math.min(1.25,Math.max(.88,targetAR)):targetAR;
-      let bw=Math.min(natW,Math.max(minW,(box.x2-box.x1)+padX*2));
-      let bh=Math.min(natH,Math.max(minW/ar,(box.y2-box.y1)+padY*2));
-      if(bw/bh<ar)bw=Math.min(natW,bh*ar);
+      const padX=isPhone?14:52,padY=isPhone?16:42;
+      const minW=isPhone?Math.min(natW,Math.max(225,viewW*.86)):Math.min(natW,Math.max(410,natW*.42));
+      const anc=cfg.anchor||effBox;
+      const ancW=(anc.x2-anc.x1)+padX*2;
+      const maxPhoneW=isPhone?Math.min(natW,Math.max(minW,ancW,Math.floor(viewW*1.18))):natW;
+      let bw=Math.min(natW,maxPhoneW,Math.max(minW,(effBox.x2-effBox.x1)+padX*2));
+      let bh=Math.min(natH,Math.max(isPhone?170:minW/targetAR,(effBox.y2-effBox.y1)+padY*2));
+      const ar=isPhone?V.clamp(bw/Math.max(1,bh),.68,1.24):targetAR;
+      if(bw/bh<ar)bw=Math.min(natW,Math.max(maxPhoneW,bw),bh*ar);
       if(bw/bh>ar)bh=Math.min(natH,bw/ar);
-      bw=Math.min(natW,bw);bh=Math.min(natH,bh);
-      const cx=(box.x1+box.x2)/2,cy=(box.y1+box.y2)/2;
+      bw=Math.min(natW,Math.max(bw,ancW));bh=Math.min(natH,bh);
+      if(userZoom>1.01){bw=Math.max(140,bw/userZoom);bh=Math.max(110,bh/userZoom)}
+      const cx=(anc.x1+anc.x2)/2+panX,cy=(anc.y1+anc.y2)/2+panY;
       const vx=V.clamp(cx-bw/2,0,Math.max(0,natW-bw));
       const vy=V.clamp(cy-bh/2,0,Math.max(0,natH-bh));
       target=[vx,vy,bw,bh];
     }
     svg.dataset.camZoom=zoomActive?"1":"0";
+    svg.classList.toggle("is-zoomed",zoomActive);
+    syncBadge(zoomActive);
     if(instant||!curVB||!E.motionOn()){applyVB(target);return}
     const from=[...curVB];
-    stopTw=V.tween(460,p=>{const t=V.ease(p);applyVB(from.map((a,k)=>a+(target[k]-a)*t))},()=>{stopTw=null});
+    stopTw=V.tween(420,p=>{const t=V.ease(p);applyVB(from.map((a,k)=>a+(target[k]-a)*t))},()=>{stopTw=null});
   };
+  bar.addEventListener("click",e=>{const b=e.target.closest(".k-cam-btn");if(!b)return;
+    const act=b.dataset.cam;
+    if(act==="in"||act==="out"){
+      if(act==="in"&&mode==="all"){mode="zoom";userZoom=1.35;setPressed()}
+      else userZoom=V.clamp(+(userZoom+(act==="in"?.35:-.35)).toFixed(2),1,2.4);
+      if(act==="out"&&userZoom<=1.01){panX=0;panY=0}
+      focus(lastBox,{isOverview:lastIsOv&&mode==="auto",instant:false,keepManual:true});
+      return;
+    }
+    if(act===mode&&userZoom<=1.01&&!panX&&!panY)return;
+    mode=act;userZoom=1;panX=0;panY=0;setPressed();
+    if(opts.onMode)opts.onMode(mode);
+  });
+  const pts=new Map();let pState=null;
+  svg.addEventListener("pointerdown",e=>{
+    if(e.button>0||svg.dataset.camZoom!=="1"||!curVB)return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===1){pState={kind:"pan",id:e.pointerId,x0:e.clientX,y0:e.clientY,vb:[...curVB],moved:false}}
+    else if(pts.size===2){const a=[...pts.values()];pState={kind:"pinch",d0:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),z0:userZoom,vb:[...curVB]}}
+  });
+  svg.addEventListener("pointermove",e=>{
+    if(!pts.has(e.pointerId)||!pState)return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    const r=svg.getBoundingClientRect();if(!r.width||!r.height)return;
+    if(pState.kind==="pan"&&pts.size===1){
+      const dx=e.clientX-pState.x0,dy=e.clientY-pState.y0;
+      if(!pState.moved&&Math.hypot(dx,dy)<6)return;
+      if(!pState.moved){pState.moved=true;svg._camDragged=true;svg.classList.add("is-dragging");if(stopTw){stopTw();stopTw=null}}
+      const sdx=dx*(pState.vb[2]/r.width),sdy=dy*(pState.vb[3]/r.height);
+      const nx=V.clamp(pState.vb[0]-sdx,0,Math.max(0,natW-pState.vb[2]));
+      const ny=V.clamp(pState.vb[1]-sdy,0,Math.max(0,natH-pState.vb[3]));
+      panX+=(nx-curVB[0]);panY+=(ny-curVB[1]);
+      applyVB([nx,ny,pState.vb[2],pState.vb[3]]);
+    } else if(pState.kind==="pinch"&&pts.size===2){
+      const a=[...pts.values()],d1=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+      if(pState.d0>10){
+        svg._camDragged=true;
+        userZoom=V.clamp(+(pState.z0*(d1/pState.d0)).toFixed(2),1,2.4);
+        focus(lastBox,{isOverview:false,instant:true,keepManual:true});
+      }
+    }
+  });
+  const endPtr=e=>{pts.delete(e.pointerId);if(!pts.size){svg.classList.remove("is-dragging");pState=null;if(svg._camDragged)setTimeout(()=>{svg._camDragged=false},60)}};
+  svg.addEventListener("pointerup",endPtr);svg.addEventListener("pointercancel",endPtr);
   return {
     bar,
     get mode(){return mode},
-    setNatural(w,h,cfg={}){natW=w;natH=h;viewW=cfg.viewW||w;enabled=cfg.enabled!==false;verticalOnly=!!(cfg.verticalOnly??cfg.narrow);targetAR=cfg.targetAR||(w/Math.max(1,h));boxes=cfg.boxes||[];bar.hidden=!enabled;if(!curVB||!enabled){applyVB([0,0,natW,natH]);if(!enabled)svg.dataset.camZoom="0"}},
+    setNatural(w,h,cfg={}){natW=w;natH=h;viewW=cfg.viewW||w;enabled=cfg.enabled!==false;verticalOnly=!!(cfg.verticalOnly??cfg.narrow);targetAR=cfg.targetAR||(w/Math.max(1,h));boxes=cfg.boxes||[];bar.hidden=!enabled;if(!curVB||!enabled){applyVB([0,0,natW,natH]);if(!enabled){svg.dataset.camZoom="0";svg.classList.remove("is-zoomed");syncBadge(false)}}},
     focus
   };
 }
@@ -295,6 +364,9 @@ Kit.flow=(id,o)=>{
     an.setItems(list);an.wire(svg);
   }
   const kindGlyph={start:"●",input:"▶",process:"⚙",decision:"◆",output:"✓",error:"✕",end:"■"};
+  const hasEquiv=!!(o.equiv||steps.some(s=>s.equiv));
+  const equivEl=hasEquiv?h("div",{class:"k-flow-equiv","aria-live":"polite"}):null;
+  if(equivEl)S.stage.append(equivEl);
   let cur=0,player=null;
   function layout(W){
     const chain=edges.every(([a,b])=>b===a+1);
@@ -350,9 +422,10 @@ Kit.flow=(id,o)=>{
     $$(".k-n",svg).forEach(g=>{const k=+g.dataset.i;g.classList.toggle("on",on.includes(k));g.classList.toggle("done",k<=reach&&!on.includes(k));g.classList.toggle("todo",k>reach)});
     edges.forEach(([a,b,,er],k)=>{const lit=a<=reach&&b<=reach,into=on.includes(b)&&a<=reach,erk=roleKey(er);
       $$(`[data-e="${k}"]`,svg).forEach(e=>{e.classList.toggle("done",lit);e.classList.toggle("todo",!lit);e.classList.toggle("flowline",into&&e.tagName==="path");if(e.tagName==="path")e.setAttribute("marker-end",`url(#${S.uid}-${lit?(erk?"on-"+erk:"on"):"off"})`)})});
+    if(equivEl){const eq=s.equiv!=null?s.equiv:o.equiv;equivEl.innerHTML=eq?Kit.math(eq):"";equivEl.hidden=!eq}
     if(an&&on.length===1&&N[on[0]]?.use)an.showUse(N[on[0]].t,N[on[0]].use,roleCol(N[on[0]].role,"var(--pc)"));
     if(o.on)o.on(i,svg,s);}
-  const jumpNode=g=>{const k=+g.dataset.i,si=steps.findIndex(s=>(s.on||[]).map(idx).includes(k));if(si>=0&&player){player.stop();player.show(si)}if(an&&N[k]?.use)an.showUse(N[k].t,N[k].use,roleCol(N[k].role,"var(--pc)"))};
+  const jumpNode=g=>{if(svg._camDragged)return;const k=+g.dataset.i,si=steps.findIndex(s=>(s.on||[]).map(idx).includes(k));if(si>=0&&player){player.stop();player.show(si)}if(an&&N[k]?.use)an.showUse(N[k].t,N[k].use,roleCol(N[k].role,"var(--pc)"))};
   svg.addEventListener("click",e=>{const g=e.target.closest(".k-n");if(g)jumpNode(g)});
   svg.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches(".k-n")){e.preventDefault();jumpNode(e.target)}});
   responsive(S,layout);
@@ -1049,6 +1122,52 @@ Kit.tree=(id,o)=>{
   const kindGlyph={root:"◎",decision:"◆",branch:"▸",leaf:"✓",pruned:"✕",nt:"◇",term:"●"};
   const wantLeg=o.legend!==false;
   const an=wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:hasDeps?"Hover any node to isolate its attribute flow and grammar edges, or tap to jump to its evaluation step.":"Hover or tap any node to trace its path from the root and see its role."}):null;
+  const hudEl=(o.hud||steps.some(s=>s.hud))?h("div",{class:"k-hud","aria-live":"polite"}):null;
+  const boardEl=o.board?h("div",{class:"k-tree-board"}):null;
+  if(hudEl)S.stage.append(hudEl);
+  if(boardEl){S.stage.classList.add("has-board");S.stage.insertBefore(boardEl,svg)}
+  const renderHud=list=>{
+    if(!hudEl)return;
+    const arr=list||o.hud||[];hudEl.hidden=!arr.length;
+    hudEl.innerHTML=arr.map(x=>{const rk=roleKey(x.role);return `<span class="k-hud-chip"${rk?` data-role="${rk}" style="--rc:var(--m-${rk})"`:""}><b>${escHtml(x.label)}</b><span>${escHtml(x.val)}</span></span>`}).join("");
+  };
+  const renderBoard=b=>{
+    if(!boardEl||!o.board)return;
+    const st=b||{},kind=o.board.kind||"queens",N=o.board.size||4;
+    if(kind==="queens"){
+      const qs=st.queens||[],tr=st.try,bd=st.bad,qSet=new Set(qs.map(p=>p[0]+","+p[1]));
+      const atk=(r,c)=>qs.some(([qr,qc])=>qr===r||qc===c||Math.abs(qr-r)===Math.abs(qc-c));
+      let cells="";
+      for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+        const key=r+","+c,isQ=qSet.has(key),isBad=bd&&bd[0]===r&&bd[1]===c,isTry=tr&&tr[0]===r&&tr[1]===c,isAtk=!isQ&&atk(r,c);
+        const cls="k-qb-cell"+((r+c)%2?" dark":"")+(isQ?" is-q":"")+(isBad?" is-bad":"")+(isTry?" is-try":"")+(isAtk?" is-atk":"");
+        cells+=`<div class="${cls}">${isQ||isBad||isTry?"♛":(isAtk?"×":"")}</div>`;
+      }
+      boardEl.innerHTML=`<div class="k-qb-title">${escHtml(st.title||"4-Queens Board")}</div><div class="k-qb-grid" style="--n:${N}">${cells}</div>`;
+    } else if(kind==="sudoku"){
+      const cellsData=st.cells||[];
+      let cells="";
+      for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+        const idx=r*N+c,raw=cellsData[idx],isBoxR=r===1,isBoxC=c===1;
+        let cls="k-sb-cell"+(isBoxR?" br-b":"")+(isBoxC?" br-r":""),inner="";
+        if(raw&&typeof raw==="object"&&!Array.isArray(raw)){
+          if(raw.v!=null){cls+=(raw.fixed?" is-fix":" is-val")+(raw.role?" is-"+roleKey(raw.role):"");inner=`<b>${escHtml(String(raw.v))}</b>`}
+          else{
+            const dom=raw.d||[],el=new Set(raw.elim||[]);
+            cls+=" is-dom"+(raw.role?" is-"+roleKey(raw.role):"");
+            inner=`<span class="k-sb-dom">${[1,2,3,4].map(d=>dom.includes(d)?`<i class="${el.has(d)?"el":""}">${d}</i>`:`<i class="off">·</i>`).join("")}</span>`;
+          }
+        } else if(Array.isArray(raw)){
+          cls+=" is-dom";
+          inner=`<span class="k-sb-dom">${[1,2,3,4].map(d=>raw.includes(d)?`<i>${d}</i>`:`<i class="off">·</i>`).join("")}</span>`;
+        } else if(raw!=null&&raw!==""){
+          cls+=" is-val";inner=`<b>${escHtml(String(raw))}</b>`;
+        }
+        cells+=`<div class="${cls}">${inner}</div>`;
+      }
+      boardEl.innerHTML=`<div class="k-qb-title">${escHtml(st.title||"4×4 Sudoku · AC-3 Domains")}</div><div class="k-sb-grid" style="--n:${N}">${cells}</div>`;
+    }
+  };
   let curP=[],curDepPillBoxes=new Map(),curEdgePillBoxes=new Map(),camEnabled=false;
   let cur=0,prevRev=new Set(nodes.map(n=>n.i)),prevDeps=new Set(),player=null;
   let cam=null;
@@ -1067,9 +1186,13 @@ Kit.tree=(id,o)=>{
     let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9,any=false;
     focusSet.forEach(k=>{const p=curP[k];if(!p)return;any=true;x1=Math.min(x1,p.x);y1=Math.min(y1,p.y);x2=Math.max(x2,p.x+p.w);y2=Math.max(y2,p.y+p.h);const ep=curEdgePillBoxes.get(k);if(ep){x1=Math.min(x1,ep.x1);y1=Math.min(y1,ep.y1);x2=Math.max(x2,ep.x2);y2=Math.max(y2,ep.y2)}});
     actD.forEach(di=>{const r=curDepPillBoxes.get(di);if(r){any=true;x1=Math.min(x1,r.x1);y1=Math.min(y1,r.y1);x2=Math.max(x2,r.x2);y2=Math.max(y2,r.y2)}});
-    cam.focus(any?{x1,y1,x2,y2}:null,{isOverview:isOv,instant});
+    let ax1=1e9,ay1=1e9,ax2=-1e9,ay2=-1e9,anyA=false;
+    (s.on||[]).map(idxOf).forEach(k=>{const p=curP[k];if(!p)return;anyA=true;ax1=Math.min(ax1,p.x);ay1=Math.min(ay1,p.y);ax2=Math.max(ax2,p.x+p.w);ay2=Math.max(ay2,p.y+p.h)});
+    const anchor=anyA?{x1:ax1,y1:ay1,x2:ax2,y2:ay2}:null;
+    cam.focus(any?{x1,y1,x2,y2}:null,{isOverview:isOv,instant,anchor});
   };
   cam=wantCam?mountCamera(S,svg,{onMode:()=>updateCam(false)}):null;
+  if(hudEl)S.stage.insertBefore(hudEl,cam?cam.bar:svg);
   if(an){
     let defLeg=[];
     if(hasDeps){
@@ -1091,7 +1214,8 @@ Kit.tree=(id,o)=>{
     const leafN=countLeaves(0);
     const maxWord=Math.max(4,...nodes.map(nd=>Math.max(...String(nd.t).split(/\s+/).map(w=>w.length))));
     const minBw=Math.max(96,Math.min(156,Math.ceil(maxWord*8.1)+30));
-    let gapX=compact?(hasDeps?24:(leafN>8?8:12)):(leafN>4?12:18);
+    const isPhone=W<540;
+    let gapX=compact?(hasDeps?24:(leafN>8?8:12)):(leafN>4?(isPhone?10:12):(isPhone?12:18));
     const rawBw=Math.floor((W-20-(leafN-1)*gapX)/Math.max(1,leafN));
     const attrTxt=a=>a.v?(a.k?`${a.k} = ${a.v}`:a.v):a.k;
     const estWidth=nd=>{
@@ -1128,7 +1252,7 @@ Kit.tree=(id,o)=>{
       return 14+15+w.t.length*18+(w.s.length?3+w.s.length*15.5:0)+(nd.tag?28:0)+12;
     };
     if(useWide){
-      natW=compact?Math.max(W,Math.ceil(totalW+56)):Math.max(W,Math.ceil(totalW+28));
+      natW=compact?Math.max(W,Math.ceil(totalW+(W<540?28:56))):Math.max(W,Math.ceil(totalW+(W<540?18:28)));
       const wr=nodes.map((nd,i)=>nodeText(nd,nodeW[i]));
       const hh=wr.map((w,i)=>nodeHeight(nodes[i],w));
       const maxD=Math.max(...nodes.map(nd=>nd.depth));
@@ -1171,7 +1295,7 @@ Kit.tree=(id,o)=>{
       natH=y+16;
     }
     curP=P;curDepPillBoxes=new Map();curEdgePillBoxes=new Map();
-    camEnabled=wantCam&&(hasDeps||nodes.length>9||natW>W+24);
+    camEnabled=wantCam&&(hasDeps||nodes.length>9||natW>W+4||(W<540&&nodes.length>=4));
     const attrPos=(nd,p)=>{const out={};if(!nd.attrs.length)return out;
       const base=p.y+8+p.wr.t.length*16+3;
       nd.attrs.forEach((a,ai)=>{out[a.k]={y:base+ai*16+8,ai}});
@@ -1394,11 +1518,13 @@ Kit.tree=(id,o)=>{
       prevDeps=new Set([...actDeps,...doneDeps]);
     }
     prevRev=rev;
+    renderHud(s.hud);
+    if(o.board)renderBoard(s.board);
     updateCam(instant);
     if(an&&on.size===1){const u=[...on][0];if(nodes[u]?.use)an.showUse(nodes[u].t,nodes[u].use,roleCol(nodes[u].role,"var(--pc)"))}
     if(o.on)o.on(i,svg,s);
   }
-  const jumpTree=g=>{const k=+g.dataset.i,nd=nodes[k];if(!nd)return;
+  const jumpTree=g=>{if(svg._camDragged)return;const k=+g.dataset.i,nd=nodes[k];if(!nd)return;
     const si=steps.findIndex(s=>(s.on||[]).map(idxOf).includes(k));
     if(si>=0&&player){player.stop();player.show(si)}
     if(an&&nd.use)an.showUse(nd.t,nd.use,roleCol(nd.role,"var(--pc)"));
@@ -1421,17 +1547,33 @@ Kit.tree=(id,o)=>{
   svg.addEventListener("pointerleave",()=>{$$(".k-tn,.k-tree-edge,.k-dep-edge",svg).forEach(n=>n.style.opacity="")});
   svg.addEventListener("click",e=>{const g=e.target.closest(".k-tn");if(g)jumpTree(g)});
   svg.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches(".k-tn")){e.preventDefault();jumpTree(e.target)}});
-  responsive(S,layout);
-  player=E.stepper(S.viz,steps,i=>render(i),{ms:o.ms});
+  let activeMode=0,lastW=640,dagCore=null,dagSvg=null;
+  if(o.memo&&o.memo.nodes?.length){
+    dagSvg=h("svg",{class:"hide",role:"img","aria-label":o.memo.alt||"Memoization DAG"});dagSvg.hidden=true;
+    S.stage.insertBefore(dagSvg,svg.nextSibling);
+    dagCore=mountDagCore(S,dagSvg,o.memo,{an,getPlayer:()=>player,mountPlayer:false});
+    dagSvg.classList.add("hide");dagSvg.hidden=true;
+    if(dagCore.cam)dagCore.cam.bar.hidden=true;
+    mountTabs(S,[{label:o.memo.treeLabel||"Recursion Tree O(2ⁿ)"},{label:o.memo.dagLabel||"Memoization DAG O(n)"}],idx=>{
+      activeMode=idx;
+      const isDag=idx===1;
+      svg.classList.toggle("hide",isDag);svg.hidden=isDag;
+      if(cam)cam.bar.hidden=isDag||!camEnabled;
+      dagSvg.classList.toggle("hide",!isDag);dagSvg.hidden=!isDag;
+      if(dagCore.cam)dagCore.cam.bar.hidden=!isDag||!dagCore.camEnabled;
+      if(isDag)dagCore.layout(lastW);else layout(lastW);
+      if(player)player.setSteps(isDag?dagCore.steps:steps,0);
+    });
+  }
+  responsive(S,w=>{lastW=w;layout(w);if(dagCore&&activeMode===1)dagCore.layout(w)});
+  player=E.stepper(S.viz,steps,(i,prev)=>{if(activeMode===1&&dagCore)dagCore.render(i);else render(i)},{ms:o.ms});
   return player;
 };
 
 /* =================================================================
    11. dag — general directed acyclic graphs (Sugiyama layered DAG)
    ================================================================= */
-Kit.dag=(id,o)=>{
-  const S=setup(id,"dag");if(!S||!o.nodes?.length)return;
-  const svg=svgIn(S,o.alt);
+function mountDagCore(S,svg,o,opts={}){
   const rawN=o.nodes,rawE=o.edges||[];
   const byId=new Map();
   const nodes=rawN.map((nd,i)=>{const cid=nd.id!=null?String(nd.id):"n"+i;byId.set(cid,i);
@@ -1482,8 +1624,9 @@ Kit.dag=(id,o)=>{
   const eById=new Map(edges.map(e=>[e.id,e.ei]));
   const eIdxOf=x=>typeof x==="number"?x:eById.get(String(x));
   const wantLeg=o.legend!==false,wantCam=o.zoom!==false;
-  const an=wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:"Hover any node to trace every upstream input and downstream dependent."}):null;
+  const an=opts.an!==undefined?opts.an:(wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:"Hover any node to trace every upstream input and downstream dependent."}):null);
   let curP=[],curPillBoxes=new Map(),camEnabled=false,cur=0,prevRev=new Set(nodes.map(n=>n.i)),prevActEdges=new Set(),player=null,cam=null;
+  const getPl=()=>opts.getPlayer?opts.getPlayer():player;
   const updateCam=(instant=false)=>{
     if(!cam||!camEnabled)return;
     const s=steps[cur]||{},hasOv=steps.some(st=>st.overview);
@@ -1524,7 +1667,7 @@ Kit.dag=(id,o)=>{
     });
     const H=yAt[maxL]+rowH[maxL]+24;
     curP=P;curPillBoxes=new Map();
-    camEnabled=wantCam&&(nodes.length>=7||maxL>=3||natW>W+24);
+    camEnabled=wantCam&&(nodes.length>=7||maxL>=3||natW>W+12||(W<540&&nodes.length>=4));
     if(cam)cam.setNatural(natW,H,{enabled:camEnabled,viewW:W,verticalOnly:false,boxes:P.map(p=>({y1:p.y,y2:p.y+p.h}))});else svg.setAttribute("viewBox",`0 0 ${natW} ${H}`);
     const eRoles=[...new Set(edges.map(e=>e.role).filter(Boolean))];
     let s=edgeMarkers(S.uid,eRoles);
@@ -1633,15 +1776,643 @@ Kit.dag=(id,o)=>{
     $$(".k-dag-edge",svg).forEach(ed=>ed.style.opacity=(keep.has(+ed.dataset.f)&&keep.has(+ed.dataset.t))?"1":".14");
   });
   svg.addEventListener("pointerleave",()=>{$$(".k-dn,.k-dag-edge",svg).forEach(n=>n.style.opacity="")});
-  const jumpDag=g=>{const k=+g.dataset.i,nd=nodes[k];if(!nd)return;
+  const jumpDag=g=>{if(svg._camDragged)return;const k=+g.dataset.i,nd=nodes[k];if(!nd)return;
+    const pl=getPl();
     const si=steps.findIndex(s=>(s.on||[]).map(idxOf).includes(k));
-    if(si>=0&&player){player.stop();player.show(si)}
+    if(si>=0&&pl){pl.stop();pl.show(si)}
     if(an&&nd.use)an.showUse(nd.t,nd.use,roleCol(nd.role,"var(--pc)"));
   };
   svg.addEventListener("click",e=>{const g=e.target.closest(".k-dn");if(g)jumpDag(g)});
   svg.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches(".k-dn")){e.preventDefault();jumpDag(e.target)}});
+  if(opts.mountPlayer===false){
+    layout(640);
+    return {layout,render,steps,cam,get camEnabled(){return camEnabled}};
+  }
   responsive(S,layout);
   player=E.stepper(S.viz,steps,i=>render(i),{ms:o.ms});
+  return player;
+}
+Kit.dag=(id,o)=>{
+  const S=setup(id,"dag");if(!S||!o.nodes?.length)return;
+  const svg=svgIn(S,o.alt);
+  return mountDagCore(S,svg,o);
+};
+
+/* =================================================================
+   12. dp — DP Table & Dependency Fill (1D, 2D/LCS/Knapsack, Interval, Bitmask)
+   ================================================================= */
+Kit.dp=(id,o)=>{
+  const S=setup(id,"dp");if(!S)return;
+  S.stage.classList.add("kit-html");
+  const tabs=o.tabs&&o.tabs.length?o.tabs:[o];
+  let rollMode=0,curCfg=tabs[0],curSteps=[],player=null;
+  const wantLeg=o.legend!==false;
+  const an=wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:"Tap any filled cell to jump to its computation step, or hover the legend key."}):null;
+  const rollBar=h("div",{class:"k-dp-roll",hidden:true});
+  const hudEl=h("div",{class:"k-hud",hidden:true,"aria-live":"polite"});
+  const eqEl=h("div",{class:"k-dp-eq",hidden:true,"aria-live":"polite"});
+  const splitEl=h("div",{class:"k-dp-split",hidden:true});
+  const scrollEl=h("div",{class:"k-dp-scroll"});
+  const wrapEl=h("div",{class:"k-dp-wrap"});
+  scrollEl.append(wrapEl);
+  S.stage.append(rollBar,hudEl,eqEl,scrollEl,splitEl);
+
+  const dirGlyph=d=>d==="\\"||d==="diag"?"↖":d==="^"||d==="up"?"↑":d==="<"||d==="left"?"←":"";
+  const dirRole=d=>d==="\\"||d==="diag"?"r":d==="^"||d==="up"?"c":d==="<"||d==="left"?"v":"";
+  const normPair=p=>Array.isArray(p)?`${p[0]},${p[1]}`:String(p);
+  const stepsFor=cfg=>{
+    if(cfg.rolling){return rollMode===1?(cfg.rolling.ltrSteps||cfg.steps||[]):(cfg.rolling.rtlSteps||cfg.steps||[])}
+    return cfg.steps||[{t:"Table",d:""}];
+  };
+  const syncLegend=cfg=>{
+    if(!an)return;
+    const m=cfg.mode||"2d";
+    const def=cfg.legend||(m==="interval"
+      ?[{role:"c",label:"Current (i, j)",swatch:"box",use:"Cell currently being minimized over split k."},{role:"g",label:"Diagonal l",swatch:"area",use:"All intervals of current length l = j − i + 1."},{role:"v",label:"Subproblems",swatch:"box",use:"Already-computed shorter sub-intervals (i,k) and (k+1,j)."},{role:"r",label:"Optimal / Split",swatch:"dot",use:"Best split k* or root r* recorded for reconstruction."}]
+      :m==="bitmask"
+      ?[{role:"v",label:"Subset S",swatch:"box",use:"Bitmask encoding visited vertices; evaluated in increasing |S| order."},{role:"c",label:"Active dp[S,v]",swatch:"box",use:"Current state minimizing over predecessor u ∈ S \\ {v}."},{role:"r",label:"Optimal Tour",swatch:"dot",use:"Selected transition along the minimum-cost Hamiltonian tour."}]
+      :[{role:"c",label:"Active Cell",swatch:"box",use:"State currently being evaluated from its recurrence."},{role:"v",label:"Dependencies",swatch:"box",use:"Smaller subproblem states read by the recurrence."},{role:"r",label:"Traceback / Optimal",swatch:"dot",use:"Reconstructed optimal solution path."},{role:"k",label:"Conflict / Bug",swatch:"cut",use:"Invalid state or overwriting bug (e.g. left-to-right 1D knapsack)."}]);
+    an.setItems(def);
+  };
+  const buildTable=cfg=>{
+    curCfg=cfg;const m=cfg.mode||"2d";
+    if(cfg.rolling){
+      rollBar.hidden=false;
+      const r=cfg.rolling;
+      rollBar.innerHTML=`<div class="segc" role="group" aria-label="Traversal direction">`+
+        `<button type="button" data-roll="0" aria-pressed="${rollMode===0}">${escHtml(r.rtlLabel||"Right → Left (Safe 0/1)")}</button>`+
+        `<button type="button" data-roll="1" aria-pressed="${rollMode===1}">${escHtml(r.ltrLabel||"Left → Right (Item Reuse Bug!)")}</button>`+
+        `</div><span class="k-dp-rnote" data-role="${rollMode===0?"r":"k"}">${escHtml(rollMode===0?(r.rtlNote||"Reads previous row dp[c − wᵢ] before overwriting."):(r.ltrNote||"Reads updated dp[c − wᵢ] from same row — reuses item!"))}</span>`;
+    } else rollBar.hidden=true;
+    syncLegend(cfg);
+    if(m==="1d"){
+      const cols=cfg.cols||cfg.arr.map((_,i)=>String(i));
+      const rows=[];
+      rows.push({key:"idx",label:cfg.idxLabel||"i",vals:cols,head:true});
+      if(cfg.arr)rows.push({key:"arr",label:cfg.arrLabel||"A[i]",vals:cfg.arr,role:"v"});
+      rows.push({key:"dp",label:cfg.dpLabel||"dp[i]",vals:cfg.dp||cols.map(()=>"·"),role:"c",dp:true});
+      if(cfg.parent)rows.push({key:"par",label:cfg.parentLabel||"parent[i]",vals:cfg.parent,role:"f",par:true});
+      (cfg.aux||[]).forEach((ax,ai)=>rows.push({key:"aux"+ai,label:ax.label,vals:ax.vals,role:ax.role||"g"}));
+      let html=`<svg class="k-dp-arrs" aria-hidden="true"></svg><table class="k-dp-tbl k-dp-1d"><tbody>`;
+      rows.forEach(rw=>{
+        html+=`<tr class="${rw.head?"is-idx":rw.dp?"is-dp":""}"><th>${escHtml(rw.label)}</th>`;
+        rw.vals.forEach((v,ci)=>{
+          html+=`<td data-r="${rw.dp?0:-1}" data-c="${ci}" data-rk="${rw.key}" class="${rw.dp?"k-dp-cell clickable":""}">${escHtml(v==null?"·":String(v))}</td>`;
+        });
+        html+=`</tr>`;
+      });
+      html+=`</tbody></table>`;wrapEl.innerHTML=html;
+    } else if(m==="bitmask"){
+      const rows=cfg.rows||[],cols=cfg.cols||[];
+      let html=`<table class="k-dp-tbl k-dp-bit"><thead><tr><th>|S|</th><th>Subset S</th>${cols.map(c=>`<th>v=${escHtml(String(c))}</th>`).join("")}</tr></thead><tbody>`;
+      let prevSz=null;
+      rows.forEach((rw,ri)=>{
+        const sz=rw.size!=null?rw.size:(rw.mask?rw.mask.split("").filter(x=>x==="1").length:0);
+        const grpStart=prevSz!==sz;prevSz=sz;
+        html+=`<tr class="${grpStart?"k-sz-start":""}" data-sz="${sz}">`;
+        html+=`<th class="k-sz-col">${grpStart?`|S|=${sz}`:""}</th>`;
+        html+=`<th class="k-mask-th"><code class="k-dp-mask">${[...(rw.mask||"")].map(b=>`<i class="${b==="1"?"on":""}">${b}</i>`).join("")}</code><small>${escHtml(rw.set||"")}</small></th>`;
+        cols.forEach((_,ci)=>{
+          const raw=(cfg.grid&&cfg.grid[ri])?cfg.grid[ri][ci]:null;
+          const v=raw&&typeof raw==="object"?raw.v:raw;
+          html+=`<td class="k-dp-cell clickable" data-r="${ri}" data-c="${ci}" data-init="${escAttr(v==null?"∞":String(v))}">${escHtml(v==null?"∞":String(v))}</td>`;
+        });
+        html+=`</tr>`;
+      });
+      html+=`</tbody></table>`;wrapEl.innerHTML=html;
+    } else {
+      const isInt=m==="interval";
+      const rows=cfg.rows||(isInt?Array.from({length:cfg.n},(_,i)=>String(i+1)):[]);
+      const cols=cfg.cols||(isInt?Array.from({length:cfg.n},(_,i)=>String(i+1)):[]);
+      let html=`<table class="k-dp-tbl${isInt?" k-dp-int":""}"><thead><tr><th>${escHtml(cfg.corner||"i \\ j")}</th>${cols.map(c=>`<th>${escHtml(String(c))}</th>`).join("")}</tr></thead><tbody>`;
+      rows.forEach((rw,ri)=>{
+        html+=`<tr><th>${escHtml(String(rw))}</th>`;
+        cols.forEach((_,ci)=>{
+          if(isInt&&ri>ci){html+=`<td class="k-dp-blank" aria-hidden="true"></td>`;return}
+          const raw=(cfg.grid&&cfg.grid[ri])?cfg.grid[ri][ci]:null;
+          const obj=raw&&typeof raw==="object"?raw:{v:raw};
+          const v=obj.v==null?"·":String(obj.v);
+          html+=`<td class="k-dp-cell clickable" data-r="${ri}" data-c="${ci}" data-init="${escAttr(v)}"${obj.dir?` data-init-dir="${escAttr(obj.dir)}"`:""}${obj.sub?` data-init-sub="${escAttr(obj.sub)}"`:""}>${escHtml(v)}</td>`;
+        });
+        html+=`</tr>`;
+      });
+      html+=`</tbody></table>`;wrapEl.innerHTML=html;
+    }
+  };
+  const draw1DArr=(onCols,fromCols)=>{
+    const arrSvg=$(".k-dp-arrs",wrapEl);if(!arrSvg)return;
+    const wr=wrapEl.getBoundingClientRect();if(!wr.width){arrSvg.innerHTML="";return}
+    arrSvg.setAttribute("viewBox",`0 0 ${Math.ceil(wr.width)} ${Math.ceil(wr.height)}`);
+    let paths=`<defs><marker id="${S.uid}-dpa" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,1 L9,5 L0,9 z" class="k-head on" style="fill:var(--m-v)"/></marker></defs>`;
+    const dst=onCols.length?$(`.k-dp-tbl td[data-rk="dp"][data-c="${onCols[0]}"]`,wrapEl):null;
+    if(dst){
+      const dr=dst.getBoundingClientRect(),dx=dr.left-wr.left+dr.width/2,dy=dr.top-wr.top+2;
+      fromCols.forEach((fc,fi)=>{
+        const src=$(`.k-dp-tbl td[data-rk="dp"][data-c="${fc}"]`,wrapEl);if(!src||fc===onCols[0])return;
+        const sr=src.getBoundingClientRect(),sx=sr.left-wr.left+sr.width/2,sy=sr.top-wr.top+2;
+        const arch=Math.max(18,Math.min(42,Math.abs(dx-sx)*.26+fi*6));
+        const d=`M${sx.toFixed(1)},${sy.toFixed(1)} Q${((sx+dx)/2).toFixed(1)},${Math.max(2,sy-arch).toFixed(1)} ${dx.toFixed(1)},${dy.toFixed(1)}`;
+        paths+=`<path class="k-dp-arr" d="${d}" marker-end="url(#${S.uid}-dpa)"/>`;
+      });
+    }
+    arrSvg.innerHTML=paths;
+  };
+  const render=(i)=>{
+    const s=curSteps[i]||{};
+    const m=curCfg.mode||"2d";
+    const hud=s.hud||curCfg.hud||[];
+    hudEl.hidden=!hud.length;
+    hudEl.innerHTML=hud.map(x=>{const rk=roleKey(x.role);return `<span class="k-hud-chip"${rk?` data-role="${rk}" style="--rc:var(--m-${rk})"`:""}><b>${escHtml(x.label)}</b><span>${escHtml(x.val)}</span></span>`}).join("");
+    if(s.eq){eqEl.hidden=false;eqEl.innerHTML=Kit.math(s.eq)}else eqEl.hidden=true;
+    if(s.split){
+      splitEl.hidden=false;
+      const sp=s.split;
+      splitEl.innerHTML=`<span class="k-sp-seg" data-role="v">(${escHtml(String(sp.i))}..${escHtml(String(sp.k))})</span><span class="k-sp-op">+</span><span class="k-sp-seg" data-role="v">(${escHtml(String(sp.k+1))}..${escHtml(String(sp.j))})</span>${sp.cost!=null?`<span class="k-sp-op">→</span><span class="k-sp-seg" data-role="r">${escHtml(String(sp.cost))}</span>`:""}`;
+    } else splitEl.hidden=true;
+
+    if(m==="1d"){
+      const onC=Array.isArray(s.on)?s.on:(s.on!=null?[s.on]:[]);
+      const fromC=s.from||[],traceC=s.trace||[],badC=s.bad||[];
+      const dpVals=s.dp||curCfg.dp||[],parVals=s.parent||curCfg.parent||[];
+      const revUpto=s.reveal==="all"?999:(s.reveal!=null?s.reveal:(onC.length?Math.max(...onC):999));
+      $$(".k-dp-tbl td",wrapEl).forEach(td=>{
+        const c=+td.dataset.c,rk=td.dataset.rk;
+        if(rk==="dp"){
+          const show=s.dp?dpVals[c]!=null:(c<=revUpto);
+          td.textContent=show&&dpVals[c]!=null?String(dpVals[c]):"·";
+          td.classList.toggle("on",onC.includes(c));
+          td.classList.toggle("from",fromC.includes(c)&&!onC.includes(c));
+          td.classList.toggle("path",traceC.includes(c));
+          td.classList.toggle("bad",badC.includes(c));
+          td.classList.toggle("filled",show&&dpVals[c]!=null);
+        } else if(rk==="par"){
+          const show=s.parent?parVals[c]!=null:(c<=revUpto);
+          td.textContent=show&&parVals[c]!=null?String(parVals[c]):"·";
+          td.classList.toggle("on",onC.includes(c));
+          td.classList.toggle("path",traceC.includes(c));
+        }
+      });
+      requestAnimationFrame(()=>draw1DArr(onC,fromC));
+    } else {
+      const onSet=new Set((s.on?(Array.isArray(s.on[0])?s.on:[s.on]):[]).map(normPair));
+      const fromSet=new Set((s.from||[]).map(normPair));
+      const pathSet=new Set((s.path||[]).map(normPair));
+      const badSet=new Set((s.bad||[]).map(normPair));
+      const diagLen=s.diag!=null?s.diag:null;
+      const cellMap=s.cells||{};
+      const upto=Array.isArray(s.upto)?s.upto:null;
+      $$(".k-dp-cell",wrapEl).forEach(td=>{
+        const r=+td.dataset.r,c=+td.dataset.c,k=`${r},${c}`;
+        const ov=cellMap[k];
+        let val=ov!==undefined?(ov&&typeof ov==="object"?ov.v:ov):null;
+        let dir=ov&&typeof ov==="object"?ov.dir:td.dataset.initDir||"";
+        let sub=ov&&typeof ov==="object"?ov.sub:td.dataset.initSub||"";
+        if(val==null){
+          let vis=true;
+          if(upto)vis=(r<upto[0]||(r===upto[0]&&c<=upto[1]));
+          else if(diagLen!=null&&m==="interval"){const len=c-r+1;vis=len<=diagLen&&!(len===diagLen&&!onSet.has(k)&&s.diagOnly!==false&&c>(s.on?s.on[1]:999));}
+          else if(s.size!=null&&m==="bitmask"){const rSz=+(td.closest("tr")?.dataset.sz||0);vis=rSz<=s.size;}
+          else if(s.reveal&&Array.isArray(s.reveal))vis=s.reveal.map(normPair).includes(k);
+          val=vis?td.dataset.init:(m==="bitmask"?"∞":"·");
+          if(!vis){dir="";sub=""}
+        }
+        const dg=dirGlyph(dir),dr=dirRole(dir);
+        td.innerHTML=(dg?`<span class="k-dp-dir"${dr?` data-role="${dr}"`:""}>${dg}</span>`:"")+`<b>${escHtml(String(val))}</b>`+(sub?`<small class="k-dp-sub">${escHtml(String(sub))}</small>`:"");
+        td.classList.toggle("on",onSet.has(k));
+        td.classList.toggle("from",fromSet.has(k)&&!onSet.has(k));
+        td.classList.toggle("path",pathSet.has(k));
+        td.classList.toggle("bad",badSet.has(k));
+        td.classList.toggle("diag",m==="interval"&&diagLen!=null&&(c-r+1)===diagLen);
+        td.classList.toggle("filled",val!=="·"&&val!=="∞");
+      });
+      if(m==="bitmask"&&s.size!=null){
+        $$(".k-dp-bit tbody tr",wrapEl).forEach(tr=>{tr.classList.toggle("is-sz-on",+tr.dataset.sz===s.size)});
+      }
+    }
+    if(an&&s.use)an.showUse(s.t,s.use,"var(--pc)");
+    if(o.on)o.on(i,S.stage,s);
+  };
+  rollBar.addEventListener("click",e=>{
+    const b=e.target.closest("button[data-roll]");if(!b)return;
+    rollMode=+b.dataset.roll;buildTable(curCfg);curSteps=stepsFor(curCfg);
+    if(player)player.setSteps(curSteps,0);
+  });
+  wrapEl.addEventListener("click",e=>{
+    const td=e.target.closest(".k-dp-cell");if(!td||!player)return;
+    const r=+td.dataset.r,c=+td.dataset.c,k=`${r},${c}`;
+    const si=curSteps.findIndex(s=>{
+      if((curCfg.mode||"2d")==="1d")return (Array.isArray(s.on)?s.on:[s.on]).includes(c);
+      return (s.on?(Array.isArray(s.on[0])?s.on:[s.on]):[]).map(normPair).includes(k);
+    });
+    if(si>=0){player.stop();player.show(si)}
+  });
+  if(tabs.length>1){
+    mountTabs(S,tabs,idx=>{rollMode=0;buildTable(tabs[idx]);curSteps=stepsFor(tabs[idx]);if(player)player.setSteps(curSteps,0)});
+  }
+  buildTable(tabs[0]);curSteps=stepsFor(tabs[0]);
+  player=E.stepper(S.viz,curSteps,i=>render(i),{ms:o.ms||3600});
+  return player;
+};
+
+/* =================================================================
+   13. network — Graph Traversal, Shortest-Path, Metric TSP & 3-SAT Gadget
+   ================================================================= */
+Kit.network=(id,o)=>{
+  const S=setup(id,"network");if(!S)return;
+  const svg=svgIn(S,o.alt);
+  const tabs=o.tabs&&o.tabs.length?o.tabs:[o];
+  let curCfg=tabs[0],curSteps=curCfg.steps||[],cur=0,curW=640,player=null;
+  const wantLeg=o.legend!==false,wantCam=o.zoom!==false;
+  const an=wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:"Tap any node or edge to inspect its state, distance, or classification."}):null;
+  const satBar=h("div",{class:"k-sat-bar",hidden:true});
+  const hudEl=h("div",{class:"k-hud",hidden:true,"aria-live":"polite"});
+  const parenEl=h("div",{class:"k-net-parens",hidden:true});
+  S.stage.insertBefore(satBar,svg);
+  S.stage.insertBefore(hudEl,svg);
+  S.stage.append(parenEl);
+  let camEnabled=false,curP=[],satAssign={},satPicked={},curNodes=[],curEdges=[];
+  const updateCam=(instant=false)=>{
+    if(!cam||!camEnabled)return;
+    const s=curSteps[cur]||{},hasOv=curSteps.some(st=>st.overview);
+    const isOv=s.overview===true||(cur===curSteps.length-1&&!hasOv&&curSteps.length>2);
+    if((isOv&&cam.mode==="auto")||cam.mode==="all"){cam.focus(null,{isOverview:true,instant});return}
+    const focusIds=new Set([...(s.on||[]),...(s.focus||[])].map(String));
+    let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9,any=false;
+    curNodes.forEach((nd,ni)=>{if(focusIds.has(nd.id)&&curP[ni]){const p=curP[ni];any=true;x1=Math.min(x1,p.x-36);y1=Math.min(y1,p.y-36);x2=Math.max(x2,p.x+36);y2=Math.max(y2,p.y+42)}});
+    cam.focus(any?{x1,y1,x2,y2}:null,{isOverview:isOv,instant});
+  };
+  const cam=wantCam?mountCamera(S,svg,{onMode:()=>updateCam(false)}):null;
+
+  const compileSat=cfg=>{
+    const sat=cfg.sat;
+    const clauses=sat.clauses||[],k=clauses.length;
+    const nodes=[],edges=[],litPos=[];
+    const span=100/Math.max(1,k);
+    clauses.forEach((cl,ci)=>{
+      const cx=span*(ci+.5),cy=52;
+      const ids=[];
+      cl.forEach((lit,li)=>{
+        const nid=`c${ci}_${li}`,neg=lit.startsWith("!"),v=neg?lit.slice(1):lit;
+        const lbl=(neg?"¬":"")+v;
+        const ox=li===0?0:(li===1?-span*.3:span*.3),oy=li===0?-28:24;
+        nodes.push({id:nid,t:lbl,x:cx+ox,y:cy+oy,ci,li,var:v,neg,clause:ci+1,role:"v",use:`Literal ${lbl} in Clause C${ci+1}.`});
+        litPos.push({id:nid,var:v,neg,ci});ids.push(nid);
+      });
+      edges.push({from:ids[0],to:ids[1],cls:"tri",undir:true});
+      edges.push({from:ids[1],to:ids[2],cls:"tri",undir:true});
+      edges.push({from:ids[2],to:ids[0],cls:"tri",undir:true});
+    });
+    for(let i=0;i<litPos.length;i++)for(let j=i+1;j<litPos.length;j++){
+      if(litPos[i].ci!==litPos[j].ci&&litPos[i].var===litPos[j].var&&litPos[i].neg!==litPos[j].neg){
+        edges.push({from:litPos[i].id,to:litPos[j].id,cls:"conflict",undir:true,label:"conflict",role:"k"});
+      }
+    }
+    return {nodes,edges};
+  };
+
+  const syncLegend=cfg=>{
+    if(!an)return;
+    if(cfg.legend){an.setItems(cfg.legend);an.wire(svg);return}
+    if(cfg.sat){
+      an.setItems([
+        {role:"r",label:"Picked True Vertex",swatch:"dot",use:"One true literal chosen per satisfied clause triangle."},
+        {role:"k",label:"Conflict / False",swatch:"cut",use:"Opposite literals (xᵢ ↔ ¬xᵢ) cannot both belong to an Independent Set."},
+        {role:"c",label:"Clause Triangle",swatch:"line",use:"At most one vertex per triangle can enter the Independent Set."}
+      ]);
+    } else if(cfg.kind==="tsp"){
+      an.setItems([
+        {role:"r",label:"MST Tree Edge",swatch:"line",use:"Minimum Spanning Tree edge giving lower bound OPT ≥ w(MST)."},
+        {role:"a",label:"Preorder Walk",swatch:"dash",use:"Euler tour preorder traversal visiting every vertex."},
+        {role:"f",label:"Triangle Shortcut",swatch:"vec",use:"Skips already-visited vertices; length ≤ 2·w(MST) ≤ 2·OPT."}
+      ]);
+    } else if(cfg.kind==="sp"){
+      an.setItems([
+        {role:"r",label:"Relaxed / Tree Edge",swatch:"vec",use:"Shortens d[v] > d[u] + w(u,v) and updates π[v] = u."},
+        {role:"c",label:"Priority / Pass Frontier",swatch:"dot",use:"Current extracted vertex or active relaxation pass."},
+        {role:"k",label:"Negative Trap / Cycle",swatch:"cut",use:"Negative-weight edge breaking Dijkstra or negative cycle detected on pass |V|."}
+      ]);
+    } else {
+      an.setItems([
+        {role:"r",label:"Tree Edge",swatch:"vec",use:"Discovers a white (unvisited) vertex."},
+        {role:"k",label:"Back Edge (Cycle)",swatch:"dash",use:"Points to a gray ancestor — proves a directed cycle exists!"},
+        {role:"a",label:"Forward Edge",swatch:"dash",use:"Points to a black descendant already finished."},
+        {role:"c",label:"Cross Edge",swatch:"dash",use:"Connects across finished subtrees (no ancestor relation)."}
+      ]);
+    }
+    an.wire(svg);
+  };
+
+  const buildNetwork=(cfg,W)=>{
+    curCfg=cfg;curW=W;
+    let rawN=cfg.nodes||[],rawE=cfg.edges||[];
+    if(cfg.sat){const g=compileSat(cfg);rawN=g.nodes;rawE=g.edges}
+    const byId=new Map();
+    curNodes=rawN.map((nd,i)=>{const id=String(nd.id??i);byId.set(id,i);return {...nd,id,i}});
+    const pairSet=new Set(rawE.map(e=>`${e.from}->${e.to}`));
+    curEdges=rawE.map((ed,ei)=>{
+      const u=byId.get(String(ed.from)),v=byId.get(String(ed.to));
+      const rev=pairSet.has(`${ed.to}->${ed.from}`);
+      return {...ed,ei,u,v,curve:ed.curve!=null?ed.curve:(rev&&!ed.undir?24:0)};
+    }).filter(e=>e.u!=null&&e.v!=null);
+    const effW=Math.max(W,cfg.minW||(cfg.sat?Math.max(600,cfg.sat.clauses.length*200):560)),H=Math.max(310,Math.round(effW*(cfg.aspect||.58)));
+    const padX=56,padY=52,R=cfg.sat?21:23;
+    const P=curNodes.map(nd=>({
+      x:padX+(nd.x/100)*(effW-2*padX),
+      y:padY+(nd.y/100)*(H-2*padY)
+    }));
+    curP=P;
+    camEnabled=wantCam&&(curNodes.length>=5||effW>W+10||W<540);
+    if(cam)cam.setNatural(effW,H,{enabled:camEnabled,viewW:W,verticalOnly:false,boxes:P.map(p=>({y1:p.y-R,y2:p.y+R}))});
+    else svg.setAttribute("viewBox",`0 0 ${effW} ${H}`);
+
+    const roles=["r","k","c","v","f","g","a"];
+    let s=edgeMarkers(S.uid,roles);
+    if(cfg.sat){
+      const clN=cfg.sat.clauses.length;
+      for(let ci=0;ci<clN;ci++){
+        const cx=padX+((ci+.5)/clN)*(effW-2*padX);
+        s+=`<text class="k-c" x="${cx.toFixed(1)}" y="24" text-anchor="middle">Clause C${ci+1}</text>`;
+      }
+    }
+    const boxes=P.map(p=>({x1:p.x-R-14,y1:p.y-R-20,x2:p.x+R+14,y2:p.y+R+30}));
+    const placed=[];
+    let edgePills="";
+    s+=`<g class="k-net-edges">`;
+    curEdges.forEach(ed=>{
+      const A=P[ed.u],B=P[ed.v],dx=B.x-A.x,dy=B.y-A.y,dist=Math.hypot(dx,dy)||1;
+      const ux=dx/dist,uy=dy/dist,nx=-uy,ny=ux;
+      const sx=A.x+ux*(R+1),sy=A.y+uy*(R+1),ex=B.x-ux*(R+(ed.undir?1:4)),ey=B.y-uy*(R+(ed.undir?1:4));
+      let dPath,mx,my;
+      if(ed.curve){
+        const cx=(sx+ex)/2+nx*ed.curve,cy=(sy+ey)/2+ny*ed.curve;
+        dPath=`M${sx.toFixed(1)},${sy.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}`;
+        mx=(sx+2*cx+ex)/4;my=(sy+2*cy+ey)/4;
+      } else {
+        dPath=`M${sx.toFixed(1)},${sy.toFixed(1)} L${ex.toFixed(1)},${ey.toFixed(1)}`;
+        mx=(sx+ex)/2;my=(sy+ey)/2;
+      }
+      const cls="k-net-edge"+(ed.cls?" cls-"+ed.cls:"")+(ed.cls==="conflict"?" k-sat-edge":"");
+      const rk=roleKey(ed.role)||"";
+      s+=`<path class="${cls}" data-e="${ed.ei}" data-f="${ed.u}" data-t="${ed.v}"${ed.undir?' data-undir="1"':""}${rk?` data-role="${rk}" style="--rc:var(--m-${rk})"`:""} d="${dPath}"/>`;
+      const lbl=ed.label!=null&&ed.label!==""?String(ed.label):(ed.w!=null?String(ed.w):"");
+      if(lbl&&!cfg.sat){
+        const pos=placeClearPill(mx,my,lbl,boxes,placed,effW,H,10.5,24);
+        edgePills+=`<g class="k-net-epill" data-e="${ed.ei}">${pillSvg(pos.x,pos.y,lbl,{W:effW,H,fs:10.5,cls:"k-epill",tcls:"k-epill-t",role:rk,minW:24})}</g>`;
+      }
+    });
+    s+=`</g>${edgePills}<g class="k-net-nodes">`;
+    curNodes.forEach((nd,ni)=>{
+      const p=P[ni],rk=roleKey(nd.role)||"";
+      s+=`<g class="k-net-node clickable" data-i="${ni}" data-id="${escAttr(nd.id)}" tabindex="0" role="button" aria-label="${escAttr(nd.t)}"${rk?` data-role="${rk}" style="--rc:var(--m-${rk})"`:""}${nd.use?` data-use="${escAttr(nd.use)}" data-uname="${escAttr(nd.t)}"`:""}>`;
+      s+=`<circle class="k-net-c" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${R}"/>`;
+      s+=`<text class="k-net-t" x="${p.x.toFixed(1)}" y="${(p.y+4.5).toFixed(1)}" text-anchor="middle">${escHtml(nd.t)}</text>`;
+      s+=`<g class="k-net-top" hidden></g><g class="k-net-bot" hidden></g></g>`;
+    });
+    s+=`</g>`;
+    svg.innerHTML=s;prepEdgeLengths(svg);
+    if(cfg.sat){
+      satBar.hidden=false;
+      satAssign={...(cfg.sat.init||{})};satPicked={};
+      satBar.innerHTML=(cfg.sat.vars||[]).map(v=>`<button type="button" class="k-sat-btn" data-v="${escAttr(v)}" aria-pressed="${!!satAssign[v]}"><span>${escHtml(v)}</span><b>${satAssign[v]?"T":"F"}</b></button>`).join("");
+    } else satBar.hidden=true;
+    syncLegend(cfg);
+  };
+
+  const renderSatState=(step)=>{
+    const sat=curCfg.sat;if(!sat)return;
+    if(step&&step.assign)satAssign={...step.assign};
+    $$(".k-sat-btn",satBar).forEach(b=>{const v=b.dataset.v,val=!!satAssign[v];b.setAttribute("aria-pressed",String(val));$("b",b).textContent=val?"T":"F"});
+    const litVal=nd=>{const v=!!satAssign[nd.var];return nd.neg?!v:v};
+    let satClauses=0;
+    const pickedIds=new Set();
+    sat.clauses.forEach((_,ci)=>{
+      const cNodes=curNodes.filter(n=>n.ci===ci);
+      const trues=cNodes.filter(litVal);
+      if(trues.length){
+        satClauses++;
+        const manual=satPicked[ci];
+        const chosen=(manual&&trues.some(n=>n.id===manual))?manual:trues[0].id;
+        pickedIds.add(chosen);
+      }
+    });
+    const effW=svg.viewBox.baseVal?.width||640,H=svg.viewBox.baseVal?.height||340;
+    $$(".k-net-node",svg).forEach(g=>{
+      const ni=+g.dataset.i,nd=curNodes[ni],p=curP[ni],isT=litVal(nd),isPick=pickedIds.has(nd.id);
+      g.classList.toggle("on",isPick);
+      g.classList.toggle("is-ok",isPick);
+      g.classList.toggle("is-bad",!isT);
+      g.style.setProperty("--rc",isPick?"var(--m-r)":(isT?"var(--m-v)":"var(--m-k)"));
+      const top=$(".k-net-top",g);
+      top.hidden=false;top.innerHTML=pillSvg(p.x+19,p.y-19,isT?"T":"F",{W:effW,H,fs:10,cls:"k-epill"+(isPick?" on":""),tcls:"k-epill-t",role:isPick?"r":(isT?"v":"k"),minW:22});
+    });
+    let conflicts=0;
+    $$(".k-net-edge",svg).forEach(e=>{
+      const ed=curEdges[+e.dataset.e];if(!ed)return;
+      if(ed.cls==="conflict"){
+        const bad=pickedIds.has(curNodes[ed.u].id)&&pickedIds.has(curNodes[ed.v].id);
+        if(bad)conflicts++;
+        e.classList.toggle("is-bad",bad);e.classList.toggle("on",bad);
+      } else {
+        const hasP=pickedIds.has(curNodes[ed.u].id)||pickedIds.has(curNodes[ed.v].id);
+        e.classList.toggle("done",hasP);
+      }
+    });
+    const ok=satClauses===sat.clauses.length&&conflicts===0;
+    hudEl.hidden=false;
+    hudEl.innerHTML=`<span class="k-hud-chip" data-role="${ok?"r":"k"}" style="--rc:var(--m-${ok?"r":"k"})"><b>Clauses</b><span>${satClauses} / ${sat.clauses.length}</span></span>`+
+      `<span class="k-hud-chip" data-role="${conflicts?"k":"r"}" style="--rc:var(--m-${conflicts?"k":"r"})"><b>Conflicts</b><span>${conflicts}</span></span>`+
+      `<span class="k-hud-chip" data-role="${ok?"r":"c"}" style="--rc:var(--m-${ok?"r":"c"})"><b>IS Size</b><span>${ok?`k = ${pickedIds.size} ✓`:"Blocked"}</span></span>`;
+  };
+
+  const render=(i)=>{
+    cur=i;const s=curSteps[i]||{};
+    if(curCfg.sat){renderSatState(s);updateCam(false);if(o.on)o.on(i,svg,s);return}
+    const effW=svg.viewBox.baseVal?.width||640,H=svg.viewBox.baseVal?.height||340;
+    const onSet=new Set((s.on||[]).map(String));
+    const nState=s.nodes||{};
+    const eState=s.edges||{};
+    $$(".k-net-node",svg).forEach(g=>{
+      const ni=+g.dataset.i,nd=curNodes[ni],p=curP[ni],st=nState[nd.id]||{};
+      const col=st.state||st.color||"white";
+      const isOn=onSet.has(nd.id);
+      g.classList.toggle("on",isOn);
+      g.classList.toggle("st-gray",col==="gray");
+      g.classList.toggle("st-black",col==="black");
+      g.classList.toggle("is-ok",col==="ok");
+      g.classList.toggle("is-bad",col==="bad");
+      const rk=roleKey(st.role)||(col==="bad"?"k":col==="ok"||col==="black"?"r":col==="gray"?"c":nd.role||"");
+      if(rk)g.style.setProperty("--rc",`var(--m-${rk})`);
+      const topTxt=st.df||st.top||(st.in!=null?`in=${st.in}`:"");
+      const botTxt=st.d!=null?(st.pi?`d=${st.d} π=${st.pi}`:`d=${st.d}`):(st.bot||"");
+      const topEl=$(".k-net-top",g),botEl=$(".k-net-bot",g);
+      if(topTxt){topEl.hidden=false;topEl.innerHTML=pillSvg(p.x+20,p.y-20,topTxt,{W:effW,H,fs:10,cls:"k-epill"+(isOn?" on":""),tcls:"k-epill-t",role:rk,minW:24})}else{topEl.hidden=true;topEl.innerHTML=""}
+      if(botTxt){botEl.hidden=false;botEl.innerHTML=pillSvg(p.x,p.y+38,botTxt,{W:effW,H,fs:10,cls:"k-epill"+(isOn?" on":""),tcls:"k-epill-t",role:col==="bad"?"k":(st.d!=null&&st.d!=="∞"?"r":rk),minW:26})}else{botEl.hidden=true;botEl.innerHTML=""}
+    });
+    const classRole={tree:"r",mst:"r",relax:"r",back:"k",fail:"k",cycle:"k",forward:"a",walk:"a",cross:"c",shortcut:"f"};
+    $$(".k-net-edge",svg).forEach(e=>{
+      const ei=+e.dataset.e,ed=curEdges[ei];if(!ed)return;
+      const key=`${curNodes[ed.u].id}->${curNodes[ed.v].id}`;
+      const st=eState[ed.id]||eState[key]||{};
+      const cls=st.cls||(typeof st==="string"?st:"")||ed.cls||"";
+      const rk=roleKey(st.role)||classRole[cls]||ed.role||"";
+      e.setAttribute("class","k-net-edge"+(cls?" cls-"+cls:"")+(st.on?" on":"")+(st.done?" done":""));
+      if(rk)e.style.setProperty("--rc",`var(--m-${rk})`);
+      if(!ed.undir){
+        const lit=!!(cls||st.on||st.done);
+        e.setAttribute("marker-end",`url(#${S.uid}-${lit?(rk?"on-"+rk:"on"):"off"})`);
+      }
+      const ep=$(`.k-net-epill[data-e="${ei}"] rect`,svg);
+      if(ep){
+        ep.classList.toggle("on",!!(st.on||cls));
+        if(rk)ep.parentElement.style.setProperty("--rc",`var(--m-${rk})`);
+      }
+    });
+    const hud=s.hud||curCfg.hud||[];
+    hudEl.hidden=!hud.length;
+    hudEl.innerHTML=hud.map(x=>{const rk=roleKey(x.role);return `<span class="k-hud-chip"${rk?` data-role="${rk}" style="--rc:var(--m-${rk})"`:""}><b>${escHtml(x.label)}</b><span>${escHtml(x.val)}</span></span>`}).join("");
+    const parens=s.parens||curCfg.parens;
+    if(parens&&parens.length){
+      parenEl.hidden=false;
+      const maxT=Math.max(2,...parens.map(p=>p.f||p.d||1));
+      parenEl.innerHTML=`<div class="k-np-head">Parenthesis Theorem Nesting [d, f]</div><div class="k-np-rows">`+
+        parens.map(pr=>{
+          const d=pr.d||0,f=pr.f,rk=roleKey(pr.role)||(f?"r":"c");
+          const left=((d-1)/maxT*100).toFixed(1),width=f?Math.max(6,((f-d+1)/maxT*100)).toFixed(1):Math.max(6,((maxT-d+1)/maxT*100)).toFixed(1);
+          return `<div class="k-np-row"><b>${escHtml(pr.label)}</b><div class="k-np-track"><span class="k-np-bar${f?" closed":" open"}" style="left:${left}%;width:${width}%;--rc:var(--m-${rk})">${d}${f?`..${f}`:".."}</span></div></div>`;
+        }).join("")+`</div>`;
+    } else parenEl.hidden=true;
+    updateCam(false);
+    if(an&&s.use)an.showUse(s.t,s.use,"var(--pc)");
+    if(o.on)o.on(i,svg,s);
+  };
+
+  satBar.addEventListener("click",e=>{
+    const b=e.target.closest(".k-sat-btn");if(!b||!curCfg.sat)return;
+    const v=b.dataset.v;satAssign[v]=!satAssign[v];renderSatState(null);
+  });
+  svg.addEventListener("click",e=>{
+    if(svg._camDragged)return;
+    const g=e.target.closest(".k-net-node");if(!g)return;
+    const ni=+g.dataset.i,nd=curNodes[ni];if(!nd)return;
+    if(curCfg.sat){satPicked[nd.ci]=nd.id;renderSatState(null);return}
+    const si=curSteps.findIndex(s=>(s.on||[]).includes(nd.id));
+    if(si>=0&&player){player.stop();player.show(si)}
+    if(an&&nd.use)an.showUse(nd.t,nd.use,roleCol(nd.role,"var(--pc)"));
+  });
+  if(tabs.length>1){
+    mountTabs(S,tabs,idx=>{buildNetwork(tabs[idx],curW);curSteps=tabs[idx].steps||[];if(player)player.setSteps(curSteps,0)});
+  }
+  responsive(S,w=>{buildNetwork(curCfg,w);render(cur)});
+  player=E.stepper(S.viz,curSteps,i=>render(i),{ms:o.ms||3800});
+  return player;
+};
+
+/* =================================================================
+   14. trim — Subset-Sum List Merging & TRIM(L, δ) FPTAS Simulator
+   ================================================================= */
+Kit.trim=(id,o)=>{
+  const S=setup(id,"trim");if(!S)return;
+  S.stage.classList.add("kit-html");
+  const items=o.items||[10,12,15,22],t=o.target||30,n=items.length;
+  let eps=o.eps??.4,cur=0,player=null;
+  const wantLeg=o.legend!==false;
+  const an=wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend||[
+    {role:"r",label:"Kept Representative",swatch:"dot",use:"Largest gaps preserved; next item stays > last·(1+δ)."},
+    {role:"c",label:"Trimmed (within δ)",swatch:"cut",use:"Dropped because y ≤ last·(1+δ); error stays ≤ (1+δ)ⁿ."},
+    {role:"k",label:"Over Target (> t)",swatch:"cut",use:"Exceeds target sum t, so safely pruned immediately."}
+  ]}):null;
+  const hudEl=h("div",{class:"k-hud"});
+  const bodyEl=h("div",{class:"k-trim-body"});
+  S.stage.append(hudEl,bodyEl);
+
+  const computeSteps=e=>{
+    const delta=e/(2*n);
+    const out=[{t:"Start with L₀ = [0]",d:`With ${n} items and target t = ${t}, δ = ε / (2n) = ${delta.toFixed(3)}.`,prev:[0],shift:[],merged:[{v:0,st:"keep"}],kept:[0],delta}];
+    let L=[0];
+    items.forEach((x,idx)=>{
+      const sh=L.map(v=>v+x);
+      const raw=[...new Set([...L,...sh])].sort((a,b)=>a-b);
+      const merged=[];let last=null;const nextL=[];
+      raw.forEach(y=>{
+        if(y>t){merged.push({v:y,st:"over"});return}
+        if(last==null||y>last*(1+delta)){merged.push({v:y,st:"keep"});nextL.push(y);last=y}
+        else merged.push({v:y,st:"trim",ref:last});
+      });
+      out.push({
+        t:`Item x${idx+1} = ${x}: Merge & TRIM`,
+        d:`Shift L${idx} by +${x}, cut sums > ${t}, and trim items within ×(1 + ${delta.toFixed(3)}).`,
+        x,idx:idx+1,prev:L,shift:sh,merged,kept:nextL,delta
+      });
+      L=nextL;
+    });
+    const z=L[L.length-1]||0;
+    out.push({t:`Result z* = ${z} (bounded by 1 + ε)`,d:`Kept ${L.length} sums; OPT / z* ≤ (1 + δ)ⁿ ≤ 1 + ${e.toFixed(2)}.`,prev:L,shift:[],merged:L.map(v=>({v,st:v===z?"best":"keep"})),kept:L,delta,z});
+    return out;
+  };
+  let steps=computeSteps(eps);
+  const pillRow=(arr,cls="")=>arr.map(v=>`<span class="k-tr-pill ${cls}">${v}</span>`).join("");
+  const render=i=>{
+    cur=i;const s=steps[i]||steps[0],bd=Math.pow(1+s.delta,n);
+    hudEl.innerHTML=`<span class="k-hud-chip" data-role="v" style="--rc:var(--m-v)"><b>δ = ε/(2n)</b><span>${s.delta.toFixed(3)}</span></span>`+
+      `<span class="k-hud-chip" data-role="r" style="--rc:var(--m-r)"><b>Kept</b><span>${s.kept.length} / ${s.merged.length}</span></span>`+
+      `<span class="k-hud-chip" data-role="f" style="--rc:var(--m-f)"><b>Bound (1+δ)ⁿ</b><span>${bd.toFixed(3)} ≤ ${(1+eps).toFixed(2)}</span></span>`;
+    let html=`<div class="k-tr-sec"><b>L${s.idx?s.idx-1:0}</b><div>${pillRow(s.prev)}</div></div>`;
+    if(s.shift.length)html+=`<div class="k-tr-sec"><b>L${s.idx-1} + ${s.x}</b><div>${pillRow(s.shift,"is-v")}</div></div>`;
+    html+=`<div class="k-tr-sec"><b>TRIM(L, ${s.delta.toFixed(3)})</b><div>`+
+      s.merged.map(m=>`<span class="k-tr-pill is-${m.st}" title="${m.st==="trim"?`Trimmed near ${m.ref}`:m.st==="over"?`Over target ${t}`:"Kept"}">${m.v}</span>`).join("")+
+      `</div></div>`;
+    bodyEl.innerHTML=html;
+  };
+  ctlRange(S,"eps",{label:"Tolerance ε",min:.2,max:.8,step:.1,value:eps,dp:1},v=>{
+    eps=v;steps=computeSteps(eps);if(player)player.setSteps(steps,Math.min(cur,steps.length-1));
+  });
+  player=E.stepper(S.viz,steps,i=>render(i),{ms:o.ms||3800});
+  return player;
+};
+
+/* =================================================================
+   15. venn — Complexity Class Venn / Euler Diagram (P, NP, NPC, NP-hard)
+   ================================================================= */
+Kit.venn=(id,o)=>{
+  const S=setup(id,"venn");if(!S)return;
+  const svg=svgIn(S,o.alt||"Complexity classes Venn diagram: P, NP, NPC, and NP-hard.");
+  let collapsed=false,cur=0,player=null;
+  const wantLeg=o.legend!==false;
+  const an=wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend||[
+    {role:"r",label:"P (Poly-Time)",swatch:"area",use:"Decision problems solvable in O(n^k) deterministic time."},
+    {role:"v",label:"NP (Verifiable)",swatch:"area",use:"Decision problems with polynomial-time verifiers."},
+    {role:"f",label:"NPC = NP ∩ NP-hard",swatch:"area",use:"Hardest problems in NP; all of NP reduces to them."},
+    {role:"k",label:"NP-hard \\ NP",swatch:"area",use:"Optimization/undecidable problems at least as hard as NP."}
+  ]}):null;
+  mountTabs(S,[{label:"Assume P ≠ NP"},{label:"Assume P = NP"}],idx=>{collapsed=idx===1;draw();render(cur)});
+  const steps=stepsOr(o,[
+    {t:"P inside NP",d:"Every solvable-in-poly-time problem is also verifiable in poly-time (P ⊆ NP).",focus:["p","np"]},
+    {t:"NP-hard & NPC intersection",d:"NPC is the exact overlap NP ∩ NP-hard; optimization problems like TSP-OPT sit above NP.",focus:["npc","nph"]},
+    {t:"Under P = NP",d:"If any NPC problem gets a poly-time algorithm, P, NP, and NPC collapse into one set.",focus:["p","np","npc"]}
+  ]);
+  const draw=()=>{
+    const W=640,H=350;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+    const pCx=collapsed?240:200,pCy=collapsed?195:245,pRx=collapsed?165:110,pRy=collapsed?115:68;
+    const nphCx=410,nphCy=145,nphRx=175,nphRy=115;
+    let s=`<defs><clipPath id="${S.uid}-np"><ellipse cx="240" cy="195" rx="185" ry="132"/></clipPath></defs>`;
+    s+=`<g class="k-venn-zone" data-part="np" data-role="v" style="--rc:var(--m-v)"><ellipse class="k-venn-ring" cx="240" cy="195" rx="185" ry="132"/><text class="k-t" x="115" y="128" text-anchor="middle">NP</text></g>`;
+    s+=`<g class="k-venn-zone" data-part="nph" data-role="k" style="--rc:var(--m-k)"><ellipse class="k-venn-ring" cx="${nphCx}" cy="${nphCy}" rx="${nphRx}" ry="${nphRy}"/><text class="k-t" x="495" y="92" text-anchor="middle">NP-hard</text></g>`;
+    s+=`<g class="k-venn-zone" data-part="npc" data-role="f" clip-path="url(#${S.uid}-np)" style="--rc:var(--m-f)"><ellipse class="k-venn-ring is-npc" cx="${nphCx}" cy="${nphCy}" rx="${nphRx}" ry="${nphRy}"/></g>`;
+    s+=`<g class="k-venn-zone" data-part="p" data-role="r" style="--rc:var(--m-r)"><ellipse class="k-venn-ring" cx="${pCx}" cy="${pCy}" rx="${pRx}" ry="${pRy}"/><text class="k-t" x="${pCx}" y="${pCy+(collapsed?-65:-32)}" text-anchor="middle">${collapsed?"P = NP = NPC":"P"}</text></g>`;
+    const pills=collapsed
+      ?[{x:200,y:175,t:"3-SAT",r:"r"},{x:285,y:175,t:"Shortest Path",r:"r"},{x:240,y:215,t:"2-Coloring",r:"r"},{x:490,y:145,t:"TSP-OPT",r:"k"},{x:490,y:185,t:"Halting",r:"k"}]
+      :[{x:165,y:248,t:"Shortest Path",r:"r"},{x:260,y:248,t:"2-Coloring",r:"r"},{x:148,y:168,t:"Graph Iso?",r:"v"},{x:320,y:128,t:"3-SAT",r:"f"},{x:320,y:164,t:"Vertex Cover",r:"f"},{x:495,y:145,t:"TSP-OPT",r:"k"},{x:495,y:185,t:"Halting",r:"k"}];
+    pills.forEach(pl=>{s+=pillSvg(pl.x,pl.y,pl.t,{W,H,fs:11,cls:"k-epill on",tcls:"k-epill-t",role:pl.r,minW:34})});
+    if(!collapsed)s+=`<text class="k-c" x="320" y="96" text-anchor="middle" style="fill:var(--m-f)">NPC = NP ∩ NP-hard</text>`;
+    svg.innerHTML=s;if(an)an.wire(svg);
+  };
+  const render=i=>{
+    cur=i;const s=steps[i]||{},f=s.focus||[];
+    $$("[data-part]",svg).forEach(el=>{const on=!f.length||f.includes(el.dataset.part);el.classList.toggle("k-faint",!on);el.classList.toggle("k-active",on&&f.length<4)});
+    if(o.on)o.on(i,svg,s);
+  };
+  draw();
+  player=E.stepper(S.viz,steps,i=>render(i),{ms:o.ms||3800});
   return player;
 };
 })();

@@ -372,6 +372,7 @@ requestAnimationFrame(tick);
 const players=[];
 function stepper(viz,steps,render,o={}){
   const ms=o.ms||3800;
+  let S_steps=steps;
   const cap=h("div",{class:"viz-cap","aria-live":"polite"});
   const bar=h("div",{class:"player",role:"group","aria-label":"Step player"});
   bar.style.setProperty("--dur",ms+"ms");
@@ -379,11 +380,15 @@ function stepper(viz,steps,render,o={}){
    <div class="pl-mid"><button class="pbtn" type="button" data-a="back" aria-label="Previous step">${ic("back")}</button>
    <button class="pbtn play" type="button" data-a="play" aria-label="Play all steps">${ic("play")}</button>
    <button class="pbtn" type="button" data-a="next" aria-label="Next step">${ic("next")}</button></div>
-   <div class="pl-r"><div class="pdots" role="group" aria-label="Steps">${steps.map((s,i)=>`<button type="button" aria-label="Step ${i+1}: ${s.t.replace(/<[^>]+>/g,"")}" data-i="${i}"><i></i></button>`).join("")}</div><span class="pcount2"></span></div>`;
+   <div class="pl-r"><div class="pdots" role="group" aria-label="Steps"></div><span class="pcount2"></span></div>`;
   const stage=$(".viz-stage",viz);
   const anchor=$(".swipe",viz)||stage;anchor.after(cap);cap.after(bar);
   const prog=h("div",{class:"vprog",role:"group","aria-label":"Lesson progress"});prog.style.setProperty("--dur",ms+"ms");
-  prog.innerHTML=steps.map((s,k)=>`<button type="button" data-i="${k}" aria-label="Go to step ${k+1}: ${s.t.replace(/<[^>]+>/g,"")}"><i></i></button>`).join("");
+  const syncBars=()=>{
+    $(".pdots",bar).innerHTML=S_steps.map((s,i)=>`<button type="button" aria-label="Step ${i+1}: ${String(s.t||"").replace(/<[^>]+>/g,"")}" data-i="${i}"><i></i></button>`).join("");
+    prog.innerHTML=S_steps.map((s,k)=>`<button type="button" data-i="${k}" aria-label="Go to step ${k+1}: ${String(s.t||"").replace(/<[^>]+>/g,"")}"><i></i></button>`).join("");
+  };
+  syncBars();
   const firstCtl=$(".ctl",viz);(firstCtl&&firstCtl.compareDocumentPosition(stage)&Node.DOCUMENT_POSITION_FOLLOWING?firstCtl:stage).before(prog);
   prog.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;play(false);show(+b.dataset.i)});
   const free=$$(".ctl",viz).find(c=>c.compareDocumentPosition(bar)&Node.DOCUMENT_POSITION_PRECEDING);
@@ -391,18 +396,18 @@ function stepper(viz,steps,render,o={}){
   let i=0,timer=null;
   const btnPlay=$('[data-a="play"]',bar);
   function refill(){[$('.pdots button[aria-current="true"]',bar),$(".vprog button.now",viz)].forEach(cur=>{if(!cur)return;const old=$("i",cur);const n=document.createElement("i");old.replaceWith(n)})}
-  function show(k,fromPlay){const prev=i;i=Math.max(0,Math.min(steps.length-1,k));
-    const s=steps[i];cap.innerHTML=`<div class="st">Step ${i+1} of ${steps.length}</div><h4>${s.t.replace(/^\d+\s·\s/,"")}</h4><p>${s.d}</p>`;
+  function show(k,fromPlay){const prev=i;i=Math.max(0,Math.min(S_steps.length-1,k));
+    const s=S_steps[i];cap.innerHTML=`<div class="st">Step ${i+1} of ${S_steps.length}</div><h4>${String(s.t||"").replace(/^\d+\s·\s/,"")}</h4><p>${s.d||""}</p>`;
     if(i!==prev&&motionOn()){cap.classList.remove("cap-in");void cap.offsetWidth;cap.classList.add("cap-in")}
     renderInlineMath(cap);
     $$(".pdots button",bar).forEach((b,j)=>b.setAttribute("aria-current",String(j===i)));
     $$(".vprog button",viz).forEach((b,j)=>{b.classList.toggle("past",j<i);b.classList.toggle("now",j===i);b.setAttribute("aria-current",String(j===i))});
-    $(".pcount2",bar).textContent=`${i+1}/${steps.length}`;
-    $('[data-a="back"]',bar).disabled=i===0;$('[data-a="next"]',bar).disabled=i===steps.length-1;
+    $(".pcount2",bar).textContent=`${i+1}/${S_steps.length}`;
+    $('[data-a="back"]',bar).disabled=i===0;$('[data-a="next"]',bar).disabled=i===S_steps.length-1;
     refill();render(i,prev,!!fromPlay);viz.dispatchEvent(new Event("visualstep",{bubbles:true}));}
   function play(on){clearInterval(timer);timer=null;bar.classList.toggle("playing",on);prog.classList.toggle("playing",on);btnPlay.classList.toggle("on",on);
     btnPlay.querySelector("use").setAttribute("href",on?"#i-pause":"#i-play");btnPlay.setAttribute("aria-label",on?"Pause":"Play all steps");
-    if(on){players.forEach(p=>p!==api&&p.stop());if(i===steps.length-1)show(0,true);else refill();timer=setInterval(()=>{if(i>=steps.length-1){play(false);return}show(i+1,true)},ms)}}
+    if(on){players.forEach(p=>p!==api&&p.stop());if(i===S_steps.length-1)show(0,true);else refill();timer=setInterval(()=>{if(i>=S_steps.length-1){play(false);return}show(i+1,true)},ms)}}
   bar.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
     if(b.dataset.i!=null){play(false);show(+b.dataset.i)}
     const a=b.dataset.a;if(a==="back"){play(false);show(i-1)}if(a==="next"){play(false);show(i+1)}if(a==="play")play(!timer);if(a==="reset"){play(false);show(0)}});
@@ -410,7 +415,7 @@ function stepper(viz,steps,render,o={}){
     if(e.key==="ArrowLeft"){e.preventDefault();e.stopPropagation();play(false);show(i-1)}
     else if(e.key==="ArrowRight"){e.preventDefault();e.stopPropagation();play(false);show(i+1)}
     else if(e.key===" "&&!e.target.closest("button,a,summary")){e.preventDefault();play(!timer)}});
-  const api={show,stop:()=>play(false),get i(){return i},bar,cap};players.push(api);
+  const api={show,stop:()=>play(false),setSteps(next,idx=0){play(false);S_steps=next;syncBars();show(idx)},get i(){return i},bar,cap};players.push(api);
   show(0);
   return api;
 }
@@ -424,7 +429,7 @@ function segSet(el,v){$$("button",el).forEach(x=>x.setAttribute("aria-pressed",S
 function segc(el,onchange){el.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;$$("button",el).forEach(x=>x.setAttribute("aria-pressed",String(x===b)));onchange(b.dataset.v,b)});
   const cur=$('button[aria-pressed="true"]',el)||$("button",el);cur.setAttribute("aria-pressed","true");return cur.dataset.v}
 
-const TEX={"\\times":"×","\\div":"÷","\\pm":"±","\\mp":"∓","\\le":"≤","\\ge":"≥","\\leq":"≤","\\geq":"≥","\\neq":"≠","\\ne":"≠","\\equiv":"≡","\\approx":"≈","\\simeq":"≃","\\cong":"≅","\\sim":"∼","\\propto":"∝","\\to":"→","\\rightarrow":"→","\\leftarrow":"←","\\leftrightarrow":"↔","\\implies":"⇒","\\Rightarrow":"⇒","\\Leftarrow":"⇐","\\iff":"⇔","\\Leftrightarrow":"⇔","\\mapsto":"↦","\\cdot":"·","\\bullet":"•","\\circ":"∘","\\star":"⋆","\\pi":"π","\\theta":"θ","\\Delta":"Δ","\\alpha":"α","\\beta":"β","\\gamma":"γ","\\delta":"δ","\\epsilon":"ε","\\varepsilon":"ε","\\zeta":"ζ","\\eta":"η","\\lambda":"λ","\\mu":"μ","\\nu":"ν","\\xi":"ξ","\\rho":"ρ","\\sigma":"σ","\\tau":"τ","\\phi":"φ","\\varphi":"φ","\\chi":"χ","\\psi":"ψ","\\omega":"ω","\\Gamma":"Γ","\\Theta":"Θ","\\Lambda":"Λ","\\Sigma":"Σ","\\Phi":"Φ","\\Psi":"Ψ","\\Omega":"Ω","\\rightleftharpoons":"⇌","\\infty":"∞","\\degree":"°","\\partial":"∂","\\nabla":"∇","\\forall":"∀","\\exists":"∃","\\emptyset":"∅","\\varnothing":"∅","\\in":"∈","\\notin":"∉","\\subset":"⊂","\\subseteq":"⊆","\\supset":"⊃","\\supseteq":"⊇","\\cup":"∪","\\cap":"∩","\\land":"∧","\\lor":"∨","\\lnot":"¬","\\neg":"¬","\\therefore":"∴","\\because":"∵","\\perp":"⊥","\\parallel":"∥","\\angle":"∠","\\triangle":"△","\\ldots":"…","\\cdots":"⋯","\\vdots":"⋮","\\ddots":"⋱","\\dots":"…","\\quad":"&emsp;","\\qquad":"&emsp;&emsp;","\\min":'<span class="mop">min</span>',"\\max":'<span class="mop">max</span>',"\\lim":'<span class="mop">lim</span>',"\\arg":'<span class="mop">arg</span>',"\\log":'<span class="mop">log</span>',"\\ln":'<span class="mop">ln</span>',"\\exp":'<span class="mop">exp</span>',"\\sin":'<span class="mop">sin</span>',"\\cos":'<span class="mop">cos</span>',"\\tan":'<span class="mop">tan</span>',"\\sec":'<span class="mop">sec</span>',"\\csc":'<span class="mop">csc</span>',"\\cot":'<span class="mop">cot</span>',"\\det":'<span class="mop">det</span>',"\\sum":'<span class="mop mop-big">∑</span>',"\\prod":'<span class="mop mop-big">∏</span>',"\\int":'<span class="mop mop-big">∫</span>',"\\left":"","\\right":"","\\bigl":"","\\bigr":"","\\Bigl":"","\\Bigr":"","\\big":"","\\Big":"","\\$":"$","\\%":"%","\\&":"&amp;","\\{":"{","\\}":"}"};
+const TEX={"\\times":"×","\\div":"÷","\\pm":"±","\\mp":"∓","\\le":"≤","\\ge":"≥","\\leq":"≤","\\geq":"≥","\\neq":"≠","\\ne":"≠","\\equiv":"≡","\\approx":"≈","\\simeq":"≃","\\cong":"≅","\\sim":"∼","\\propto":"∝","\\to":"→","\\rightarrow":"→","\\leftarrow":"←","\\leftrightarrow":"↔","\\implies":"⇒","\\Rightarrow":"⇒","\\Leftarrow":"⇐","\\iff":"⇔","\\Leftrightarrow":"⇔","\\mapsto":"↦","\\cdot":"·","\\bullet":"•","\\circ":"∘","\\star":"⋆","\\setminus":"∖","\\lfloor":"⌊","\\rfloor":"⌋","\\lceil":"⌈","\\rceil":"⌉","\\vert":"|","\\mid":"∣","\\oplus":"⊕","\\langle":"⟨","\\rangle":"⟩","\\top":"⊤","\\bot":"⊥","\\pi":"π","\\theta":"θ","\\Delta":"Δ","\\alpha":"α","\\beta":"β","\\gamma":"γ","\\delta":"δ","\\epsilon":"ε","\\varepsilon":"ε","\\zeta":"ζ","\\eta":"η","\\lambda":"λ","\\mu":"μ","\\nu":"ν","\\xi":"ξ","\\rho":"ρ","\\sigma":"σ","\\tau":"τ","\\phi":"φ","\\varphi":"φ","\\chi":"χ","\\psi":"ψ","\\omega":"ω","\\Gamma":"Γ","\\Theta":"Θ","\\Lambda":"Λ","\\Sigma":"Σ","\\Phi":"Φ","\\Psi":"Ψ","\\Omega":"Ω","\\rightleftharpoons":"⇌","\\infty":"∞","\\degree":"°","\\partial":"∂","\\nabla":"∇","\\forall":"∀","\\exists":"∃","\\emptyset":"∅","\\varnothing":"∅","\\in":"∈","\\notin":"∉","\\subset":"⊂","\\subseteq":"⊆","\\supset":"⊃","\\supseteq":"⊇","\\cup":"∪","\\cap":"∩","\\land":"∧","\\lor":"∨","\\lnot":"¬","\\neg":"¬","\\therefore":"∴","\\because":"∵","\\perp":"⊥","\\parallel":"∥","\\angle":"∠","\\triangle":"△","\\ldots":"…","\\cdots":"⋯","\\vdots":"⋮","\\ddots":"⋱","\\dots":"…","\\quad":"&emsp;","\\qquad":"&emsp;&emsp;","\\min":'<span class="mop">min</span>',"\\max":'<span class="mop">max</span>',"\\argmin":'<span class="mop">argmin</span>',"\\argmax":'<span class="mop">argmax</span>',"\\lim":'<span class="mop">lim</span>',"\\arg":'<span class="mop">arg</span>',"\\log":'<span class="mop">log</span>',"\\ln":'<span class="mop">ln</span>',"\\exp":'<span class="mop">exp</span>',"\\sin":'<span class="mop">sin</span>',"\\cos":'<span class="mop">cos</span>',"\\tan":'<span class="mop">tan</span>',"\\sec":'<span class="mop">sec</span>',"\\csc":'<span class="mop">csc</span>',"\\cot":'<span class="mop">cot</span>',"\\det":'<span class="mop">det</span>',"\\sum":'<span class="mop mop-big">∑</span>',"\\prod":'<span class="mop mop-big">∏</span>',"\\int":'<span class="mop mop-big">∫</span>',"\\left":"","\\right":"","\\bigl":"","\\bigr":"","\\Bigl":"","\\Bigr":"","\\big":"","\\Big":"","\\$":"$","\\%":"%","\\&":"&amp;","\\{":"{","\\}":"}"};
 const ROLE_MAP={var:"v",v:"v",input:"v",coef:"c",c:"c",param:"c",decision:"c",fn:"f",f:"f",process:"f",rule:"f",grp:"g",g:"g",region:"g",group:"g",res:"r",r:"r",output:"r",goal:"r",bad:"k",k:"k",warn:"k",prune:"k",acc:"a",a:"a",aux:"a",vec:"a",stay:"s",s:"s"};
 const roleColor=r=>{const k=ROLE_MAP[String(r||"").trim().toLowerCase()];return k&&k!=="s"?`var(--m-${k})`:""};
 
@@ -594,6 +599,12 @@ function compact(){
     const bd=h("div",{class:"cbody"});while(h4.nextSibling)bd.appendChild(h4.nextSibling);c.appendChild(bd);foldable(c,h4)});
   $$(".terms>div").forEach(d=>{const b=d.querySelector("b");if(!b||!d.querySelector(".d"))return;
     const hd=h("span",{class:"th"});while(d.firstChild&&!(d.firstChild.classList&&d.firstChild.classList.contains("d")))hd.appendChild(d.firstChild);d.prepend(hd);foldable(d,hd)});
+  $$(".proof-tpl>li").forEach(li=>{
+    if($(".pt-chk",li))return;
+    const chk=h("button",{class:"pt-chk",type:"button","aria-pressed":"false","aria-label":"Mark template step practiced"},ic("check"));
+    chk.onclick=()=>{const on=li.classList.toggle("pt-done");chk.setAttribute("aria-pressed",String(on))};
+    li.appendChild(chk);
+  });
   $$(".callout>div").forEach(d=>{if(d.textContent.length<300||d.closest(".cp-body"))return;const c=d.parentElement;c.classList.add("long");
     const m=h("button",{class:"more-btn",type:"button","aria-expanded":"false"},"Read more");m.onclick=()=>{const o=c.classList.toggle("open");m.textContent=o?"Show less":"Read more";m.setAttribute("aria-expanded",String(o))};c.appendChild(m)});
   $$(".t-bar",main).forEach(b=>{
@@ -663,15 +674,46 @@ function compact(){
       }
       return;
     }
+      if(hs.length>=5)tbl.classList.add("tbl-wide");
     tbl.classList.add("stackable");
     const colRoles=ths.map(th=>th.dataset.role?(ROLE_MAP[th.dataset.role.trim().toLowerCase()]||th.dataset.role):"");
+    const fAttr=tbl.dataset.filter;
+    const fCol=(fAttr!=null&&fAttr!=="cat"&&fAttr!=="")?+fAttr:null;
+    const cats=new Map();
     $$("tbody tr",tbl).forEach(tr=>{
       [...tr.children].forEach((td,i)=>{
         if(hs[i])td.setAttribute("data-label",hs[i]);
         if(colRoles[i]&&colRoles[i]!=="s"&&!td.dataset.role)td.dataset.role=colRoles[i];
       });
+      if(fAttr!=null){
+        const rawCat=fCol!=null?(tr.children[fCol]?.textContent.replace(/\s+/g," ").trim()||""):(tr.dataset.cat||"");
+        if(rawCat){
+          tr.dataset.fcat=rawCat;
+          if(!cats.has(rawCat)){
+            const role=tr.dataset.role||tr.children[fCol??0]?.querySelector("[data-role]")?.dataset.role||"";
+            cats.set(rawCat,role?`var(--m-${ROLE_MAP[role]||role})`:`var(--c${(cats.size%6)+1})`);
+          }
+        }
+      }
       tr.addEventListener("click",e=>{if(!e.target.closest("a,button,.t-chip,.m-tok"))tr.classList.toggle("row-on")});
     });
+    const wrap=tbl.closest(".tbl-wrap");
+    if(fAttr!=null&&cats.size>1&&wrap&&!tbl.hasAttribute("data-plain")){
+      const bar=h("div",{class:"tbl-bar",role:"group","aria-label":"Table filters"});
+      let activeCat="";
+      const setCat=c=>{
+        activeCat=activeCat===c?"":c;
+        $$("tbody tr",tbl).forEach(tr=>{tr.hidden=!!activeCat&&tr.dataset.fcat!==activeCat});
+        $$(".tbl-pill",bar).forEach(b=>b.setAttribute("aria-pressed",String((b.dataset.cat||"")===activeCat)));
+      };
+      const allBtn=h("button",{class:"tbl-pill",type:"button","data-cat":"","aria-pressed":"true"},t("all"));
+      allBtn.onclick=()=>setCat("");bar.appendChild(allBtn);
+      cats.forEach((cc,cat)=>{
+        const b=h("button",{class:"tbl-pill",type:"button","data-cat":cat,"aria-pressed":"false"},`<i></i><span>${cat}</span>`);
+        b.style.setProperty("--cc",cc);b.onclick=()=>setCat(cat);bar.appendChild(b);
+      });
+      wrap.prepend(bar);
+    }
   });
 }
 /* ---------- checkpoints: one row per station, traps + quiz inside ---------- */
@@ -708,7 +750,7 @@ applyTheme(theme);applyMotion(motion);paintProgress();swipeHints();
 $$("input[type=range]").forEach(rangeFill);
 /* gentle settle-in for content blocks (always visible; only position eases) */
 const rvo=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");rvo.unobserve(e.target)}}),{rootMargin:"0px 0px -6% 0px"});
-$$(".card,.viz,.callout,.tbl-wrap,.terms,.steps,.part-open,.eq,.sorter,.drill,.ov-map,details.more").forEach(el=>{const r=el.getBoundingClientRect();if(r.top<innerHeight)el.classList.add("in");el.classList.add("rv");rvo.observe(el)});
+$$(".card,.viz,.callout,.tbl-wrap,.terms,.steps,.part-open,.eq,.sorter,.drill,.ov-map,details.more,.proof-tpl").forEach(el=>{const r=el.getBoundingClientRect();if(r.top<innerHeight)el.classList.add("in");el.classList.add("rv");rvo.observe(el)});
 $$(".quiz[data-set]").forEach(renderQuiz);
 /* sorters written in HTML: <div class="sorter" data-bins="A|B"><p data-bin="0" data-why="…">item</p>…</div> */
 $$(".sorter[data-bins]").forEach(b=>{const items=$$("[data-bin]",b).map(p=>[p.innerHTML,+p.dataset.bin,p.dataset.why||""]);sorter(b,items,b.dataset.bins.split("|"))});
@@ -862,21 +904,25 @@ function parseTex(s){
         const a=readBrace(s,i+rm[0].length-1);
         if(a){out+=`<span class="rt">${rm[1]?`<sup class="rt-n">${parseTex(rm[1])}</sup>`:""}${parseTex(a[0])}</span>`;i=a[1];continue}
       }
-      const bigm=s.slice(i).match(/^\\(int|sum|prod|lim)\b/);
+      const bigm=s.slice(i).match(/^\\(int|sum|prod|lim|min|max|argmin|argmax)\b/);
       if(bigm){
         let j=i+bigm[0].length,lo="",hi="";
         for(let k=0;k<2;k++){while(j<s.length&&s[j]===" ")j++;
           if(s[j]==="_"&&!lo){const a=readLimitArg(s,j+1);if(a){lo=a[0];j=a[1];continue}}
           if(s[j]==="^"&&!hi){const a=readLimitArg(s,j+1);if(a){hi=a[0];j=a[1];continue}}
           break}
-        const sym=bigm[1]==="lim"?"lim":bigm[1]==="int"?"∫":bigm[1]==="sum"?"∑":"∏";
-        if(lo||hi){out+=`<span class="m-big${bigm[1]==="lim"?" m-lim":""}">${hi?`<span class="m-hi">${hi}</span>`:""}<span class="mop${bigm[1]==="lim"?"":" mop-big"}">${sym}</span>${lo?`<span class="m-lo">${lo}</span>`:""}</span>`;i=j;continue}
+        const sym=bigm[1]==="int"?"∫":bigm[1]==="sum"?"∑":bigm[1]==="prod"?"∏":bigm[1];
+        const isLim=/^(?:lim|min|max|argmin|argmax)$/.test(bigm[1]);
+        if(lo||hi){out+=`<span class="m-big${isLim?" m-lim":""}">${hi?`<span class="m-hi">${hi}</span>`:""}<span class="mop${isLim?"":" mop-big"}">${sym}</span>${lo?`<span class="m-lo">${lo}</span>`:""}</span>`;i=j;continue}
         out+=TEX["\\"+bigm[1]];i=j;continue
+      }
+      if(s.startsWith("\\xrightarrow{",i)){
+        const a=readBrace(s,i+12);if(a){out+=`<span class="m-xarr"><span>${parseTex(a[0])}</span><i>→</i></span>`;i=a[1];continue}
       }
       const m1=s.slice(i).match(/^\\(bar|overline|hat|tilde|vec|dot|abs|dd|text|mathrm|mathbf|operatorname)\{/);
       if(m1){const a=readBrace(s,i+m1[0].length-1);if(a){
         const inner=parseTex(a[0]),c=m1[1];
-        out+=c==="bar"||c==="overline"?`<span class="m-bar">${inner}</span>`:c==="hat"?`<span class="m-hat">${inner}</span>`:c==="vec"?`<span class="m-vec">${inner}</span>`:c==="dot"?`<span class="m-dot">${inner}</span>`:c==="abs"?`<span class="m-abs">${inner}</span>`:c==="dd"?`&thinsp;<i class="m-d">d</i>${inner}`:inner;
+        out+=c==="bar"||c==="overline"?`<span class="m-bar">${inner}</span>`:c==="hat"?`<span class="m-hat">${inner}</span>`:c==="tilde"?`<span class="m-tilde">${inner}</span>`:c==="vec"?`<span class="m-vec">${inner}</span>`:c==="dot"?`<span class="m-dot">${inner}</span>`:c==="abs"?`<span class="m-abs">${inner}</span>`:c==="dd"?`&thinsp;<i class="m-d">d</i>${inner}`:inner;
         i=a[1];continue}}
       if((s[i]==="^"||s[i]==="_")&&s[i+1]==="{"){
         const a=readBrace(s,i+1);if(a){out+=s[i]==="^"?`<sup>${parseTex(a[0])}</sup>`:`<sub>${parseTex(a[0])}</sub>`;i=a[1];continue}
@@ -1017,7 +1063,7 @@ function setMathFocus(scope,tok,on){
   scope.classList.add("m-has-focus");
   $$(sel,scope).forEach(e=>e.classList.add("m-focus"));
 }
-const FOCUS_SEL=".m-tok[data-tid],.m-tok[data-role],b[data-role],em[data-role],.m-leg-item[data-role],.k-leg-item[data-role],.k-leg-item[data-feat],.t-chip[data-role],.terms>div[data-role],.tbl [data-role],.k-feat[data-role],.k-n[data-role],.k-tn[data-role],.k-dn[data-role],[data-part][data-role]";
+const FOCUS_SEL=".m-tok[data-tid],.m-tok[data-role],b[data-role],em[data-role],.m-leg-item[data-role],.k-leg-item[data-role],.k-leg-item[data-feat],.t-chip[data-role],.terms>div[data-role],.proof-tpl>li[data-role],.tbl [data-role],.k-feat[data-role],.k-n[data-role],.k-tn[data-role],.k-dn[data-role],[data-part][data-role]";
 document.addEventListener("pointerenter",e=>{
   const t=e.target.closest&&e.target.closest(FOCUS_SEL);
   if(!t)return;const sc=(t.dataset.tid?t.closest(".viz,.eq"):null)||t.closest(".ex-card")||t.closest(".sec")||t.closest(".viz,.eq")||main;if(!sc.dataset.pinRole&&!sc.dataset.pinFeat)setMathFocus(sc,t,true);
@@ -1054,7 +1100,7 @@ function alignMath(rootEl=main){
     if(target>0)ls.forEach((el,i)=>{if(ws[i]<=cap)el.style.minWidth=Math.ceil(target)+"px"});
   });
 }
-$$(".cmp td,.tbl td",main).forEach(td=>{if(!td.closest(".eq,.kd-m")&&/[≤≥<>→]/.test(td.textContent))td.innerHTML=subMath(td.innerHTML)});
+$$(".cmp td,.tbl td",main).forEach(td=>{if(!td.closest(".eq,.kd-m")&&!td.querySelector(".m")&&/[≤≥<>→]/.test(td.textContent))td.innerHTML=subMath(td.innerHTML)});
 requestAnimationFrame(()=>alignMath());
 
 const blockEn=new WeakMap(),txtEn=new WeakMap(),trCache=new Map();

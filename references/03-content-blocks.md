@@ -142,10 +142,19 @@ the steps fold to a list of titles.
 ```
 
 - **Comparison table**: leave the first header cell **empty** and compare 2–6 things (`--c1…--c6`, or set `data-role="v|c|f|g|r|k|a"` on `<th>` for semantic cross-highlighting). Each compared column gets its own colour, clickable header spotlight, a top `.tbl-bar` column filter, and an automatic **Differences** filter when rows share identical values (`data-plain` on `<table>` hides `.tbl-bar`).
-- **Data table**: a first header with text (`<th>No.</th>`). On phones each row becomes a small card with the header as a label. Add `class="tbl num"` for right-aligned numbers. Supports `data-role` on `<tr>`/`<th>`, `.t-chip` semantic pills, and `.t-bar` progress meters (`<span class="t-bar" data-p="80" data-role="r">80%</span>`).
+- **Data table**: a first header with text (`<th>No.</th>`). On phones each row becomes a small card with the header as a label. Add `class="tbl num"` for right-aligned numbers. Supports `data-role` on `<tr>`/`<th>`, `data-filter="<colIndex|cat>"` (adds category filter pills in `.tbl-bar`), `.t-chip` semantic pills, `.t-badge` tags, `.t-trap` / `.t-fix` contrast text, and `.t-bar` progress meters (`<span class="t-bar" data-p="80" data-role="r">80%</span>`).
 - `td.yes` / `td.mid` / `td.no` colour a cell green / amber / red.
 - Use `<small>` inside `<th>` or `<td>` in the first column to explain what a column or row criterion measures.
 - Always wrap in `<div class="tbl-wrap">`.
+
+### Proof Templates & Checklists
+
+```html
+<ol class="proof-tpl">
+  <li data-role="v"><div class="pt-body"><span class="pt-tag">Step 1 · NP</span><b>State certificate & verifier</b><p>Define poly-size witness and O(n^k) verifier.</p></div></li>
+</ol>
+```
+Adds numbered cards with semantic left accents, optional `<details class="pt-eg">` worked examples, and interactive practice check-off buttons.
 
 ### Equation
 
@@ -160,7 +169,7 @@ the steps fold to a list of titles.
 </div>
 ```
 - Inline math anywhere (prose, tables, quizzes, flashcards): `<span class="m">\frac{d}{dx}[[sin|f]]([[x^{2}|g]])</span>`.
-- Supports full TeX (`\frac`, `\sqrt[n]{x}`, `\int_{a}^{b}`, `\sum_{k=1}^{n}`, `\lim_{h \to 0}`, `\binom{n}{k}`, `\begin{bmatrix}...\end{bmatrix}`, `\vec`, `\abs`, `\dd{x}`), depth-colored brackets, and semantic role tokens `[[expr|role|tid]]` (`v`/`c`/`f`/`g`/`r`/`k`/`a`).
+- Supports full TeX (`\frac`, `\sqrt[n]{x}`, `\int_{a}^{b}`, `\sum_{k=1}^{n}`, `\min_{i \le k < j}`, `\lim_{h \to 0}`, `\binom{n}{k}`, `\begin{bmatrix}...\end{bmatrix}`, `\vec`, `\tilde`, `\xrightarrow{F}`, `\setminus`, `\lfloor`, `\rfloor`, `\abs`, `\dd{x}`), depth-colored brackets, and semantic role tokens `[[expr|role|tid]]` (`v`/`c`/`f`/`g`/`r`/`k`/`a`).
 - For step-by-step animated solutions, use `Kit.derive` ([04](04-visual-kits.md)).
 
 ### Key–value list

@@ -27,8 +27,8 @@ LAYOUT_JS = r"""(function(phone) {
     const vb = svg.viewBox && svg.viewBox.baseVal;
     const sc = (vb && vb.width > 0) ? Math.min(1, f.width / vb.width) : 1;
     const padX = 3 * sc, padY = 2 * sc;
-    const strokes = [...svg.querySelectorAll("line,path")].filter(s => !s.closest(".hide,[style*='display: none'],defs") && !s.matches(".k-grid,.k-axis,.k-mark,.k-curve,.k-tan,.k-shade,.k-vl,.k-edge,.k-lead,.k-tree-edge,.k-tree-skel,.k-dep-edge,.k-dag-edge,.k-axis-arr,.k-prog-line,.k-vec,.k-tan-tri,.k-slash,.k-curve-halo,.k-probe-line")).map(s => s.getBoundingClientRect()).filter(r => r.width || r.height);
-    const rects = [...svg.querySelectorAll("rect")].filter(b => !b.closest(".hide,[style*='display: none'],defs") && !b.matches(".k-box,.k-riem,.k-bar,.k-zone,.k-dag-shared")).map(b => b.getBoundingClientRect()).filter(r => r.width > 12 * sc && r.height > 12 * sc);
+    const strokes = [...svg.querySelectorAll("line,path")].filter(s => !s.closest(".hide,[style*='display: none'],defs") && !s.matches(".k-grid,.k-axis,.k-mark,.k-curve,.k-tan,.k-shade,.k-vl,.k-edge,.k-lead,.k-tree-edge,.k-tree-skel,.k-dep-edge,.k-dag-edge,.k-net-edge,.k-venn-ring,.k-dp-arr,.k-sat-edge,.k-axis-arr,.k-prog-line,.k-vec,.k-tan-tri,.k-slash,.k-curve-halo,.k-probe-line")).map(s => s.getBoundingClientRect()).filter(r => r.width || r.height);
+    const rects = [...svg.querySelectorAll("rect")].filter(b => !b.closest(".hide,[style*='display: none'],defs") && !b.matches(".k-box,.k-riem,.k-bar,.k-zone,.k-dag-shared,.k-venn-zone,.k-net-bg")).map(b => b.getBoundingClientRect()).filter(r => r.width > 12 * sc && r.height > 12 * sc);
     svg.querySelectorAll("text").forEach(t => {
       if (t.closest(".hide,[style*='display: none'],defs")) return;
       const r = t.getBoundingClientRect();
@@ -125,8 +125,13 @@ STEPPED_VIZ_JS = r"""(async function() {
         }
       });
       const rects = [...svg.querySelectorAll("rect")]
-        .filter(b => vis(b) && !b.matches(".k-box,.k-riem,.k-bar,.k-zone,.k-dag-shared"))
+        .filter(b => vis(b) && !b.matches(".k-box,.k-riem,.k-bar,.k-zone,.k-dag-shared,.k-venn-zone,.k-net-bg"))
         .map(b => b.getBoundingClientRect()).filter(r => r.width > 12 * sc && r.height > 12 * sc);
+      if (window.innerWidth <= 420 && svg.closest(".kit-tree") && svg.dataset.camZoom === "1" && vb && vb.width > 0) {
+        if (f.width / vb.width < 0.50) {
+          bad.push(`mobile zoomed tree too small in #${id} ${label} (scale ${(f.width / vb.width).toFixed(2)})`);
+        }
+      }
       svg.querySelectorAll("text").forEach(t => {
         if (!vis(t)) return;
         const r = t.getBoundingClientRect();

@@ -1,0 +1,276 @@
+[
+  {
+    "id": "q1",
+    "see": "c1-1",
+    "exam": true,
+    "q": "Your competitive programming input limit is n ≤ 500. Which DP family and time complexity normally fits without timing out?",
+    "o": [
+      ["Interval DP in O(n³) time", true, "500³ ≈ 1.25 × 10⁸ operations, the classic sweet spot for Interval DP like Matrix Chain or Optimal BST."],
+      ["Subset Bitmask DP in O(2ⁿ n²)", false, "2⁵⁰⁰ is astronomically too large; Subset DP needs n ≤ 20."],
+      ["Exponential recursion in O(2ⁿ)", false, "Without memoization, overlapping subproblems blow up past n ≈ 40."],
+      ["O(n²) is required because O(n³) always times out", false, "For n ≤ 500, tight O(n³) loops run well inside a 1-second limit."]
+    ],
+    "e": "Size limits map straight to paradigms: n ≤ 20 fits O(2ⁿ n²), n ≤ 500 fits O(n³) Interval DP, n ≤ 5,000 fits O(n²), and n ≤ 10⁶ needs O(n log n) or O(V+E).",
+    "src": "Input Size Cheat Sheet"
+  },
+  {
+    "id": "q2",
+    "see": "c1-1",
+    "q": "Why does caching (memoizing) fib(n) collapse an O(2ⁿ) recursion tree into an O(n) DAG?",
+    "o": [
+      ["Because there are only n+1 distinct subproblems, and each is computed once and reused via shared pointers", true, "Repeated calls to fib(k) point to the same cached node instead of spawning a fresh subtree."],
+      ["Because memoization deletes the base cases fib(0) and fib(1)", false, "Base cases are still needed to stop recursion."],
+      ["Because it changes the recurrence formula from addition to multiplication", false, "The recurrence stays identical; only duplicate work is eliminated."],
+      ["Because a DAG allows cycles back to fib(n)", false, "Dependencies remain strictly acyclic from larger n down to smaller subproblems."]
+    ],
+    "e": "Overlapping subproblems turn an exponential tree into a linear-size DAG of unique states.",
+    "src": "Memoization DAG"
+  },
+  {
+    "id": "q3",
+    "see": "c1-2",
+    "exam": true,
+    "q": "In Longest Common Subsequence (LCS), when characters X[i] and Y[j] match, which arrow direction points back to the subproblem used?",
+    "o": [
+      ["Diagonal ↖ to c[i−1, j−1] plus 1", true, "Matching characters are consumed from both strings, adding 1 to the top-left diagonal value."],
+      ["Up ↑ to c[i−1, j] plus 1", false, "Up ↑ skips X[i] when characters do not match."],
+      ["Left ← to c[i, j−1] plus 1", false, "Left ← skips Y[j] when characters do not match."],
+      ["Right → to c[i, j+1]", false, "DP fills forward; arrows always point backward to smaller indices."]
+    ],
+    "e": "A match X[i] = Y[j] extends c[i−1, j−1] by 1 (↖). Mismatches take max(c[i−1, j] ↑, c[i, j−1] ←).",
+    "src": "LCS Traceback"
+  },
+  {
+    "id": "q4",
+    "see": "c1-2",
+    "q": "What does parent[i] store in the O(n²) Longest Increasing Subsequence (LIS) algorithm?",
+    "o": [
+      ["The index of the previous element j < i that gave the longest chain ending at i", true, "Following parent[i] backward reconstructs the actual sequence, not just its length."],
+      ["The total number of elements smaller than A[i]", false, "Counting smaller items does not guarantee an increasing chain."],
+      ["The maximum element anywhere in A[0..n−1]", false, "parent[i] links specifically to the predecessor in the subsequence ending at i."],
+      ["The subarray sum up to index i", false, "Subarray sum belongs to Kadane's algorithm, not LIS."]
+    ],
+    "e": "Whenever dp[j] + 1 > dp[i] with A[j] < A[i], we update both dp[i] and parent[i] = j.",
+    "src": "LIS Reconstruction"
+  },
+  {
+    "id": "q5",
+    "see": "c1-3",
+    "exam": true,
+    "q": "When compressing 0/1 Knapsack to a 1D rolling array dp[0..W], why must capacity c loop backward from W down to wᵢ?",
+    "o": [
+      ["So dp[c − wᵢ] still holds the previous row's value (without item i), preventing item i from being used multiple times", true, "Looping forward overwrites dp[c − wᵢ] first, turning 0/1 Knapsack into Unbounded Knapsack."],
+      ["Because backward loops run faster in CPU caches than forward loops", false, "The reason is correctness (avoiding item reuse), not cache speed."],
+      ["So the base case dp[0] gets overwritten at the end", false, "dp[0] stays 0 because c stops at wᵢ ≥ 1."],
+      ["Because weights wᵢ can be negative in 0/1 Knapsack", false, "Standard 0/1 Knapsack assumes positive integer weights."]
+    ],
+    "e": "Right-to-left (c = W down to wᵢ) ensures dp[c − wᵢ] comes from row i − 1, preserving the 0/1 single-use rule.",
+    "src": "0/1 Knapsack Rolling Array"
+  },
+  {
+    "id": "q6",
+    "see": "c1-4",
+    "exam": true,
+    "q": "Why must Matrix Chain Multiplication fill table m[i, j] along diagonals of increasing length l = 2 … n instead of row-by-row top-to-bottom?",
+    "o": [
+      ["Because m[i, j] depends on shorter sub-chains m[i, k] (left) and m[k+1, j] (below), so row i needs row k+1 already filled", true, "Every split (i..k) and (k+1..j) has strictly smaller length than (i..j)."],
+      ["Because matrix dimensions pᵢ are only known along the main diagonal", false, "All dimensions p₀..pₙ are known upfront."],
+      ["Because lower-triangular cells i > j store the inverse matrices", false, "Cells with i > j are unused because an interval requires i ≤ j."],
+      ["Because diagonal fill reduces time complexity from O(n³) to O(n²)", false, "Time remains O(n³); diagonal order is required for dependency correctness."]
+    ],
+    "e": "Increasing interval length l = j − i + 1 guarantees both m[i, k] and m[k+1, j] are already solved.",
+    "src": "Interval DP Order"
+  },
+  {
+    "id": "q7",
+    "see": "c1-4",
+    "q": "In Optimal Binary Search Tree (OBST), why is w[i, j] added to the recurrence e[i, j] = min(e[i, r−1] + e[r+1, j]) + w[i, j]?",
+    "o": [
+      ["Picking root r pushes every key and dummy node in [i, j] one level deeper, increasing every search cost by 1 × its probability", true, "Their total probability weight is exactly w[i, j]."],
+      ["w[i, j] counts how many times root r is rotated during AVL balancing", false, "OBST is static; there are no rotations."],
+      ["w[i, j] subtracts the dummy key probabilities from the root", false, "Dummy keys are included inside w[i, j] because unsuccessful searches also deepen by 1."],
+      ["w[i, j] is only added when r = i", false, "All nodes in the subtree—left, right, and root—gain +1 depth relative to the subtree root."]
+    ],
+    "e": "Increasing subtree depth by 1 adds the sum of all subtree probabilities w[i, j] once.",
+    "src": "Optimal BST"
+  },
+  {
+    "id": "q8",
+    "see": "c1-5",
+    "exam": true,
+    "q": "In Held-Karp exact TSP DP dp[S, v], in what order are states filled?",
+    "o": [
+      ["By increasing subset size |S| = 2, 3, …, n", true, "dp[S, v] reads dp[S \\ {v}, u], whose subset size is strictly |S| − 1."],
+      ["By decreasing vertex index v = n−1 down to 0", false, "Order of v within the same |S| doesn't matter, but smaller subsets |S|−1 must finish first."],
+      ["By sorting edges in decreasing weight order", false, "Held-Karp enumerates subsets and endpoints, not greedy edges."],
+      ["Only along the main diagonal S = {v}", false, "|S|=1 is just the base case; we need all subsets up to size n."]
+    ],
+    "e": "Increasing |S| guarantees S \\ {v} is already computed when evaluating dp[S, v].",
+    "src": "Held-Karp TSP"
+  },
+  {
+    "id": "q9",
+    "see": "c2-1",
+    "exam": true,
+    "q": "During DFS on a directed graph, edge (u, v) is explored and vertex v is currently GRAY (discovered, not yet finished). What kind of edge is (u, v)?",
+    "o": [
+      ["A Back edge, which proves the graph contains a directed cycle", true, "A gray vertex is an active ancestor on the recursion stack, so pointing to it closes a cycle."],
+      ["A Forward edge to a finished descendant", false, "Forward edges point to BLACK descendants."],
+      ["A Cross edge between finished subtrees", false, "Cross edges point to BLACK non-ancestors."],
+      ["A Tree edge discovering a new vertex", false, "Tree edges always land on WHITE vertices."]
+    ],
+    "e": "DFS target color gives the edge class immediately: WHITE → Tree, GRAY → Back (cycle!), BLACK → Forward (if d[u] < d[v]) or Cross (if d[u] > d[v]).",
+    "src": "DFS Edge Classifier"
+  },
+  {
+    "id": "q10",
+    "see": "c2-1",
+    "q": "What does Kahn's algorithm push into its queue to build a topological ordering?",
+    "o": [
+      ["Every vertex whose remaining in-degree reaches 0", true, "Zero in-degree means all prerequisites are finished, so it is safe to output next."],
+      ["Every vertex with the highest out-degree", false, "Out-degree does not ensure prerequisites are done."],
+      ["Every vertex discovered by a back edge", false, "Topological sort only exists for DAGs (no back edges)."],
+      ["Vertices sorted alphabetically", false, "Order must respect directed dependencies."]
+    ],
+    "e": "Kahn's queue tracks in-degree-0 vertices and decrements neighbors' in-degrees as each vertex is popped.",
+    "src": "Kahn's Algorithm"
+  },
+  {
+    "id": "q11",
+    "see": "c2-2",
+    "exam": true,
+    "q": "Why can Dijkstra's algorithm give the wrong shortest path when a graph has negative edge weights (even with no negative cycles)?",
+    "o": [
+      ["Dijkstra locks a popped vertex's distance permanently; a later negative edge from another path can never revise it", true, "Once popped from the min-PQ, Dijkstra assumes no future path can be shorter."],
+      ["Dijkstra requires the graph to be a tree", false, "Dijkstra works on general directed/undirected graphs with non-negative weights."],
+      ["Priority queues cannot store negative numbers", false, "Min-heaps store negatives fine; the greedy finality assumption breaks."],
+      ["Dijkstra only relaxes each edge once in alphabetical order", false, "Dijkstra relaxes outgoing edges in greedy distance order."]
+    ],
+    "e": "Use Bellman-Ford (O(VE)) when negative weights exist, or DAG-SP (O(V+E)) on acyclic graphs.",
+    "src": "Shortest-Path Selector"
+  },
+  {
+    "id": "q12",
+    "see": "c2-2",
+    "exam": true,
+    "q": "How does Bellman-Ford detect a negative-weight cycle reachable from the source?",
+    "o": [
+      ["Run one extra (|V|-th) pass over all edges; if any edge (u, v) still relaxes d[v] > d[u] + w(u,v), a negative cycle exists", true, "Shortest simple paths have at most |V|−1 edges, so relaxing on pass |V| proves a negative cycle."],
+      ["Check if any single edge weight w(u,v) is less than 0", false, "A negative edge without a negative cycle still has well-defined shortest paths."],
+      ["Check if the graph has any forward edges in DFS", false, "Forward edges do not create cycles."],
+      ["Run Dijkstra twice from the sink", false, "Dijkstra fails on negative edges."]
+    ],
+    "e": "After |V|−1 passes, all simple paths are settled. Any further improvement on pass |V| means a negative cycle.",
+    "src": "Bellman-Ford"
+  },
+  {
+    "id": "q13",
+    "see": "c2-3",
+    "q": "What does AC-3 (Arc Consistency) do before or during Sudoku backtracking?",
+    "o": [
+      ["Shrinks candidate domains by removing values in cell X that have no valid match in constrained neighbor Y", true, "Domain propagation prunes dead ends early before branching deeply."],
+      ["Replaces backtracking with Dijkstra's shortest path", false, "AC-3 shrinks domains; search still branches if multiple candidates remain."],
+      ["Guesses random digits in all empty cells simultaneously", false, "AC-3 is deterministic constraint propagation."],
+      ["Sorts the grid rows by sum", false, "Sudoku constrains distinct digits in rows, columns, and boxes."]
+    ],
+    "e": "AC-3 enforces pairwise consistency, shrinking domains like {1,2,3,4} down to a single forced digit.",
+    "src": "AC-3 Pruning"
+  },
+  {
+    "id": "q14",
+    "see": "c2-4",
+    "exam": true,
+    "q": "In 0/1 Knapsack Branch-and-Bound, when can a subtree at node u be safely pruned?",
+    "o": [
+      ["Whenever its fractional upper bound ub ≤ best_so_far (or W_rem < 0)", true, "Even allowing fractional parts of remaining items cannot beat the integer solution already found."],
+      ["Whenever its current integer profit v_so_far < best_so_far", false, "Remaining capacity might still push total profit above best_so_far."],
+      ["Whenever an item is excluded (right child)", false, "Skipping a heavy item often unlocks higher-profit combinations."],
+      ["Only after reaching a leaf node", false, "Branch-and-bound's power comes from pruning internal subtrees early."]
+    ],
+    "e": "The fractional relaxation gives a valid upper bound; if ub ≤ best_so_far, no integer completion can improve the best answer.",
+    "src": "Branch-and-Bound"
+  },
+  {
+    "id": "q15",
+    "see": "c3-1",
+    "exam": true,
+    "q": "Which pair correctly contrasts a polynomial-time (P) problem with a deceptively similar NP-hard counterpart?",
+    "o": [
+      ["Eulerian Cycle (P) vs. Hamiltonian Cycle (NPC)", true, "Visiting every edge once is O(E) via even degrees; visiting every vertex once is NP-complete."],
+      ["Shortest Path (NPC) vs. Longest Simple Path (P)", false, "It is the opposite: Shortest Path is in P, while Longest Simple Path is NP-hard."],
+      ["3-Coloring (P) vs. 2-Coloring (NPC)", false, "2-Coloring is O(V+E) bipartite BFS; 3-Coloring is NP-complete."],
+      ["0/1 Knapsack (P) vs. Fractional Knapsack (NPC)", false, "Fractional Knapsack is greedy O(n log n); 0/1 Knapsack is NP-hard."]
+    ],
+    "e": "Know the boundary: Shortest Path, 2-Coloring, Eulerian Cycle, and Fractional Knapsack are in P; Longest Path, 3-Coloring, Hamiltonian Cycle, and 0/1 Knapsack are NP-hard.",
+    "src": "Tractability Boundary"
+  },
+  {
+    "id": "q16",
+    "see": "c3-2",
+    "exam": true,
+    "q": "To prove a new language B is NP-hard using a known NP-complete problem A, which reduction direction is required?",
+    "o": [
+      ["Reduce A ≤ₚ B: map every instance x of known hard A into an instance F(x) of B in polynomial time", true, "If a fast decider existed for B, F plus that decider would solve known hard A fast too."],
+      ["Reduce B ≤ₚ A: map instances of B into A", false, "Reducing B to A only proves B is no harder than A, which says nothing about hardness!"],
+      ["Prove B has a polynomial-time decider", false, "That would put B in P, not prove NP-hardness."],
+      ["Show x ∈ A implies F(x) ∈ B without checking the reverse direction", false, "Both directions (x ∈ A ⇔ F(x) ∈ B) are mandatory."]
+    ],
+    "e": "Always reduce KNOWN HARD (A) ≤ₚ TARGET (B) and prove both correctness directions.",
+    "src": "NP-Completeness Proof"
+  },
+  {
+    "id": "q17",
+    "see": "c3-3",
+    "q": "In the 3-SAT ≤ₚ Independent Set gadget with k clauses, why do we add conflict edges between xᵢ and ¬xᵢ across triangles?",
+    "o": [
+      ["To forbid picking both xᵢ = True and xᵢ = False simultaneously in an independent set of size k", true, "An edge between xᵢ and ¬xᵢ ensures at most one of the two truth values can be chosen."],
+      ["To make every clause triangle into a 4-clique", false, "Clause edges already form a 3-clique (triangle); conflict edges enforce variable consistency."],
+      ["To ensure the graph is bipartite", false, "Clause triangles are odd cycles of length 3, so the graph is not bipartite."],
+      ["To reduce the number of vertices from 3k to k", false, "The graph keeps all 3k literal vertices; k is the target independent set size."]
+    ],
+    "e": "Triangle edges allow ≤ 1 vertex per clause; conflict edges force consistent variable truth values across clauses.",
+    "src": "3-SAT Gadget"
+  },
+  {
+    "id": "q18",
+    "see": "c4-1",
+    "exam": true,
+    "q": "What property must edge weights satisfy for APPROX-TSP-TOUR (MST + preorder shortcutting) to guarantee a 2-approximation?",
+    "o": [
+      ["The triangle inequality: c(u, w) ≤ c(u, v) + c(v, w)", true, "Shortcutting skipped vertices only avoids increasing tour cost when direct edges are no longer than detours."],
+      ["All edge weights must be negative", false, "Metric TSP weights are non-negative."],
+      ["The graph must be a DAG", false, "TSP tours run on complete undirected graphs."],
+      ["All edge weights must be distinct powers of 2", false, "Weights only need to obey metric symmetry and the triangle inequality."]
+    ],
+    "e": "Without the triangle inequality, General TSP is inapproximable within any constant factor unless P = NP.",
+    "src": "Metric TSP"
+  },
+  {
+    "id": "q19",
+    "see": "c4-2",
+    "exam": true,
+    "q": "In the Subset-Sum FPTAS, why does TRIM(L, δ) set δ = ε / (2n)?",
+    "o": [
+      ["Because n trimming steps compound multiplicatively as (1 + ε/(2n))ⁿ ≤ e^(ε/2) ≤ 1 + ε", true, "Dividing by 2n keeps accumulated relative error across n items strictly below ε."],
+      ["Because δ must equal 2n so every element is trimmed", false, "Setting δ = 2n would delete almost the entire list."],
+      ["Because target sum t is always equal to 2n", false, "n is the item count, independent of target t."],
+      ["To make the algorithm run in O(2ⁿ) exponential time", false, "Trimming keeps list sizes polynomial in n and 1/ε."]
+    ],
+    "e": "Using δ = ε/(2n) bounds total compounded multiplicative error by (1+δ)ⁿ ≤ 1 + ε while keeping lists polynomial.",
+    "src": "Subset-Sum FPTAS"
+  },
+  {
+    "id": "q20",
+    "see": "c4-2",
+    "exam": true,
+    "q": "Is 0/1 Knapsack's O(nW) DP algorithm a true polynomial-time algorithm?",
+    "o": [
+      ["No — it is pseudo-polynomial, because W is exponential in the bit length (log₂ W) of the input capacity", true, "Doubling the bits of W squares W itself, blowing up O(nW)."],
+      ["Yes — because n and W are multiplied once", false, "Complexity is measured in input bit-size, not numeric value W."],
+      ["Yes — as long as W ≤ 10⁶", false, "Asymptotic polynomiality applies to arbitrary input sizes, not fixed caps."],
+      ["No — because it runs in O(n³) time", false, "O(n³) would actually be polynomial; O(nW) depends on numeric value W."]
+    ],
+    "e": "O(nW) is pseudo-polynomial; to get a true FPTAS in O(n³/ε), scale item values by K = ε·v_max / n.",
+    "src": "Exam Pitfalls"
+  }
+]

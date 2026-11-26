@@ -1,0 +1,400 @@
+<section class="part" data-part="1" data-title="Dynamic Programming" data-kicker="Line 1"
+  data-eyebrow="Line 1 · DP Patterns & Recurrences"
+  data-lede="Turn exponential recursion trees into clean polynomial-time tables across 1D, 2D, interval, and bitmask shapes.">
+
+  <article class="chapter" id="c1-1" data-n="1.1" data-short="DP & Memo" data-title="DP Foundations & Memoization" data-tag="Tree → DAG · Constraints">
+    <p class="bigidea">Dynamic Programming caches repeated subproblems so an exponential recursion tree collapses into a small acyclic graph.</p>
+
+    <div class="sec"><h3 data-eb="In plain words">Overlapping subproblems</h3>
+      <p>A naive recursive function solves the exact same subproblem over and over. Storing each finished answer in a table turns duplicate work into an instant lookup.</p>
+      <dl class="terms">
+        <div data-role="v"><b>Optimal Substructure</b><span class="d">A big optimal answer is built directly from optimal answers to smaller pieces.</span></div>
+        <div data-role="f"><b>Memoization DAG</b><span class="d">Caching turns repeated tree branches into shared pointers on a <em>directed acyclic graph</em>.</span></div>
+        <div data-role="c"><b>Fill Order</b><span class="d">Evaluating states from smallest to largest guarantees every needed subproblem is already ready.</span></div>
+      </dl>
+      <div class="callout eg"><b>Example</b><div>Computing <span class="m">fib(5)</span> by hand repeats <span class="m">fib(2)</span> three times. Writing <span class="m">dp[0..5]</span> on paper once drops the work from <span class="m">O(2^{n})</span> calls to <span class="m">O(n)</span> steps.</div></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="See it">Recursion Tree vs. Memoization DAG</h3>
+      <p class="lead">Switch tabs to compare how naive <span class="m">fib(4)</span> repeats calls in a tree while memoization merges duplicate nodes into a linear chain.</p>
+      <div class="viz" id="tr-memo"></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="Checklist">5-Step DP Design Checklist</h3>
+      <p class="lead">Follow these five steps in order on every DP exam question, checking off each step as you verify it.</p>
+      <ol class="proof-tpl">
+        <li data-role="v"><div class="pt-body"><span class="pt-tag">1 · State</span><b>Define what <span class="m">dp[\dots]</span> means in plain English</b><p>Name every index and exact return value (e.g., max sum ending <em>at</em> <span class="m">i</span>, or best value using items <span class="m">1..i</span> within capacity <span class="m">c</span>).</p></div></li>
+        <li data-role="f"><div class="pt-body"><span class="pt-tag">2 · Recurrence</span><b>Write the transition formula over smaller states</b><p>List every valid choice (take vs. skip, split point <span class="m">k</span>, or predecessor <span class="m">u</span>) and combine via <span class="m">\min</span>, <span class="m">\max</span>, or <span class="m">\sum</span>.</p></div></li>
+        <li data-role="c"><div class="pt-body"><span class="pt-tag">3 · Base Cases</span><b>Anchor the smallest subproblems</b><p>Set length-0 strings, capacity <span class="m">0</span>, single-element intervals <span class="m">[i, i]</span>, or unreachable states (<span class="m">\pm\infty</span>).</p></div></li>
+        <li data-role="g"><div class="pt-body"><span class="pt-tag">4 · Fill Order</span><b>Order loops so dependencies come first</b><p>Choose left-to-right (<span class="m">1D</span>), right-to-left (rolling <span class="m">0/1</span>), diagonal length <span class="m">l = 2 \dots n</span> (interval), or increasing subset size <span class="m">\vert S\vert</span> (bitmask).</p></div></li>
+        <li data-role="r"><div class="pt-body"><span class="pt-tag">5 · Cost &amp; Traceback</span><b>State time, space, and parent pointers</b><p>Multiply number of states by work per state, and store <span class="m">parent[i]</span>, <span class="m">s[i,j]</span>, or arrows to reconstruct the actual solution.</p></div></li>
+      </ol>
+    </div>
+
+    <div class="sec"><h3 data-eb="Cheat Sheet">Input Size (<span class="m">n</span>) → Paradigm &amp; Complexity</h3>
+      <p class="lead">Use the problem's input bound <span class="m">n</span> to pick the right algorithm family before writing any recurrence; tap a pill to filter by tier.</p>
+      <div class="tbl-wrap"><table class="tbl" data-filter="0">
+        <thead><tr><th>Input Bound</th><th>Target Complexity</th><th>Typical Paradigms</th><th>Canonical Examples</th></tr></thead>
+        <tbody>
+          <tr data-role="k"><td><span class="t-badge" data-role="k">n ≤ 20</span></td><td><span class="m">O(2^{n} n^{2})</span> or <span class="m">O(2^{n})</span></td><td>Backtracking, Subset Bitmask DP</td><td>Held-Karp TSP, N-Queens, Subset-Sum</td></tr>
+          <tr data-role="f"><td><span class="t-badge" data-role="f">n ≤ 500</span></td><td><span class="m">O(n^{3})</span></td><td>Diagonal Interval DP, All-Pairs</td><td>Matrix Chain, Optimal BST, Burst Balloons</td></tr>
+          <tr data-role="c"><td><span class="t-badge" data-role="c">n ≤ 5,000</span></td><td><span class="m">O(n^{2})</span></td><td>1D/2D Prefix DP</td><td>LIS (<span class="m">O(n^{2})</span>), LCS, Edit Distance</td></tr>
+          <tr data-role="r"><td><span class="t-badge" data-role="r">n ≤ 10⁵–10⁶</span></td><td><span class="m">O(n \log n)</span> or <span class="m">O(V+E)</span></td><td>Greedy, Sorting, Linear DP, Graph</td><td>Kadane's, BFS/DFS, Dijkstra, DAG-SP</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="traps">
+      <div class="callout trap"><b>Confusing overlapping subproblems with divide-and-conquer</b><div>Merge Sort splits into disjoint halves with zero overlap, so DP adds nothing; Fibonacci repeats the same subcalls exponentially.</div></div>
+    </div>
+  </article>
+
+  <article class="chapter" id="c1-2" data-n="1.2" data-short="1D & 2D DP" data-title="1D & 2D Prefix DP: Kadane, LIS & LCS" data-tag="1D · Reconstruction · Arrows">
+    <p class="bigidea">Prefix DP scans arrays and string prefixes step by step, storing either the best score or an arrow back to the winning choice.</p>
+
+    <div class="sec"><h3 data-eb="Interactive Tracer">Kadane's &amp; LIS with Parent Pointers</h3>
+      <p class="lead">Switch between <b data-role="c">Kadane's</b> maximum subarray and <b data-role="r">LIS</b> with <span class="m">parent[i]</span> reconstruction. Curved blue arrows show which earlier cell each step reads.</p>
+      <div class="viz" id="dp-1d"></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="Worked Recurrence">Kadane's Recurrence Step by Step</h3>
+      <p class="lead">At each index <span class="m">i</span>, decide whether extending the previous streak helps or whether <span class="m">A[i]</span> is better off starting fresh.</p>
+      <div class="viz" id="der-kadane"></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="2D Grid Tracer">LCS Table with Directional Arrows</h3>
+      <p class="lead">Watch <span class="m">c[i,j]</span> fill row by row for <span class="m">X = ABC</span> and <span class="m">Y = AC</span>, then trace the green <span class="m">↖</span> diagonal matches backward.</p>
+      <div class="viz" id="dp-lcs"></div>
+    </div>
+
+    <div class="traps">
+      <div class="callout trap"><b>Skipping parent pointers on LIS or LCS</b><div>Returning <span class="m">\max(dp)</span> gives only the length; exams frequently ask for the actual subsequence, which needs <span class="m">parent[i]</span> or <span class="m">↖ ↑ ←</span> arrows.</div></div>
+    </div>
+  </article>
+
+  <article class="chapter" id="c1-3" data-n="1.3" data-short="0/1 Knapsack" data-title="0/1 Knapsack & Rolling Array Order" data-tag="2D Grid · 1D Direction">
+    <p class="bigidea">Every item is taken once or skipped once—and shrinking the table to one row works only if capacity sweeps right-to-left.</p>
+
+    <div class="sec"><h3 data-eb="Interactive Tracer">2D Table &amp; 1D Rolling Array Bug Toggle</h3>
+      <p class="lead">Step through the full <span class="m">dp[i,c]</span> grid, or switch to the <b>1D Rolling Array</b> tab and toggle <b>Right → Left</b> vs. <b>Left → Right</b> to see item reuse happen live.</p>
+      <div class="viz" id="dp-knap"></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="Worked Recurrence">0/1 Knapsack Recurrence</h3>
+      <p class="lead">Compare skipping item <span class="m">i</span> (top cell) against taking item <span class="m">i</span> (top-left cell shifted by <span class="m">w_{i}</span>).</p>
+      <div class="viz" id="der-knap"></div>
+      <div class="callout eg"><b>Example</b><div>If item 1 has weight <span class="m">2</span> and value <span class="m">6</span>, looping forward <span class="m">c = 2, 3, 4</span> overwrites <span class="m">dp[2] = 6</span> first and then lets <span class="m">dp[4]</span> read <span class="m">6 + dp[2] = 12</span>, illegally packing item 1 twice!</div></div>
+    </div>
+
+    <div class="traps">
+      <div class="callout trap"><b>Looping left-to-right in a 1D 0/1 Knapsack</b><div>Forward loops <span class="m">c = w_{i} \dots W</span> compute Unbounded Knapsack instead of 0/1 Knapsack.</div></div>
+    </div>
+  </article>
+
+  <article class="chapter" id="c1-4" data-n="1.4" data-short="Interval DP" data-title="Diagonal Interval DP" data-tag="MCM · OBST · Stick · Balloons">
+    <p class="bigidea">Interval DP solves subarrays <span class="m">[i, j]</span> along diagonals of growing length <span class="m">l = 2 \dots n</span> so both halves are already computed.</p>
+
+    <div class="sec"><h3 data-eb="Interactive Tracer">Diagonal Fill Order Across Four Classic Problems</h3>
+      <p class="lead">Pick any of the four classic Interval DP problems below and watch the teal diagonal band sweep upward from length <span class="m">l = 2</span> to <span class="m">l = n</span>.</p>
+      <div class="viz" id="dp-int"></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="Worked Recurrences">Matrix Chain &amp; Optimal BST Recurrences</h3>
+      <p class="lead">Notice how Matrix Chain splits between <span class="m">k</span> and <span class="m">k+1</span>, whereas Optimal BST places root <span class="m">r</span> at the top and adds subtree weight <span class="m">w[i,j]</span>.</p>
+      <div class="viz" id="der-int"></div>
+    </div>
+
+    <div class="traps">
+      <div class="callout trap"><b>Filling an interval table top-to-bottom by row i</b><div>Cell <span class="m">m[1,4]</span> needs <span class="m">m[2,4]</span> from row 2 below it. Always put chain length <span class="m">l = 2 \dots n</span> in the outer loop.</div></div>
+    </div>
+  </article>
+
+  <article class="chapter" id="c1-5" data-n="1.5" data-short="Bitmask DP" data-title="Subset Bitmask DP & Master Matrix" data-tag="Held-Karp · DP Matrix">
+    <p class="bigidea">When <span class="m">n \le 20</span>, an integer bitmask encodes which vertices are visited, and DP fills subsets by increasing size <span class="m">\vert S\vert</span>.</p>
+
+    <div class="sec"><h3 data-eb="Interactive Tracer">Held-Karp TSP by Subset Size <span class="m">\vert S\vert</span></h3>
+      <p class="lead">Trace <span class="m">dp[S, v]</span> across <span class="m">\vert S\vert = 1, 2, 3, 4</span> for a 4-city tour starting at vertex <span class="m">0</span>.</p>
+      <div class="viz" id="dp-tsp"></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="Worked Recurrence">Held-Karp Transition Formula</h3>
+      <p class="lead">To end at <span class="m">v</span> after visiting set <span class="m">S</span>, try every previous endpoint <span class="m">u \in S \setminus \{v\}</span>.</p>
+      <div class="viz" id="der-tsp"></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="Master Reference">Canonical DP State &amp; Recurrence Matrix</h3>
+      <p class="lead">Compare all five DP problem shapes side by side; filter by shape or tap any row to inspect.</p>
+      <div class="tbl-wrap"><table class="tbl" data-filter="0">
+        <thead><tr><th>Problem Shape</th><th>State Definition</th><th>Recurrence Core</th><th>Base Case</th><th>Fill Order</th><th>Time / Space</th></tr></thead>
+        <tbody>
+          <tr data-role="v"><td><span class="t-badge" data-role="v">1D Prefix</span></td><td><span class="m">dp[i]</span> ending at <span class="m">i</span></td><td><span class="m">\max(A[i], dp[i-1]+A[i])</span></td><td><span class="m">dp[0]=A[0]</span></td><td><span class="m">i = 1 \dots n</span></td><td><span class="m">O(n)</span> / <span class="m">O(1)</span></td></tr>
+          <tr data-role="g"><td><span class="t-badge" data-role="g">2D Prefix</span></td><td><span class="m">c[i,j]</span> on <span class="m">X_{1..i}, Y_{1..j}</span></td><td>match <span class="m">1+c[i-1,j-1]</span> else <span class="m">\max</span></td><td>row/col <span class="m">0 \to 0</span></td><td>row-major <span class="m">i, j</span></td><td><span class="m">O(nm)</span> / <span class="m">O(nm)</span></td></tr>
+          <tr data-role="c"><td><span class="t-badge" data-role="c">Item + Cap</span></td><td><span class="m">dp[i,c]</span> first <span class="m">i</span>, cap <span class="m">c</span></td><td><span class="m">\max(dp[i-1,c], v_{i}+dp[i-1,c-w_{i}])</span></td><td><span class="m">dp[0,c]=0</span></td><td><span class="m">i</span> up; 1D <span class="m">c = W \dots w_{i}</span></td><td><span class="m">O(nW)</span> / <span class="m">O(W)</span></td></tr>
+          <tr data-role="f"><td><span class="t-badge" data-role="f">Interval [i,j]</span></td><td><span class="m">m[i,j]</span> best on <span class="m">[i..j]</span></td><td><span class="m">\min_{i \le k &lt; j}(m[i,k]+m[k+1,j]+cost)</span></td><td><span class="m">m[i,i]=0</span></td><td>diagonal <span class="m">l = 2 \dots n</span></td><td><span class="m">O(n^{3})</span> / <span class="m">O(n^{2})</span></td></tr>
+          <tr data-role="r"><td><span class="t-badge" data-role="r">Subset [S,v]</span></td><td><span class="m">dp[S,v]</span> visited <span class="m">S</span>, at <span class="m">v</span></td><td><span class="m">\min_{u \in S \setminus \{v\}}(dp[S\setminus\{v\},u]+w(u,v))</span></td><td><span class="m">dp[\{0\},0]=0</span></td><td>increasing <span class="m">\vert S\vert = 2 \dots n</span></td><td><span class="m">O(2^{n}n^{2})</span> / <span class="m">O(2^{n}n)</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="traps">
+      <div class="callout trap"><b>Forgetting the closing edge back to vertex 0 in TSP</b><div>After filling <span class="m">dp[V, v]</span> for all <span class="m">v \neq 0</span>, the full tour cost is <span class="m">\min_{v}(dp[V, v] + w(v, 0))</span>.</div></div>
+    </div>
+  </article>
+</section>
+
+<section class="part" data-part="2" data-title="Graphs & Search" data-kicker="Line 2"
+  data-eyebrow="Line 2 · Traversals, Relaxation & Pruning"
+  data-lede="Classify edges via DFS timestamps, pick the right shortest-path engine, and prune search trees with AC-3 and Branch-and-Bound.">
+
+  <article class="chapter" id="c2-1" data-n="2.1" data-short="BFS, DFS & Kahn" data-title="BFS, DFS Edge Classifier & Kahn's Queue" data-tag="(d, f) · Parenthesis · Edges">
+    <p class="bigidea">DFS timestamps <span class="m">(d, f)</span> reveal nested subtrees and every edge type, while Kahn's queue peels off zero in-degree sources.</p>
+
+    <div class="sec"><h3 data-eb="Interactive Graph">DFS Edge Classifier vs. BFS &amp; Kahn's Queue</h3>
+      <p class="lead">Watch vertices turn white → gray → black with live <span class="m">[d, f]</span> Parenthesis Theorem bars, then switch to <b>BFS &amp; Kahn's Queue</b> to see in-degree-0 ordering.</p>
+      <div class="viz" id="net-trav"></div>
+      <dl class="terms">
+        <div data-role="r"><b>Tree Edge</b><span class="d">Discovers a <em>white</em> (unvisited) vertex and builds the search forest.</span></div>
+        <div data-role="k"><b>Back Edge</b><span class="d">Points to a <em>gray</em> active ancestor—exists if and only if the graph has a cycle.</span></div>
+        <div data-role="a"><b>Forward Edge</b><span class="d">Non-tree edge pointing from an ancestor <span class="m">u</span> to a finished <em>black</em> descendant <span class="m">v</span> (<span class="m">d[u] &lt; d[v]</span>).</span></div>
+        <div data-role="c"><b>Cross Edge</b><span class="d">Connects finished <em>black</em> subtrees where neither is an ancestor of the other (<span class="m">d[u] &gt; d[v]</span>).</span></div>
+      </dl>
+    </div>
+
+    <div class="traps">
+      <div class="callout trap"><b>Using a DFS cross edge to claim a cycle exists</b><div>Only a <b>Back edge</b> (landing on a gray vertex) proves a cycle; forward and cross edges can appear in clean DAGs.</div></div>
+    </div>
+  </article>
+
+  <article class="chapter" id="c2-2" data-n="2.2" data-short="Shortest Paths" data-title="Shortest-Path Relaxation Stepper" data-tag="Dijkstra · Bellman-Ford · DAG">
+    <p class="bigidea">Relaxation shrinks distance estimates edge by edge, but each algorithm trades speed for what weights and cycles it tolerates.</p>
+
+    <div class="sec"><h3 data-eb="Side-by-Side Stepper">Dijkstra vs. Bellman-Ford vs. DAG-SP</h3>
+      <p class="lead">Compare how <b>Dijkstra</b> locks a wrong answer on a negative edge, how <b>Bellman-Ford</b> catches a negative cycle on pass <span class="m">\vert V\vert</span>, and how <b>DAG-SP</b> finishes in one topological pass.</p>
+      <div class="viz" id="net-sp"></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="Selector Table">Graph Algorithm Selector Table</h3>
+      <p class="lead">Match your graph's constraint and goal to the fastest valid algorithm; filter by goal category below.</p>
+      <div class="tbl-wrap"><table class="tbl" data-filter="0">
+        <thead><tr><th>Goal</th><th>Graph Constraint</th><th>Best Algorithm</th><th>Time Complexity</th><th>Key Mechanism</th></tr></thead>
+        <tbody>
+          <tr data-role="v"><td><span class="t-badge" data-role="v">Shortest Path</span></td><td>Unweighted</td><td>BFS</td><td><span class="m">O(V + E)</span></td><td>FIFO queue visits layers by hop count</td></tr>
+          <tr data-role="r"><td><span class="t-badge" data-role="r">Shortest Path</span></td><td>Non-negative weights (<span class="m">w \ge 0</span>)</td><td>Dijkstra</td><td><span class="m">O((V+E)\log V)</span></td><td>Min-PQ greedily finalizes closest node</td></tr>
+          <tr data-role="c"><td><span class="t-badge" data-role="c">Shortest Path</span></td><td>Negative edges / detect cycle</td><td>Bellman-Ford</td><td><span class="m">O(VE)</span></td><td><span class="m">\vert V\vert - 1</span> edge passes + extra cycle check</td></tr>
+          <tr data-role="g"><td><span class="t-badge" data-role="g">Shortest Path</span></td><td>DAG (even negative weights)</td><td>Topological Sort + Relax</td><td><span class="m">O(V + E)</span></td><td>Single relaxation pass in topological order</td></tr>
+          <tr data-role="f"><td><span class="t-badge" data-role="f">Spanning Tree</span></td><td>Connected undirected weighted</td><td>Kruskal / Prim</td><td><span class="m">O(E \log V)</span></td><td>Lightest safe edge across cut (DSU / Min-PQ)</td></tr>
+          <tr data-role="a"><td><span class="t-badge" data-role="a">Components</span></td><td>Directed strongly connected</td><td>Kosaraju / Tarjan SCC</td><td><span class="m">O(V + E)</span></td><td>2 DFS passes by decreasing finish time <span class="m">f[u]</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="traps">
+      <div class="callout trap"><b>Running Dijkstra when any edge weight is negative</b><div>Even without a negative cycle, a negative edge downstream can undercut an already-popped vertex that Dijkstra will never revisit.</div></div>
+    </div>
+  </article>
+
+  <article class="chapter" id="c2-3" data-n="2.3" data-short="Backtracking" data-title="Backtracking & AC-3 Pruning Trees" data-tag="4-Queens · Sudoku AC-3">
+    <p class="bigidea">Backtracking checks feasibility at every partial choice and cuts dead branches early—while AC-3 shrinks candidate domains before branching.</p>
+
+    <div class="sec"><h3 data-eb="State-Space Tree">4-Queens Feasibility &amp; Dead-End Pruning</h3>
+      <p class="lead">Follow the tree alongside the chessboard to see <b data-role="c">PROMISING</b> checks, dead-end <b data-role="k">PRUNED</b> branches, and the first valid <b data-role="r">Solution</b>.</p>
+      <div class="viz" id="tr-queens"></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="Constraint Propagation">4×4 Sudoku with AC-3 Domain Shrinking</h3>
+      <p class="lead">Watch AC-3 eliminate conflicting digits from neighboring cells in the 4×4 grid before backtracking makes its choice.</p>
+      <div class="viz" id="tr-sudoku"></div>
+    </div>
+
+    <div class="traps">
+      <div class="callout trap"><b>Testing constraints only at full leaves</b><div>Waiting until depth <span class="m">n</span> explores <span class="m">n^{n}</span> states; pruning at the first invalid step kills entire subtrees immediately.</div></div>
+    </div>
+  </article>
+
+  <article class="chapter" id="c2-4" data-n="2.4" data-short="Branch & Bound" data-title="0/1 Knapsack Branch-and-Bound" data-tag="Upper Bound · Pruning">
+    <p class="bigidea">Branch-and-Bound computes a fractional upper bound at every node and grays out any subtree that cannot beat <span class="m">best\_so\_far</span>.</p>
+
+    <div class="sec"><h3 data-eb="Live Upper Bound">Fractional Bound <span class="m">ub = v_{\text{so far}} + \text{frac}(W_{\text{rem}})</span></h3>
+      <p class="lead">Sort items by value-to-weight ratio (<span class="m">60/2=30, 50/2=25, 40/2=20</span>, <span class="m">W=4</span>) and watch subtrees prune whenever <span class="m">ub \le best\_so\_far</span>.</p>
+      <div class="viz" id="tr-bnb"></div>
+      <div class="callout eg"><b>Example</b><div>If your current best integer profit is <span class="m">110</span> and skipping item 1 leaves a fractional upper bound of only <span class="m">90</span>, exploring that subtree is mathematically pointless—prune it!</div></div>
+    </div>
+
+    <div class="traps">
+      <div class="callout trap"><b>Pruning on current integer profit instead of upper bound</b><div>A node with <span class="m">v_{\text{so far}} = 0</span> can still reach <span class="m">110</span> later; you may only prune when the optimistic fractional <span class="m">ub \le best\_so\_far</span>.</div></div>
+    </div>
+  </article>
+</section>
+
+<section class="part" data-part="3" data-title="Complexity & NP" data-kicker="Line 3"
+  data-eyebrow="Line 3 · Tractability & Polynomial Reductions"
+  data-lede="Map P, NP, NPC, and NP-hard, follow CLRS's reduction spine, and build the 3-SAT ≤ₚ Independent Set gadget.">
+
+  <article class="chapter" id="c3-1" data-n="3.1" data-short="P, NP & NPC" data-title="Complexity Classes & Tractability Boundary" data-tag="Venn · P vs NP">
+    <p class="bigidea">NPC is the intersection of easily verifiable problems (NP) and problems at least as hard as every NP problem (NP-hard).</p>
+
+    <div class="sec"><h3 data-eb="Structural Diagram">Complexity Class Venn Diagram</h3>
+      <p class="lead">Step through <b data-role="r">P</b>, <b data-role="v">NP</b>, <b data-role="f">NPC</b>, and <b data-role="k">NP-hard</b>, then switch to <b>Assume P = NP</b> to watch P, NP, and NPC collapse together.</p>
+      <div class="viz" id="venn-pnp"></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="Tractability Boundary">P vs. NP-Hard Contrast Table</h3>
+      <p class="lead">Tiny wording changes flip a problem from polynomial <b data-role="r">P</b> to <b data-role="k">NP-hard</b>; filter by domain below.</p>
+      <div class="tbl-wrap"><table class="tbl" data-filter="0">
+        <thead><tr><th>Domain</th><th>Polynomial-Time (P)</th><th>Deceptively Similar NP-Hard</th><th>Why It Flips</th></tr></thead>
+        <tbody>
+          <tr data-role="v"><td><span class="t-badge" data-role="v">Paths</span></td><td>Shortest Simple Path (<span class="m">O(V+E)</span>)</td><td class="no">Longest Simple Path</td><td>No optimal substructure when cycles must be avoided</td></tr>
+          <tr data-role="g"><td><span class="t-badge" data-role="g">Coloring</span></td><td>2-Coloring / Bipartite (<span class="m">O(V+E)</span>)</td><td class="no">3-Coloring</td><td>2 colors force greedy propagation; 3 colors allow branching gadgets</td></tr>
+          <tr data-role="c"><td><span class="t-badge" data-role="c">Tours</span></td><td>Eulerian Cycle (every edge once)</td><td class="no">Hamiltonian Cycle (every vertex once)</td><td>Eulerian checks even degrees; Hamiltonian enforces global visiting</td></tr>
+          <tr data-role="f"><td><span class="t-badge" data-role="f">Packing</span></td><td>Fractional Knapsack (<span class="m">O(n \log n)</span>)</td><td class="no">0/1 Knapsack</td><td>Indivisible items break greedy value/weight sorting</td></tr>
+          <tr data-role="a"><td><span class="t-badge" data-role="a">Logic</span></td><td>2-SAT (<span class="m">O(V+E)</span> implication SCC)</td><td class="no">3-SAT</td><td>3-literal clauses lose binary implication chains</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="traps">
+      <div class="callout trap"><b>Saying an NP-hard optimization problem is in NP</b><div>NP contains only Yes/No <em>decision</em> problems; optimization problems like <span class="m">\text{TSP-OPT}</span> sit in <span class="m">\text{NP-hard} \setminus \text{NP}</span>.</div></div>
+    </div>
+  </article>
+
+  <article class="chapter" id="c3-2" data-n="3.2" data-short="Reductions" data-title="Polynomial Reductions & CLRS Reduction DAG" data-tag="A ≤ₚ B · Fig 34.13 · Proof">
+    <p class="bigidea">A polynomial-time reduction <span class="m">A \le_{P} B</span> transforms known-hard <span class="m">A</span> into target <span class="m">B</span> so any fast solver for <span class="m">B</span> would solve <span class="m">A</span>.</p>
+
+    <div class="sec"><h3 data-eb="Pipeline">Polynomial-Time Reduction Pipeline</h3>
+      <p class="lead">Follow an input <span class="m">x \in A</span> through the polynomial-time mapper <span class="m">F(x)</span> into a hypothetical decider for <span class="m">B</span>.</p>
+      <div class="viz" id="fl-red"></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="CLRS Fig. 34.13">The NP-Completeness Reduction DAG</h3>
+      <p class="lead">Explore the full reduction hierarchy branching from <b data-role="v">CIRCUIT-SAT</b> → <b data-role="c">3-SAT</b> into Clique/IS/VC/Subset-Sum, Ham-Cycle/TSP, and 3-Colour.</p>
+      <div class="viz" id="dag-clrs"></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="Exam Template">4-Step NP-Completeness Proof Template</h3>
+      <p class="lead">Check off all four mandatory steps whenever proving a language <span class="m">B</span> is NP-complete on an exam.</p>
+      <ol class="proof-tpl">
+        <li data-role="v"><div class="pt-body"><span class="pt-tag">Step 1 · B ∈ NP</span><b>State the certificate and polynomial verifier</b><p>Define a poly-size witness <span class="m">y</span> and show a deterministic algorithm verifies <span class="m">(x, y)</span> in <span class="m">O(n^{k})</span> time.</p></div></li>
+        <li data-role="c"><div class="pt-body"><span class="pt-tag">Step 2 · Pick Source A</span><b>Choose a known NPC problem <span class="m">A</span> (<span class="m">A \le_{P} B</span>)</b><p>Never reduce <span class="m">B \le_{P} A</span>! Pick <span class="m">\text{3-SAT}</span>, <span class="m">\text{VERTEX-COVER}</span>, or <span class="m">\text{HAM-CYCLE}</span> to match <span class="m">B</span>'s structure.</p></div></li>
+        <li data-role="f"><div class="pt-body"><span class="pt-tag">Step 3 · Construct F(x)</span><b>Describe the polynomial-time reduction mapping</b><p>Show how to build instance <span class="m">F(x)</span> from <span class="m">x</span> in <span class="m">O(n^{k})</span> time and space (gadgets, thresholds).</p></div></li>
+        <li data-role="r"><div class="pt-body"><span class="pt-tag">Step 4 · Two-Way Proof</span><b>Prove both <span class="m">x \in A \Rightarrow F(x) \in B</span> and <span class="m">F(x) \in B \Rightarrow x \in A</span></b><p>Forward turns a solution of <span class="m">A</span> into a witness for <span class="m">B</span>; backward extracts a valid solution of <span class="m">A</span> from <span class="m">B</span>.</p></div></li>
+      </ol>
+    </div>
+
+    <div class="traps">
+      <div class="callout trap"><b>Reducing B ≤ₚ A in the wrong direction</b><div>Showing <span class="m">B \le_{P} A</span> only proves <span class="m">B</span> is at most as hard as <span class="m">A</span>. To prove <span class="m">B</span> is hard, reduce <em>known hard</em> <span class="m">A \le_{P} B</span>.</div></div>
+    </div>
+  </article>
+
+  <article class="chapter" id="c3-3" data-n="3.3" data-short="3-SAT Gadget" data-title="3-SAT ≤ₚ Independent Set Gadget Builder" data-tag="Triangles · Conflicts">
+    <p class="bigidea">Each 3-SAT clause becomes a 3-vertex triangle, and opposite literals <span class="m">x_{i} \leftrightarrow \neg x_{i}</span> get conflict edges so only consistent assignments yield <span class="m">k</span> independent vertices.</p>
+
+    <div class="sec"><h3 data-eb="Interactive Gadget">Clause Triangles &amp; Conflict Edges</h3>
+      <p class="lead">Toggle <span class="m">x_{1}, x_{2}, x_{3}</span> (or tap any green literal vertex) to watch how satisfying all <span class="m">3</span> clauses produces an Independent Set of size <span class="m">k = 3</span> with zero conflicts.</p>
+      <div class="viz" id="net-sat"></div>
+    </div>
+
+    <div class="traps">
+      <div class="callout trap"><b>Forgetting cross-clause conflict edges (xᵢ ↔ ¬xᵢ)</b><div>Without conflict edges, you could pick <span class="m">x_{1}</span> in Clause 1 and <span class="m">\neg x_{1}</span> in Clause 2, cheating the truth assignment.</div></div>
+    </div>
+  </article>
+</section>
+
+<section class="part" data-part="4" data-title="Approximation & FPTAS" data-kicker="Line 4"
+  data-eyebrow="Line 4 · Approximation Ratios & Trimming"
+  data-lede="Bound worst-case ratios ρ ≥ 1 without knowing OPT, shortcut Metric TSP tours via MSTs, and trade ε for polynomial time.">
+
+  <article class="chapter" id="c4-1" data-n="4.1" data-short="Metric TSP" data-title="Approximation Ratios & Metric TSP Tour" data-tag="ρ ≥ 1 · MST Shortcut">
+    <p class="bigidea">When optimal solutions are NP-hard, an MST or maximal matching provides a provable lower bound on <span class="m">OPT</span>.</p>
+
+    <div class="sec"><h3 data-eb="Interactive Tour">APPROX-TSP-TOUR: MST → Preorder → Shortcut</h3>
+      <p class="lead">Step through building an MST (<span class="m">OPT \ge w(MST)</span>), doubling edges for a preorder walk, and shortcutting repeated vertices via the triangle inequality.</p>
+      <div class="viz" id="net-tsp"></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="Core Formulas">Unified Ratio <span class="m">\rho \ge 1</span> &amp; Lower-Bound Certificates</h3>
+      <p class="lead">Every approximation proof pairs a fast algorithm bound with a polynomial lower bound on the unknown optimum <span class="m">OPT</span>.</p>
+      <div class="viz" id="der-approx"></div>
+    </div>
+
+    <div class="traps">
+      <div class="callout trap"><b>Applying APPROX-TSP-TOUR without the triangle inequality</b><div>If a direct shortcut edge can cost more than a multi-hop detour, shortcutting breaks the <span class="m">2 \cdot w(MST)</span> bound—General TSP is inapproximable!</div></div>
+    </div>
+  </article>
+
+  <article class="chapter" id="c4-2" data-n="4.2" data-short="FPTAS & Trim" data-title="Subset-Sum Trimming & Knapsack FPTAS" data-tag="TRIM(L,δ) · Scaling">
+    <p class="bigidea">Trimming values within <span class="m">(1+\delta)</span> or scaling profits by <span class="m">K</span> shrinks exponential tables to polynomial size with error bounded by <span class="m">\varepsilon</span>.</p>
+
+    <div class="sec"><h3 data-eb="Interactive Simulator">Subset-Sum List Merging &amp; <span class="m">\text{TRIM}(L, \delta)</span></h3>
+      <p class="lead">Step through merging <span class="m">L_{i-1}</span> with <span class="m">L_{i-1} + x_{i}</span> and drag the <b>Tolerance ε</b> slider to see how larger <span class="m">\varepsilon</span> trims more sums.</p>
+      <div class="viz" id="trim-ss"></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="Error Bounds">Trimming Bound &amp; Knapsack Value Scaling</h3>
+      <p class="lead">See why <span class="m">\delta = \frac{\varepsilon}{2n}</span> keeps compounded error under <span class="m">1+\varepsilon</span> and how Knapsack scaling achieves <span class="m">O(\frac{n^{3}}{\varepsilon})</span> time.</p>
+      <div class="viz" id="der-fptas"></div>
+    </div>
+
+    <div class="sec"><h3 data-eb="Comparison Table">Approximation Ratio &amp; Scheme Comparison</h3>
+      <p class="lead">Compare classic approximation algorithms, their ratios, and the exact structural assumption each proof needs.</p>
+      <div class="tbl-wrap"><table class="tbl" data-filter="0">
+        <thead><tr><th>Scheme / Problem</th><th>Ratio <span class="m">\rho</span></th><th>Running Time</th><th>Key Requirement / Bound</th></tr></thead>
+        <tbody>
+          <tr data-role="r"><td><span class="t-badge" data-role="r">APPROX-VERTEX-COVER</span></td><td><span class="m">\rho = 2</span></td><td><span class="m">O(V + E)</span></td><td>Maximal matching lower bound <span class="m">\vert C^{*}\vert \ge \vert M\vert</span></td></tr>
+          <tr data-role="c"><td><span class="t-badge" data-role="c">APPROX-TSP-TOUR</span></td><td><span class="m">\rho = 2</span></td><td><span class="m">O(V^{2})</span></td><td>Metric only (triangle inequality); <span class="m">OPT \ge w(MST)</span></td></tr>
+          <tr data-role="v"><td><span class="t-badge" data-role="v">Christofides TSP</span></td><td><span class="m">\rho = 1.5</span></td><td><span class="m">O(V^{3})</span></td><td>Metric only; MST + min-weight odd matching</td></tr>
+          <tr data-role="a"><td><span class="t-badge" data-role="a">Greedy Set Cover</span></td><td><span class="m">\rho \approx \ln n</span></td><td><span class="m">O(\vert X\vert \sum \vert S_{i}\vert)</span></td><td>Harmonic bound <span class="m">H(d_{\max}) \le \ln n + 1</span></td></tr>
+          <tr data-role="f"><td><span class="t-badge" data-role="f">Subset-Sum / Knapsack FPTAS</span></td><td><span class="m">1 - \varepsilon</span></td><td><span class="m">O(n^{3}/\varepsilon)</span></td><td>Trimming <span class="m">\delta = \frac{\varepsilon}{2n}</span> or scaling <span class="m">K = \frac{\varepsilon v_{\max}}{n}</span></td></tr>
+          <tr data-role="k"><td><span class="t-badge" data-role="k">General TSP</span></td><td class="no">Inapproximable</td><td>—</td><td>No constant <span class="m">\rho</span> unless <span class="m">P = NP</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="traps">
+      <div class="callout trap"><b>Calling O(nW) Knapsack polynomial time</b><div><span class="m">O(nW)</span> is <em>pseudo-polynomial</em> in numeric value <span class="m">W</span>; you must scale values by <span class="m">K = \frac{\varepsilon v_{\max}}{n}</span> to get true polynomial <span class="m">O(\frac{n^{3}}{\varepsilon})</span>.</div></div>
+    </div>
+  </article>
+</section>
+
+<section class="part" data-part="R" data-title="Review & Pitfalls" data-kicker="Review"
+  data-eyebrow="Review · Exam Pitfalls & Practice"
+  data-lede="Catch fatal exam traps, drill flashcards, and test yourself under exam conditions.">
+
+  <article class="chapter" id="r-cheat" data-n="R1" data-short="Pitfalls & Sheet" data-title="Common Exam Pitfalls & Master Sheet" data-count="no">
+    <p class="bigidea">Most exam points are lost on four recurring traps—spot the mistake early and apply the exact fix below.</p>
+
+    <div class="sec"><h3 data-eb="Pitfalls Table">Common Exam Pitfalls</h3>
+      <p class="lead">Filter by topic to review every fatal exam trap next to its exact correction.</p>
+      <div class="tbl-wrap"><table class="tbl" data-filter="0">
+        <thead><tr><th>Topic</th><th>Fatal Exam Trap</th><th>Why It Fails</th><th>Correct Rule</th></tr></thead>
+        <tbody>
+          <tr data-role="k"><td><span class="t-badge" data-role="k">DP / FPTAS</span></td><td class="t-trap">Calling <span class="m">O(nW)</span> polynomial</td><td><span class="m">W</span> is exponential in <span class="m">\log_{2} W</span> input bits</td><td class="t-fix">Call it pseudo-polynomial; use <span class="m">K = \frac{\varepsilon v_{\max}}{n}</span> for FPTAS</td></tr>
+          <tr data-role="k"><td><span class="t-badge" data-role="k">1D Knapsack</span></td><td class="t-trap">Looping <span class="m">c = w_{i} \dots W</span> left-to-right</td><td>Reuses item <span class="m">i</span> in the same row</td><td class="t-fix">Loop right-to-left <span class="m">c = W \dots w_{i}</span></td></tr>
+          <tr data-role="k"><td><span class="t-badge" data-role="k">NP Reduction</span></td><td class="t-trap">Reducing <span class="m">B \le_{P} A</span> (target → known)</td><td>Only shows <span class="m">B</span> is easier than <span class="m">A</span></td><td class="t-fix">Reduce known hard <span class="m">A \le_{P} B</span> and prove <span class="m">x \in A \iff F(x) \in B</span></td></tr>
+          <tr data-role="k"><td><span class="t-badge" data-role="k">Shortest Path</span></td><td class="t-trap">Using Dijkstra with negative edges</td><td>Popped vertices lock permanently</td><td class="t-fix">Use Bellman-Ford (<span class="m">O(VE)</span>) or DAG-SP (<span class="m">O(V+E)</span>)</td></tr>
+          <tr data-role="k"><td><span class="t-badge" data-role="k">Metric TSP</span></td><td class="t-trap">Applying APPROX-TSP-TOUR without triangle inequality</td><td>Shortcutting can inflate tour cost arbitrarily</td><td class="t-fix">Verify metric <span class="m">c(u,w) \le c(u,v)+c(v,w)</span> first</td></tr>
+          <tr data-role="k"><td><span class="t-badge" data-role="k">DFS / Cycles</span></td><td class="t-trap">Claiming a cross edge proves a cycle</td><td>Cross edges occur cleanly in DAGs</td><td class="t-fix">Check specifically for a Back edge to a <em>gray</em> ancestor</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </article>
+
+  <article class="chapter" id="r-cards" data-n="R2" data-short="Flashcards" data-title="Flashcards" data-count="no">
+    <p class="bigidea">Test your recall of recurrences, fill orders, DFS colors, reduction directions, and approximation bounds.</p>
+    <div class="flash"></div>
+  </article>
+
+  <article class="chapter" id="r-exam" data-n="R3" data-short="Practice exam" data-title="Practice exam" data-count="no">
+    <p class="bigidea">Twenty mixed exam questions covering every visualizer, table, and proof template.</p>
+    <div class="quiz" data-set="exam"></div>
+  </article>
+
+  <article class="chapter" id="r-notes" data-n="R4" data-short="Notes" data-title="Notes on your materials" data-count="no">
+    <p class="bigidea">Conventions used throughout this studio guide so formulas and ratios stay consistent.</p>
+    <div class="sec"><h3 data-eb="Notation">Conventions &amp; Sources</h3>
+      <div class="callout note"><b>Unified approximation ratio ρ ≥ 1</b><div>This guide uses <span class="m">\rho = \frac{ALG}{OPT}</span> for minimization and <span class="m">\rho = \frac{OPT}{ALG}</span> for maximization, so <span class="m">\rho \ge 1</span> always holds and <span class="m">ALG \ge (1-\varepsilon)OPT \iff \rho \le \frac{1}{1-\varepsilon}</span>.</div></div>
+      <div class="callout note"><b>CLRS Fig. 34.13 reduction spine</b><div>Reductions follow Cormen et al. (CLRS) Chapter 34: <span class="m">\text{CIRCUIT-SAT} \to \text{SAT} \to \text{3-SAT}</span> branching to Clique/IS/Vertex-Cover/Subset-Sum/Partition, Ham-Cycle/TSP, and 3-Colour.</div></div>
+    </div>
+  </article>
+</section>
+
+<p class="foot">Built with Metro Engine v1.6. Progress and template checkmarks stay local in your browser.</p>

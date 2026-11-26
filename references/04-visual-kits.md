@@ -349,7 +349,8 @@ Kit.tree("k-id3", {
 | `attrs` | Optional array `[{ k, v?, pending?, role?, use?, at? }]` of live node attributes (e.g. `.val`, `.i`, `.s`) shown as stacked color-coded rows inside `compact` nodes. |
 | `deps` | Optional dependency DAG overlay `[{ id?, from, to, kind?: "syn"|"inh"|"merge", role?, label?, use?, curve? }]` supporting `"nodeId.attrKey"` endpoints, curved Bezier arrows, active-only pills, and quiet parse-tree skeleton lines. |
 | `compact` | Auto-enabled when `deps` is present or tree > 9 nodes; uses proportional leaf widths and compact nonterminal/terminal boxes. |
-| `zoom` | Auto-enabled on dense/dependency trees or whenever the tree exceeds the viewport width (e.g. phones); adds **Auto / Zoomed / Overview** 2D focus camera controls that zoom onto each active branch/step and pull back on the final step (or `steps[].overview: true`). Set `zoom: false` to disable. |
+| `zoom` | Auto-enabled on dense/dependency trees or whenever the tree exceeds the viewport width (e.g. phones); adds **Auto / Zoomed / Overview** + `−`/`+` zoom controls and drag-to-pan / pinch-to-zoom. Set `zoom: false` to disable. |
+| `board`, `hud`, `memo` | Optional `board` (`{ kind: "queens"\|"sudoku", size: 4 }`), `hud` chips (`best_so_far`, `ub`), and `memo` (`{ nodes, edges, steps }`) tab toggle between exponential Recursion Tree and collapsed Memoization DAG. |
 | `orientation` | `"auto"` (true branching top-down tree on all screens with 2D focus zoom on phones), `"top"`, or `"left"` (indented vertical list). |
 | `showPath` | Highlights the active node's path from root (`true` by default when `deps` is omitted). |
 | `steps[].reveal` | Node IDs (plus ancestors) revealed so far, or `"all"`. |
@@ -379,6 +380,21 @@ Kit.dag("k-expr-dag", {
 | `edges` | `[{ id?, from, to, label?, role?, kind?, use? }]`. Uses longest-path topological ranking, 2-pass barycenter crossing reduction, and side-channel skip-layer routing. |
 | `rankDir`, `edgeLabels`, `showOrder`, `zoom` | Optional `"TB"` (default) / `"BT"` direction, `"all"` edge pills (default active-only), topological `.k-ord` numbering (`true`), and 2D camera **Auto / Zoomed / Overview** controls (auto-enabled for ≥ 7 nodes, ≥ 4 layers, or whenever wider than the viewport on mobile). |
 | `steps` | Optional `{ t, d, on, visit, edges, reveal, overview }`; defaults to wave-by-wave Kahn topological evaluation. |
+
+## Kit.dp — DP tables & dependency fill (`1d`, `2d`, `interval`, `bitmask`)
+
+- `mode`: `"1d"` (Kadane, LIS + `parent[i]` + curved dependency arcs), `"2d"` (LCS with `↖`/`↑`/`←` `dir` glyphs, 0/1 Knapsack + optional `rolling` right-to-left vs left-to-right toggle), `"interval"` (upper-triangular diagonal fill $l = 2 \dots n$, `split` bracket bar), or `"bitmask"` (Held-Karp `dp[S, v]` grouped by $|S|$ with bitmask pills).
+- Supports `tabs` (multi-problem switcher), `hud` chips, live `step.eq` formula bar, and click-cell-to-jump.
+
+## Kit.network — graphs, shortest paths, Metric TSP & 3-SAT gadgets
+
+- Supports `tabs`, `nodes: [{ id, t, x, y, role?, use? }]` (`0..100`), `edges: [{ from, to, label?, w?, cls?, undir? }]`, `hud` chips (PQ / Kahn queue / pass count), `parens` (Parenthesis Theorem `[d, f]` ruler), and `sat: { vars, clauses, init }` (interactive 3-SAT $\le_P$ Independent Set clause triangles + conflict edges).
+- Add `equiv` on `Kit.flow` for a live $x \in A \iff F(x) \in B$ equivalence banner.
+
+## Kit.trim & Kit.venn — FPTAS trimming & Complexity Venn
+
+- `Kit.trim(id, { items, target, eps })`: interactive `MERGE-LISTS` + `TRIM(L, δ)` simulator with live `ε` slider and error-bound chips.
+- `Kit.venn(id, { steps })`: Complexity Class Venn diagram (`P`, `NP`, `NPC = NP ∩ NP-hard`, `NP-hard`) with an interactive `P ≠ NP` ↔ `P = NP` collapse toggle.
 
 ---
 

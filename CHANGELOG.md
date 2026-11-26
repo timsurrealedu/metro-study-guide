@@ -1,5 +1,15 @@
 # Changelog
 
+## Metro Engine v1.6 — 26 November 2026
+
+**Mobile tree readability, pan/zoom camera, DP/graph/FPTAS/complexity visualizers, filterable reference tables, and proof templates.**
+
+- **Mobile Tree Optimization & Pan/Zoom Camera (`engine/kit.js`, `engine/metro.css`)**: Tuned phone focus framing (`0.72..1.18` adaptive aspect ratio, tight padding, and `minW = 0.86 * viewW`) so focused tree subtrees render at full readable scale on 390px screens while keeping true top-down branching shapes; added `−` / `+` zoom controls, zoom percentage badge, drag-to-pan, and 2-finger pinch-to-zoom to `mountCamera`.
+- **Upgraded `Kit.tree` & `Kit.flow`**: Added `board` (4-Queens & 4×4 Sudoku AC-3 domain-shrinking grid), `hud` live upper-bound chips, `memo` tab toggle (Recursion Tree $O(2^n)$ ↔ Memoization DAG $O(n)$), and `equiv` equivalence banner on `Kit.flow`.
+- **New `Kit.dp`, `Kit.network`, `Kit.trim`, `Kit.venn` (`engine/kit.js`, `engine/metro.css`)**: Added animated 1D/2D/Diagonal-Interval/Bitmask DP tables (with LCS arrows and 0/1 Knapsack RTL-vs-LTR rolling-array bug toggle), interactive graph traversal / shortest-path relaxation / Metric TSP / 3-SAT $\le_P$ Independent Set gadget builder (`Kit.network`), live `ε`-slider Subset-Sum `TRIM(L, δ)` simulator (`Kit.trim`), and `P ≠ NP` / `P = NP` Venn diagram (`Kit.venn`).
+- **Math, Filterable Reference Tables & Proof Templates (`engine/metro.js`, `engine/metro.css`, `engine/explainer.js`)**: Extended `parseTex` with stacked `\min`/`\max`/`\argmin`/`\argmax` limits, `\tilde`, `\xrightarrow{F}`, `\setminus`, `\lfloor`/`\rfloor`; added `data-filter` category pill bars and `.tbl-wide` Explainer handling; added interactive `.proof-tpl` check-off proof templates.
+- **New proof-of-concept showcase guide**: `guides/algorithms-complexity-studio` (**Algorithms & Complexity Studio**).
+
 ## Metro Engine v1.5.1 — 26 November 2026
 
 **DAG optimization across parse-dependency trees (`Kit.tree`) and first-class Sugiyama layered DAGs (`Kit.dag`).**

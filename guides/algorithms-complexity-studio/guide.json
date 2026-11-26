@@ -1,0 +1,15 @@
+{
+  "id": "algorithms-complexity-studio",
+  "title": "Algorithms & Complexity Studio",
+  "highlight": "Complexity",
+  "eyebrow": "Metro Engine v1.6 · Interactive Algorithms, DP, Graphs & NP-Completeness",
+  "lede": "Interactive step-by-step tracers, state-space trees, reduction gadgets, FPTAS simulators, and master exam tables—color-coded and mobile-ready.",
+  "terminus": "Exam Ready",
+  "lines": {
+    "1": { "name": "Dynamic Programming", "color": "#1d4ed8" },
+    "2": { "name": "Graphs & Search", "color": "#0d7a52" },
+    "3": { "name": "Complexity & NP", "color": "#6d28d9" },
+    "4": { "name": "Approximation & FPTAS", "color": "#c2410c" },
+    "R": { "name": "Review & Pitfalls", "color": "#0369a1" }
+  }
+}
