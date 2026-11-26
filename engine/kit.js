@@ -74,6 +74,11 @@ function placeClearPill(mx,my,txt,boxes,placed,W,H,fs=10.5,minW=28){
   placed.push(best.r);
   return best;
 }
+function prepEdgeLengths(svg){
+  svg.querySelectorAll(".k-tree-edge,.k-dep-edge,.k-dag-edge").forEach(p=>{
+    try{const l=p.getTotalLength();if(l)p.style.setProperty("--plen",String(Math.ceil(l)+4))}catch(_){}
+  });
+}
 function swatchSvg(kind="dot"){
   if(kind==="line")return `<svg class="ic" viewBox="0 0 14 10" aria-hidden="true"><line x1="1" y1="5" x2="13" y2="5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>`;
   if(kind==="dash")return `<svg class="ic" viewBox="0 0 14 10" aria-hidden="true"><line x1="1" y1="5" x2="13" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="3 2.5" stroke-linecap="round"/></svg>`;
@@ -201,6 +206,11 @@ function responsive(S,layout,box){
   const w=width();layout(last=w||640);
 }
 const markers=(u,col="")=>`<defs><marker id="${u}-on" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head on"${col?` style="fill:${col}"`:""}/></marker><marker id="${u}-off" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head"/></marker></defs>`;
+const edgeMarkers=(u,roles=[])=>`<defs>`+
+  `<marker id="${u}-on" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,1 L9.5,5 L0,9 z" class="k-head on"/></marker>`+
+  `<marker id="${u}-off" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,1 L9.5,5 L0,9 z" class="k-head"/></marker>`+
+  roles.map(rk=>`<marker id="${u}-on-${rk}" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,1 L9.5,5 L0,9 z" class="k-head on" style="fill:var(--m-${rk})"/></marker><marker id="${u}-off-${rk}" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,1 L9.5,5 L0,9 z" class="k-head" style="fill:var(--m-${rk});opacity:.55"/></marker>`).join("")+
+  `</defs>`;
 const stepsOr=(o,def)=>(o.steps&&o.steps.length?o.steps:def);
 function ctlRange(S,key,c,onInput){
   let ctl=$(".ctl",S.viz);if(!ctl){ctl=h("div",{class:"ctl"});S.viz.appendChild(ctl)}
@@ -1161,25 +1171,25 @@ Kit.tree=(id,o)=>{
     const Apos=nodes.map(nd=>attrPos(nd,P[nd.i]));
     if(cam)cam.setNatural(natW,natH,{narrow:!useWide,boxes:P.map(p=>({y1:p.y,y2:p.y+p.h}))});else svg.setAttribute("viewBox",`0 0 ${natW} ${natH}`);
     const edgeRoles=[...new Set([...nodes.map(nd=>nd.edgeRole||nd.role),...deps.map(d=>d.role)].filter(Boolean))];
-    let s=markers(S.uid)+edgeRoles.map(rk=>`<defs><marker id="${S.uid}-on-${rk}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head on" style="fill:var(--m-${rk})"/></marker><marker id="${S.uid}-off-${rk}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head" style="fill:var(--m-${rk});opacity:.55"/></marker></defs>`).join("");
+    let s=edgeMarkers(S.uid,edgeRoles);
     s+=`<g class="k-skel-layer">`;
     nodes.forEach(nd=>{
       if(nd.parent<0)return;
       const A=P[nd.parent],B=P[nd.i],erk=nd.edgeRole||nd.role,rc=nd.color||(erk?`var(--m-${erk})`:"var(--pc)");
       let d,px,py;
       if(useWide){
-        const x1=A.cx,y1=A.y+A.h,x2=B.cx,y2=B.y-(hasDeps?2:4),ym=(y1+y2)/2,t=.62,mt=1-t;
+        const x1=A.cx,y1=A.y+A.h,x2=B.cx,y2=B.y-(hasDeps?1:2),ym=(y1+y2)/2,t=.62,mt=1-t;
         d=`M${x1.toFixed(1)},${y1.toFixed(1)} C${x1.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
         px=(mt**3+3*mt*mt*t)*x1+(3*mt*t*t+t**3)*x2;
         py=mt**3*y1+3*mt*mt*t*ym+3*mt*t*t*ym+t**3*y2;
       } else {
-        const sx=A.x+10,sy=A.y+A.h,ex=B.x-3,ey=B.y+B.h/2;
+        const sx=A.x+10,sy=A.y+A.h,ex=B.x-1,ey=B.y+B.h/2;
         d=`M${sx.toFixed(1)},${sy.toFixed(1)} V${ey.toFixed(1)} H${ex.toFixed(1)}`;
         const pw=nd.edge?Math.max(28,Math.ceil(nd.edge.length*11*.66)+22):0;
         px=Math.max(B.x+pw/2+4,sx+pw/2+8);py=B.y-15;
       }
       const cls=hasDeps?"k-tree-edge k-tree-skel":"k-tree-edge";
-      s+=`<path class="${cls}" data-c="${nd.i}"${erk?` data-er="${erk}"`:""} style="--rc:${rc}" pathLength="1" d="${d}"/>`;
+      s+=`<path class="${cls}" data-c="${nd.i}"${erk?` data-er="${erk}"`:""} style="--rc:${rc}" d="${d}"/>`;
       if(nd.edge)s+=`<g class="k-edge-pill" data-c="${nd.i}">${pillSvg(px,py,nd.edge,{W:natW,H:natH,fs:11,cls:"k-epill",tcls:"k-epill-t",role:erk,minW:26})}</g>`;
     });
     s+=`</g><g class="k-node-layer">`;
@@ -1220,6 +1230,22 @@ Kit.tree=(id,o)=>{
       const boxes=P.map(p=>({x1:p.x-5,y1:p.y-5,x2:p.x+p.w+5,y2:p.y+p.h+5}));
       const placedPills=[];
       const hit=(r,a)=>r.x1<a.x2&&r.x2>a.x1&&r.y1<a.y2&&r.y2>a.y1;
+      const sideOut=new Set(),sideIn=new Set();
+      if(useWide){
+        deps.forEach(dp=>{
+          const fi=byId.get(dp.from),ti=byId.get(dp.to);if(fi==null||ti==null)return;
+          const fp=P[fi],tp=P[ti];
+          if(Math.abs(fp.y-tp.y)<18){
+            const lr=tp.cx>=fp.cx,hgap=lr?(tp.x-(fp.x+fp.w)):(fp.x-(tp.x+tp.w));
+            const pwEst=dp.label?Math.max(28,Math.ceil(dp.label.length*10.5*.66)+22):28;
+            if(hgap>=pwEst+20){sideOut.add(`${fi}:${lr?"R":"L"}`);sideIn.add(`${ti}:${lr?"L":"R"}`)}
+          } else if(fp.y>tp.y){
+            if(Math.abs(fp.cx-tp.cx)>24)sideIn.add(`${ti}:${fp.cx>tp.cx+24?"R":"L"}`);
+          } else if(tp.x>=fp.x+fp.w+18||tp.x+tp.w<=fp.x-18){
+            const lr=tp.cx>=fp.cx;sideOut.add(`${fi}:${lr?"R":"L"}`);sideIn.add(`${ti}:${lr?"L":"R"}`);
+          }
+        });
+      }
       s+=`<g class="k-dep-layer">`;
       const pillDefs=[];
       deps.forEach(dp=>{
@@ -1233,41 +1259,47 @@ Kit.tree=(id,o)=>{
             const lr=tp.cx>=fp.cx,hgap=lr?(tp.x-(fp.x+fp.w)):(fp.x-(tp.x+tp.w));
             const pwEst=dp.label?Math.max(28,Math.ceil(dp.label.length*10.5*.66)+22):28;
             if(hgap<pwEst+20){
-              // Tight horizontal siblings: arch into clearest vertical channel instead of crowding box edges
               const xL=Math.min(fp.x,tp.x),xR=Math.max(fp.x+fp.w,tp.x+tp.w);
               const upY=Math.min(fp.y,tp.y)-22,dnY=Math.max(fp.y+fp.h,tp.y+tp.h)+22;
               const upHits=boxes.filter(b=>hit({x1:xL,y1:upY-12,x2:xR,y2:upY+12},b)).length;
               const dnHits=boxes.filter(b=>hit({x1:xL,y1:dnY-12,x2:xR,y2:dnY+12},b)).length;
               const useBelow=dnHits<=upHits;
-              x1=fp.x+(lr?fp.w*.78:fp.w*.22);y1=useBelow?fp.y+fp.h+2:fp.y-2;
-              x2=tp.x+(lr?tp.w*.22:tp.w*.78);y2=useBelow?tp.y+tp.h+4:tp.y-4;
+              x1=fp.x+(lr?fp.w*.78:fp.w*.22);y1=useBelow?fp.y+fp.h:fp.y;
+              x2=tp.x+(lr?tp.w*.22:tp.w*.78);y2=useBelow?tp.y+tp.h+1:tp.y-1;
               const arcY=useBelow?dnY+4:upY-4;
               c1x=x1+(x2-x1)*.25;c1y=arcY;c2x=x1+(x2-x1)*.75;c2y=arcY;
             } else {
-              x1=lr?fp.x+fp.w+2:fp.x-2;y1=fy;x2=lr?tp.x-4:tp.x+tp.w+4;y2=ty;
+              const ox=lr?"R":"L",ix=lr?"L":"R";
+              x1=lr?fp.x+fp.w:fp.x;y1=sideIn.has(`${fi}:${ox}`)?Math.max(fp.y+8,fy-6):fy;
+              x2=lr?tp.x-1:tp.x+tp.w+1;y2=sideOut.has(`${ti}:${ix}`)?Math.min(tp.y+tp.h-8,ty+7):ty;
               const arch=dp.curve||(lr?-18:18);c1x=x1+(x2-x1)*.33;c1y=y1+arch;c2x=x1+(x2-x1)*.67;c2y=y2+arch;
             }
           } else if(fp.y>tp.y){
-            const rightSide=fp.cx>tp.cx+24;
-            x1=rightSide?fp.x+fp.w*.72:(fp.cx<tp.cx-24?fp.x+fp.w*.28:fp.cx);
-            y1=fp.y-2;
-            x2=rightSide?tp.x+tp.w+4:(fp.cx<tp.cx-24?tp.x-4:tp.cx);
-            y2=Math.abs(fp.cx-tp.cx)<=24?tp.y+tp.h+4:ty;
-            const bulge=dp.curve||(rightSide?22:(fp.cx<tp.cx-24?-22:18));
-            c1x=x1+bulge;c1y=(y1+y2)*.55;c2x=x2+bulge*.65;c2y=y2+(y1>y2?8:-8);
+            if(Math.abs(fp.cx-tp.cx)>24){
+              const rightSide=fp.cx>tp.cx+24,side=rightSide?"R":"L";
+              x1=rightSide?fp.x+fp.w*.72:fp.x+fp.w*.28;y1=fp.y;
+              x2=rightSide?tp.x+tp.w+1:tp.x-1;
+              y2=sideOut.has(`${ti}:${side}`)?Math.min(tp.y+tp.h-8,ty+7):ty;
+              c1x=x1;c1y=(y1+y2)*.45;c2x=x2+(rightSide?28:-28);c2y=y2;
+            } else {
+              x1=fp.cx;y1=fp.y;x2=tp.cx;y2=tp.y+tp.h+1;
+              const bulge=dp.curve||18;c1x=x1+bulge;c1y=(y1+y2)*.55;c2x=x2+bulge*.35;c2y=y2+16;
+            }
+          } else if(tp.x>=fp.x+fp.w+18||tp.x+tp.w<=fp.x-18){
+            const lr=tp.cx>=fp.cx,ox=lr?"R":"L",ix=lr?"L":"R";
+            x1=lr?fp.x+fp.w:fp.x;y1=sideIn.has(`${fi}:${ox}`)?Math.max(fp.y+8,fy-6):fy;
+            x2=lr?tp.x-1:tp.x+tp.w+1;y2=sideOut.has(`${ti}:${ix}`)?Math.min(tp.y+tp.h-8,ty+7):ty;
+            const b=dp.curve||(lr?22:-22);c1x=x1+b;c1y=y1;c2x=x2-b;c2y=y2;
           } else {
             const lr=tp.cx>=fp.cx;
-            x1=Math.abs(tp.cx-fp.cx)<18?fp.x+fp.w+2:(lr?fp.x+fp.w+2:fp.x-2);
-            y1=fy;
-            x2=Math.abs(tp.cx-fp.cx)<18?tp.x+tp.w+4:(lr?tp.x-4:tp.x+tp.w+4);
-            y2=ty;
-            const b=dp.curve||(Math.abs(tp.cx-fp.cx)<18?24:(lr?14:-14));
-            c1x=x1+b;c1y=y1+(y2-y1)*.25;c2x=x2+(Math.abs(tp.cx-fp.cx)<18?b:-b*.6);c2y=y2-(y2-y1)*.25;
+            x1=fp.x+fp.w*(lr?.72:.28);y1=fp.y+fp.h;
+            x2=tp.x+tp.w*(lr?.32:.68);y2=tp.y-1;
+            const ym=(y1+y2)/2;c1x=x1;c1y=ym;c2x=x2;c2y=ym;
           }
           mx=(x1+3*c1x+3*c2x+x2)/8;my=(y1+3*c1y+3*c2y+y2)/8;
         } else {
           const laneX=natW-10-(dp.di%4)*9;
-          x1=fp.x+fp.w+2;y1=fy;x2=tp.x+tp.w+4;y2=ty;
+          x1=fp.x+fp.w;y1=fy;x2=tp.x+tp.w+1;y2=ty;
           c1x=laneX;c1y=y1;c2x=laneX;c2y=y2;
           mx=laneX-18;my=(y1+y2)/2;
         }
@@ -1275,19 +1307,19 @@ Kit.tree=(id,o)=>{
         if(dp.label){
           const pos=placeClearPill(mx,my,dp.label,boxes,placedPills,natW,natH,10.5,28);
           px=pos.x;py=pos.y;curDepPillBoxes.set(dp.di,pos.r);
-          if(pos.moved&&useWide){c1x+=(px-mx)*.45;c1y+=(py-my)*.45;c2x+=(px-mx)*.45;c2y+=(py-my)*.45}
+          if(pos.moved&&useWide){c1x+=(px-mx)*.25;c1y+=(py-my)*.25}
           pillDefs.push({dp,mx:px,my:py});
         }
         const rc=roleCol(dp.role,"var(--pc)");
         const dPath=`M${x1.toFixed(1)},${y1.toFixed(1)} C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
-        s+=`<path class="k-dep-edge${dp.use?" clickable":""}" data-d="${dp.di}" data-f="${fi}" data-t="${ti}" data-kind="${dp.kind}" data-role="${dp.role}" style="--rc:${rc}"${dp.use?` data-use="${escAttr(dp.use)}" data-uname="${escAttr(dp.label||dp.kind)}"`:""} pathLength="1" d="${dPath}"/>`;
+        s+=`<path class="k-dep-edge${dp.use?" clickable":""}" data-d="${dp.di}" data-f="${fi}" data-t="${ti}" data-kind="${dp.kind}" data-role="${dp.role}" style="--rc:${rc}"${dp.use?` data-use="${escAttr(dp.use)}" data-uname="${escAttr(dp.label||dp.kind)}"`:""} d="${dPath}"/>`;
       });
       pillDefs.forEach(({dp,mx,my})=>{
         s+=`<g class="k-dep-pill hide" data-d="${dp.di}">${pillSvg(mx,my,dp.label,{W:natW,H:natH,fs:10.5,cls:"k-epill",tcls:"k-epill-t",role:dp.role,on:true,minW:28})}</g>`;
       });
       s+=`</g>`;
     }
-    svg.innerHTML=s;render(cur,true);
+    svg.innerHTML=s;prepEdgeLengths(svg);render(cur,true);
   }
   function render(i,instant=false){cur=i;const s=steps[i]||{};
     const expandAnc=arr=>{const out=new Set();(arr||[]).forEach(x=>{const k=idxOf(x);if(k!=null&&k>=0){out.add(k);nodes[k].ancestors.forEach(a=>out.add(a))}});return out};
@@ -1325,7 +1357,6 @@ Kit.tree=(id,o)=>{
       e.classList.toggle("k-tree-draw",isNew&&E.motionOn());
       e.classList.toggle("pruned",isPr);
       e.classList.toggle("path",isPa);
-      e.classList.toggle("flowline",isPa);
       e.classList.toggle("done",!isSk&&isDn&&!isPr);
       e.classList.toggle("todo",!isSk&&vis&&!isDn&&!isPr);
       if(!isSk)e.setAttribute("marker-end",`url(#${S.uid}-${isDn&&!isPr?(erk?"on-"+erk:"on"):"off"})`);
@@ -1340,8 +1371,8 @@ Kit.tree=(id,o)=>{
         e.classList.toggle("on",isAct);
         e.classList.toggle("done",isDone);
         e.classList.toggle("todo",vis&&!isAct&&!isDone);
-        e.classList.toggle("flowline",isAct&&E.motionOn());
-        e.classList.toggle("k-tree-draw",isNew&&E.motionOn());
+        e.classList.toggle("k-inh-flow",dp.kind==="inh"&&isAct&&E.motionOn());
+        e.classList.toggle("k-tree-draw",dp.kind!=="inh"&&isNew&&E.motionOn());
         e.setAttribute("marker-end",`url(#${S.uid}-${(isAct||isDone)?"on-"+dp.role:"off-"+dp.role})`);
       });
       $$(".k-dep-pill",svg).forEach(p=>{const di=+p.dataset.d;p.classList.toggle("hide",!actDeps.has(di))});
@@ -1437,7 +1468,7 @@ Kit.dag=(id,o)=>{
   const eIdxOf=x=>typeof x==="number"?x:eById.get(String(x));
   const wantLeg=o.legend!==false,useCamera=o.zoom!==undefined?!!o.zoom:(nodes.length>=7||maxL>=3);
   const an=wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:"Hover any node to trace every upstream input and downstream dependent."}):null;
-  let curP=[],curPillBoxes=new Map(),cur=0,prevRev=new Set(nodes.map(n=>n.i)),player=null,cam=null;
+  let curP=[],curPillBoxes=new Map(),cur=0,prevRev=new Set(nodes.map(n=>n.i)),prevActEdges=new Set(),player=null,cam=null;
   const updateCam=(instant=false)=>{
     if(!cam)return;
     const s=steps[cur]||{},hasOv=steps.some(st=>st.overview);
@@ -1497,14 +1528,14 @@ Kit.dag=(id,o)=>{
     curP=P;curPillBoxes=new Map();
     if(cam)cam.setNatural(natW,H,{narrow:!useWide,boxes:P.map(p=>({y1:p.y,y2:p.y+p.h}))});else svg.setAttribute("viewBox",`0 0 ${natW} ${H}`);
     const eRoles=[...new Set(edges.map(e=>e.role).filter(Boolean))];
-    let s=markers(S.uid)+eRoles.map(rk=>`<defs><marker id="${S.uid}-on-${rk}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head on" style="fill:var(--m-${rk})"/></marker><marker id="${S.uid}-off-${rk}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head" style="fill:var(--m-${rk});opacity:.55"/></marker></defs>`).join("");
+    let s=edgeMarkers(S.uid,eRoles);
     let skipLane=0;const pills=[],boxes=P.map(p=>({x1:p.x-6,y1:p.y-6,x2:p.x+p.w+6,y2:p.y+p.h+6})),placedPills=[];
     s+=`<g class="k-edge-layer">`;
     edges.forEach(ed=>{
       const A=P[ed.u],B=P[ed.v],rc=roleCol(ed.role,"var(--pc)"),lu=rank[ed.u],lv=rank[ed.v];
       let dPath,mx,my;
       if(useWide){
-        const down=B.y>A.y,x1=A.cx,y1=down?A.y+A.h:A.y,x2=B.cx,y2=down?B.y-4:B.y+B.h+4;
+        const down=B.y>A.y,x1=A.cx,y1=down?A.y+A.h:A.y,x2=B.cx,y2=down?B.y-1:B.y+B.h+1;
         const lMin=Math.min(lu,lv),lMax=Math.max(lu,lv);
         let blocked=false,minX=natW,maxX=0;
         if(lMax-lMin>1){
@@ -1531,7 +1562,7 @@ Kit.dag=(id,o)=>{
           const sideR=Math.abs(A.cx-natW/2)>=Math.abs(B.cx-natW/2)?A.cx>=natW/2:B.cx>=natW/2;
           const chX=sideR?Math.min(natW-10,maxX+18+(skipLane%3)*9):Math.max(10,minX-18-(skipLane%3)*9);
           skipLane++;
-          const sy1=A.y+A.h/2,sy2=B.y+B.h/2,sx1=sideR?A.x+A.w+2:A.x-2,sx2=sideR?B.x+B.w+4:B.x-4;
+          const sy1=A.y+A.h/2,sy2=B.y+B.h/2,sx1=sideR?A.x+A.w:A.x,sx2=sideR?B.x+B.w+1:B.x-1;
           dPath=`M${sx1.toFixed(1)},${sy1.toFixed(1)} C${chX.toFixed(1)},${sy1.toFixed(1)} ${chX.toFixed(1)},${sy2.toFixed(1)} ${sx2.toFixed(1)},${sy2.toFixed(1)}`;
           mx=(sx1+6*chX+sx2)/8;my=(sy1+sy2)/2;
         } else {
@@ -1546,22 +1577,22 @@ Kit.dag=(id,o)=>{
           let corridor=null;
           for(let gi=0;gi<mids.length-1;gi++){const g0=mids[gi].x+mids[gi].w,g1=mids[gi+1].x;if(g1-g0>=8&&!mids.some(q=>(g0+g1)/2>q.x-3&&(g0+g1)/2<q.x+q.w+3)){corridor=(g0+g1)/2;break}}
           if(corridor!=null&&Math.abs(A.cx-B.cx)>20){
-            const y1=A.y+A.h,y2=B.y-4,sx=A.cx+(corridor>A.cx?A.w*.2:-A.w*.2),ex=B.cx+(corridor>B.cx?B.w*.2:-B.w*.2),ym=(y1+y2)/2;
+            const y1=A.y+A.h,y2=B.y-1,sx=A.cx+(corridor>A.cx?A.w*.2:-A.w*.2),ex=B.cx+(corridor>B.cx?B.w*.2:-B.w*.2),ym=(y1+y2)/2;
             dPath=`M${sx.toFixed(1)},${y1.toFixed(1)} C${corridor.toFixed(1)},${(y1+(ym-y1)*.55).toFixed(1)} ${corridor.toFixed(1)},${(y2-(y2-ym)*.55).toFixed(1)} ${ex.toFixed(1)},${y2.toFixed(1)}`;
             mx=(sx+corridor)/2;my=y1+24;
           } else {
             const laneX=natW-10-(skipLane%3)*8;skipLane++;
-            const sy1=A.y+A.h/2,sy2=B.y+B.h/2,sx1=A.x+A.w+2,sx2=B.x+B.w+4;
+            const sy1=A.y+A.h/2,sy2=B.y+B.h/2,sx1=A.x+A.w,sx2=B.x+B.w+1;
             dPath=`M${sx1.toFixed(1)},${sy1.toFixed(1)} C${laneX.toFixed(1)},${sy1.toFixed(1)} ${laneX.toFixed(1)},${sy2.toFixed(1)} ${sx2.toFixed(1)},${sy2.toFixed(1)}`;
             mx=laneX-14;my=(sy1+sy2)/2;
           }
         } else {
-          const x1=A.cx,y1=A.y+A.h,x2=B.cx,y2=B.y-4,ym=(y1+y2)/2;
+          const x1=A.cx,y1=A.y+A.h,x2=B.cx,y2=B.y-1,ym=(y1+y2)/2;
           dPath=`M${x1.toFixed(1)},${y1.toFixed(1)} C${x1.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
           mx=(x1+x2)/2;my=ym;
         }
       }
-      s+=`<path class="k-dag-edge" data-e="${ed.ei}" data-f="${ed.u}" data-t="${ed.v}" data-role="${ed.role}" style="--rc:${rc}" pathLength="1" d="${dPath}"/>`;
+      s+=`<path class="k-dag-edge" data-e="${ed.ei}" data-f="${ed.u}" data-t="${ed.v}" data-role="${ed.role}" style="--rc:${rc}" d="${dPath}"/>`;
       if(ed.label){
         const pos=placeClearPill(mx,my,ed.label,boxes,placedPills,natW,H,10.5,26);
         curPillBoxes.set(ed.ei,pos.r);pills.push({ed,mx:pos.x,my:pos.y});
@@ -1582,7 +1613,7 @@ Kit.dag=(id,o)=>{
       if(nd.tag){const tw=Math.min(p.w-20,Math.ceil(nd.tag.length*7.4)+18);t+=`<g class="k-tag"><rect x="${p.x+10}" y="${p.y+p.h-26}" width="${tw}" height="19" rx="9.5"/><text class="k-c" x="${p.x+18}" y="${p.y+p.h-13}">${escHtml(nd.tag)}</text></g>`}
       s+=t+"</g>";
     });
-    svg.innerHTML=s+`</g>`;render(cur,true);
+    svg.innerHTML=s+`</g>`;prepEdgeLengths(svg);render(cur,true);
   }
   function render(i,instant=false){cur=i;const s=steps[i]||{};
     const rev=(s.reveal==="all"||s.reveal==null)?new Set(nodes.map(n=>n.i)):new Set((s.reveal||[]).map(idxOf).filter(k=>k!=null));
@@ -1597,19 +1628,19 @@ Kit.dag=(id,o)=>{
       g.classList.toggle("todo",vis&&!on.has(k)&&!visit.has(k));
     });
     $$(".k-dag-edge",svg).forEach(e=>{const ei=+e.dataset.e,ed=edges[ei];if(!ed)return;
-      const vis=rev.has(ed.u)&&rev.has(ed.v),isAct=actEdges.size?actEdges.has(ei):on.has(ed.v),isDn=!isAct&&(visit.has(ed.v)||on.has(ed.v)),rk=ed.role;
+      const vis=rev.has(ed.u)&&rev.has(ed.v),isAct=actEdges.size?actEdges.has(ei):on.has(ed.v),isDn=!isAct&&(visit.has(ed.v)||on.has(ed.v)),rk=ed.role,isNew=isAct&&!prevActEdges.has(ei);
       e.classList.toggle("hide",!vis);
       e.classList.toggle("on",isAct);
       e.classList.toggle("done",isDn);
       e.classList.toggle("todo",vis&&!isAct&&!isDn);
-      e.classList.toggle("flowline",isAct&&E.motionOn());
+      e.classList.toggle("k-tree-draw",isNew&&E.motionOn());
       e.setAttribute("marker-end",`url(#${S.uid}-${(isAct||isDn)?(rk?"on-"+rk:"on"):(rk?"off-"+rk:"off")})`);
     });
     $$(".k-dag-pill",svg).forEach(p=>{const ei=+p.dataset.e,ed=edges[ei];if(!ed)return;
       const vis=rev.has(ed.u)&&rev.has(ed.v),isAct=actEdges.size?actEdges.has(ei):on.has(ed.v);
       p.classList.toggle("hide",!vis||(o.edgeLabels!=="all"&&!isAct));
     });
-    prevRev=rev;
+    prevRev=rev;prevActEdges=new Set(actEdges);
     updateCam(instant);
     if(an&&on.size===1){const u=[...on][0];if(nodes[u]?.use)an.showUse(nodes[u].t,nodes[u].use,roleCol(nodes[u].role,"var(--pc)"))}
     if(o.on)o.on(i,svg,s);

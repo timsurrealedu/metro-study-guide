@@ -1523,9 +1523,11 @@ pre code{background:none;padding:0;font-size:inherit}
 .kit .k-dep-edge{fill:none;stroke:var(--rc,var(--pc));stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.48;transition:opacity .28s var(--ease),stroke-width .25s var(--ease)}
 .kit .k-dep-edge.done{stroke-width:2.1;opacity:.82}
 .kit .k-dep-edge.on{stroke-width:3;opacity:1;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--rc,var(--pc)) 42%,transparent))}
-.kit .k-dep-edge.todo{opacity:.24;stroke-dasharray:4 4}
-.kit .k-dep-edge[data-kind="inh"]{stroke-dasharray:5 3}
+.kit .k-dep-edge.todo{opacity:.24;stroke-dasharray:5 4}
+.kit .k-dep-edge[data-kind="inh"]{stroke-dasharray:6 4}
 .kit .k-dep-edge[data-kind="inh"].on{stroke-dasharray:6 4}
+.kit .k-dep-edge[data-kind="inh"].k-inh-flow{stroke-dasharray:6 4;animation:kflow 1.1s linear infinite}
+@keyframes kflow{to{stroke-dashoffset:-10}}
 .kit svg .k-compact .k-t{font-size:13.5px;font-weight:700}
 .kit svg .k-compact .k-s{font-size:11.5px}
 .kit .k-attr-row.pend{opacity:.48}
@@ -1547,7 +1549,7 @@ pre code{background:none;padding:0;font-size:inherit}
 @keyframes kpop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
 .kit .k-anim-in{animation:kanimin .42s var(--ease)}
 @keyframes kanimin{from{opacity:0}to{opacity:1}}
-.kit .k-tree-draw{stroke-dasharray:1;stroke-dashoffset:1;animation:kdraw .55s var(--ease) forwards}
+.kit .k-tree-draw{stroke-dasharray:var(--plen,320);stroke-dashoffset:var(--plen,320);animation:kdraw .52s var(--ease) forwards}
 /* timeline */
 .kit .k-axis{stroke:rgb(var(--fg-rgb) / .38);stroke-width:2.5;stroke-linecap:round}
 .kit .k-axis-arr{fill:rgb(var(--fg-rgb) / .45)}
@@ -1611,9 +1613,11 @@ pre code{background:none;padding:0;font-size:inherit}
 .kit svg.k-cam{overflow:hidden}
 .m-has-focus .kit svg :is(.k-feat,.k-n,.k-tn,.k-dn,[data-part]):not(.m-focus){opacity:.2}
 .m-has-focus .kit svg :is(.k-feat,.k-n,.k-tn,.k-dn,[data-part]).m-focus{opacity:1;filter:drop-shadow(0 0 5px color-mix(in srgb,var(--rc,var(--pc)) 45%,transparent))}
-html[data-motion="off"] .k-pop,html[data-motion="off"] .k-anim-in,html[data-motion="off"] .k-tree-draw,html[data-motion="off"] .k-pulse-ring{animation:none;stroke-dasharray:none;stroke-dashoffset:0}
+html[data-motion="off"] .k-pop,html[data-motion="off"] .k-anim-in,html[data-motion="off"] .k-tree-draw,html[data-motion="off"] .k-inh-flow,html[data-motion="off"] .k-pulse-ring{animation:none;stroke-dashoffset:0}
+html[data-motion="off"] .k-tree-draw{stroke-dasharray:none}
 @media (prefers-reduced-motion:reduce){
-  html:not([data-motion="on"]) .k-pop,html:not([data-motion="on"]) .k-anim-in,html:not([data-motion="on"]) .k-tree-draw,html:not([data-motion="on"]) .k-pulse-ring{animation:none!important;stroke-dasharray:none!important;stroke-dashoffset:0!important}
+  html:not([data-motion="on"]) .k-pop,html:not([data-motion="on"]) .k-anim-in,html:not([data-motion="on"]) .k-tree-draw,html:not([data-motion="on"]) .k-inh-flow,html:not([data-motion="on"]) .k-pulse-ring{animation:none!important;stroke-dashoffset:0!important}
+  html:not([data-motion="on"]) .k-tree-draw{stroke-dasharray:none!important}
 }
 /* HTML kits (derive, annotate) */
 .kit .kit-html{padding:16px 22px 6px}
