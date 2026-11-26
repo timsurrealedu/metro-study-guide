@@ -926,7 +926,7 @@ Kit.annotate=(id,o)=>{
 };
 
 /* =================================================================
-   10. tree — hierarchical / decision / search / parse trees
+   10. tree — hierarchical / decision / search / SDD parse trees
    ================================================================= */
 Kit.tree=(id,o)=>{
   const S=setup(id,"tree");if(!S||!o.root)return;
@@ -935,9 +935,10 @@ Kit.tree=(id,o)=>{
   function walk(nd,parent,depth){
     const i=nodes.length,cid=nd.id!=null?String(nd.id):"n"+i,ch=nd.children||[];
     const kind=nd.kind||(depth===0?"root":ch.length?"decision":"leaf");
-    const role=roleKey(nd.role)||(kind==="leaf"?"r":kind==="pruned"?"k":kind==="root"||kind==="decision"?"c":"");
+    const role=roleKey(nd.role)||(kind==="leaf"?"r":kind==="pruned"?"k":kind==="term"?"v":kind==="nt"?"":(kind==="root"||kind==="decision"?"c":""));
     const er=roleKey(nd.edgeRole)||branchRole(nd.edge);
-    const item={i,id:cid,parent,depth,t:nd.t||"",sub:nd.sub||"",tag:nd.tag||"",kind,role,color:nd.color||"",edge:nd.edge||"",edgeRole:er,use:nd.use||"",children:[]};
+    const attrs=(nd.attrs||[]).map((a,ai)=>({ai,k:a.k||"",v:a.v!=null?String(a.v):"",role:roleKey(a.role)||(/^(s|val|v)$/i.test(a.k||"")?"r":/^i/i.test(a.k||"")?"c":"f"),use:a.use||"",pending:a.pending!=null?String(a.pending):"",at:a.at!=null?a.at:null}));
+    const item={i,id:cid,parent,depth,t:nd.t||"",sub:nd.sub||"",tag:nd.tag||"",kind,role,color:nd.color||"",edge:nd.edge||"",edgeRole:er,use:nd.use||"",attrs,order:nd.order!=null?nd.order:null,children:[]};
     nodes.push(item);byId.set(cid,i);
     if(parent>=0)nodes[parent].children.push(i);
     ch.forEach(c=>walk(c,i,depth+1));
@@ -946,92 +947,230 @@ Kit.tree=(id,o)=>{
   nodes.forEach(nd=>{const anc=[];let p=nd.parent;while(p>=0){anc.unshift(p);p=nodes[p].parent}nd.ancestors=anc});
   function subIds(i){const out=[i];nodes[i].children.forEach(c=>out.push(...subIds(c)));return out}
   nodes.forEach(nd=>nd.subtree=subIds(nd.i));
+  const parseEnd=spec=>{const s=String(spec||""),d=s.indexOf(".");return d>0?{id:s.slice(0,d),attr:s.slice(d+1)}:{id:s,attr:null}};
+  const deps=(o.deps||[]).map((d,di)=>{const f=parseEnd(d.from),t=parseEnd(d.to),kind=d.kind||(roleKey(d.role)==="c"?"inh":roleKey(d.role)==="f"?"merge":"syn");
+    return {di,id:d.id!=null?String(d.id):"d"+di,from:f.id,fromAttr:d.fromAttr||f.attr,to:t.id,toAttr:d.toAttr||t.attr,kind,role:roleKey(d.role)||(kind==="inh"?"c":kind==="merge"?"f":"r"),label:d.label||"",use:d.use||"",curve:d.curve||0};
+  });
+  const hasDeps=deps.length>0,compact=o.compact!==undefined?!!o.compact:(hasDeps||nodes.length>9);
   const bfs=[],q=[0];while(q.length){const u=q.shift();bfs.push(u);nodes[u].children.forEach(c=>q.push(c))}
   const steps=stepsOr(o,bfs.map((u,k)=>({t:nodes[u].t,d:nodes[u].use||nodes[u].sub||"",on:[nodes[u].id],reveal:bfs.slice(0,k+1).map(x=>nodes[x].id)})));
   const idxOf=x=>typeof x==="number"?x:byId.get(String(x));
-  const kindLabel={root:"ROOT",decision:"DECISION",branch:"BRANCH",leaf:"LEAF",pruned:"PRUNED"};
-  const kindGlyph={root:"◎",decision:"◆",branch:"▸",leaf:"✓",pruned:"✕"};
+  const depById=new Map(deps.map(d=>[d.id,d.di]));
+  const depIdxOf=x=>typeof x==="number"?x:depById.get(String(x));
+  const kindLabel={root:"ROOT",decision:"DECISION",branch:"BRANCH",leaf:"LEAF",pruned:"PRUNED",nt:"NONTERM",term:"TERM"};
+  const kindGlyph={root:"◎",decision:"◆",branch:"▸",leaf:"✓",pruned:"✕",nt:"◇",term:"●"};
   const wantLeg=o.legend!==false;
-  const an=wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:"Hover or tap any node to trace its path from the root and see its role."}):null;
+  const an=wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:hasDeps?"Hover any node to isolate its attribute flow and grammar edges, or tap to jump to its evaluation step.":"Hover or tap any node to trace its path from the root and see its role."}):null;
   if(an){
-    const defLeg=[];const seenR=new Set();
-    const roleMapLabel={c:"Split / Decision",r:"Leaf / Target",k:"Pruned / Cut",v:"Input / Variable",f:"Rule / Process",g:"Subtree / Group",a:"Highlight"};
-    const roleSwatch={c:"dia",r:"dot",k:"cut",v:"box",f:"box",g:"area",a:"dot"};
-    nodes.forEach(nd=>{const rk=nd.role;if(rk&&!seenR.has(rk)){seenR.add(rk);defLeg.push({role:rk,label:roleMapLabel[rk]||rk,swatch:roleSwatch[rk]||"box",use:`Nodes highlighted with the ${roleMapLabel[rk]||rk} role.`})}});
+    let defLeg=[];
+    if(hasDeps){
+      if(deps.some(d=>d.kind==="syn"))defLeg.push({role:"r",label:"Synthesized (.s / .val)",swatch:"line",use:"Bottom-up semantic flow: computed from children or lexical value."});
+      if(deps.some(d=>d.kind==="inh"))defLeg.push({role:"c",label:"Inherited (.i)",swatch:"line",use:"Top-down / sibling flow: passed from parent or left sibling before recursing."});
+      if(deps.some(d=>d.kind==="merge"))defLeg.push({role:"f",label:"Combined Rule",swatch:"line",use:"Combines parent inherited context with child values."});
+      if(nodes.some(nd=>nd.kind==="term"))defLeg.push({role:"v",label:"Terminal Token",swatch:"box",use:"Grammar token leaf along the bottom frontier."});
+      defLeg.push({label:"Parse Skeleton",swatch:"line",color:"var(--ink-3)",use:"Quiet structural grammar derivation lines behind the attribute flow."});
+    } else {
+      const seenR=new Set();
+      const roleMapLabel={c:"Split / Decision",r:"Leaf / Target",k:"Pruned / Cut",v:"Input / Variable",f:"Rule / Process",g:"Subtree / Group",a:"Highlight"};
+      const roleSwatch={c:"dia",r:"dot",k:"cut",v:"box",f:"box",g:"area",a:"dot"};
+      nodes.forEach(nd=>{const rk=nd.role;if(rk&&!seenR.has(rk)){seenR.add(rk);defLeg.push({role:rk,label:roleMapLabel[rk]||rk,swatch:roleSwatch[rk]||"box",use:`Nodes highlighted with the ${roleMapLabel[rk]||rk} role.`})}});
+    }
     an.setItems(Array.isArray(o.legend)?o.legend:defLeg);an.wire(svg);
   }
-  let cur=0,prevRev=new Set(nodes.map(n=>n.i)),player=null;
+  let cur=0,prevRev=new Set(nodes.map(n=>n.i)),prevDeps=new Set(),player=null;
   function countLeaves(i){return nodes[i].children.length?nodes[i].children.reduce((s,c)=>s+countLeaves(c),0):1}
   function layout(W){
     const leafN=countLeaves(0);
     const maxWord=Math.max(4,...nodes.map(nd=>Math.max(...String(nd.t).split(/\s+/).map(w=>w.length))));
     const minBw=Math.max(96,Math.min(156,Math.ceil(maxWord*8.1)+30));
-    const gapX=leafN>4?10:16;
+    let gapX=compact?(leafN>8?6:10):(leafN>4?10:16);
     const rawBw=Math.floor((W-20-(leafN-1)*gapX)/Math.max(1,leafN));
-    const useWide=W>=540&&o.orientation!=="left"&&rawBw>=minBw;
+    const attrTxt=a=>a.v?(a.k?`${a.k} = ${a.v}`:a.v):a.k;
+    const estWidth=nd=>{
+      if(compact&&nd.kind==="term")return Math.max(36,Math.min(82,Math.max(Math.ceil(nd.t.length*7.4),nd.sub?Math.ceil(nd.sub.length*6.4):0)+20));
+      if(compact){
+        const aw=nd.attrs.length?Math.max(...nd.attrs.map(a=>Math.ceil(attrTxt(a).length*6.7)+24)):0;
+        const tw=Math.ceil(nd.t.length*8.2)+22+(nd.order!=null?22:0);
+        const sw=nd.sub?Math.ceil(nd.sub.length*6.8)+20:0;
+        return Math.max(58,Math.min(o.boxWidth||146,Math.max(tw,aw,sw)));
+      }
+      return Math.min(o.boxWidth||186,rawBw);
+    };
+    let nodeW=nodes.map(estWidth);
+    const computeSubW=(nw,gx)=>{const sw=new Array(nodes.length).fill(0);for(let i=nodes.length-1;i>=0;i--){const nd=nodes[i];if(!nd.children.length)sw[i]=nw[i];else{const cw=nd.children.reduce((a,c)=>a+sw[c],0)+(nd.children.length-1)*gx;sw[i]=Math.max(nw[i],cw)}}return sw};
+    let subW=compact?computeSubW(nodeW,gapX):[];
+    let totalW=compact?subW[0]:(leafN*Math.min(o.boxWidth||186,rawBw)+(leafN-1)*gapX);
+    if(compact&&W>=540&&o.orientation!=="left"&&totalW>W-16){
+      const sc=Math.max(.68,(W-20)/totalW);
+      gapX=Math.max(4,Math.floor(gapX*sc));
+      nodeW=nodes.map((nd,i)=>Math.max(nd.kind==="term"?32:54,Math.floor(nodeW[i]*sc)));
+      subW=computeSubW(nodeW,gapX);totalW=subW[0];
+    }
+    const useWide=W>=540&&o.orientation!=="left"&&(compact?(totalW<=W-8):(rawBw>=minBw));
     const P=[];
     let H=200;
+    const nodeText=(nd,bw)=>{
+      if(compact&&nd.kind==="term")return {t:[nd.t],s:nd.sub?[nd.sub]:[],compact:true,term:true};
+      if(compact)return {t:fit(nd.t,bw-(nd.order!=null?32:18),13.5),s:nd.sub?fit(nd.sub,bw-18,11.5):[],compact:true,term:false};
+      return {t:fit(nd.t,bw-28,14),s:nd.sub?fit(nd.sub,bw-28,12):[],compact:false,term:false};
+    };
+    const nodeHeight=(nd,w)=>{
+      if(w.term)return 10+16+(w.s.length?14:0)+8;
+      if(w.compact)return 8+w.t.length*16+(nd.attrs.length?3+nd.attrs.length*16:0)+(w.s.length?3+w.s.length*14:0)+(nd.tag?24:0)+8;
+      return 14+15+w.t.length*18+(w.s.length?3+w.s.length*15.5:0)+(nd.tag?28:0)+12;
+    };
     if(useWide){
-      const bw=Math.min(o.boxWidth||186,rawBw),ox=(W-(leafN*bw+(leafN-1)*gapX))/2;
-      const wr=nodes.map(nd=>({t:fit(nd.t,bw-28,14),s:nd.sub?fit(nd.sub,bw-28,12):[]}));
-      const hh=wr.map((w,i)=>14+15+w.t.length*18+(w.s.length?3+w.s.length*15.5:0)+(nodes[i].tag?28:0)+12);
+      const wr=nodes.map((nd,i)=>nodeText(nd,nodeW[i]));
+      const hh=wr.map((w,i)=>nodeHeight(nodes[i],w));
       const maxD=Math.max(...nodes.map(nd=>nd.depth));
       const rowH=[],hasEdge=[];
       for(let d=0;d<=maxD;d++){rowH[d]=Math.max(...nodes.filter(n=>n.depth===d).map(n=>hh[n.i]));hasEdge[d]=nodes.some(n=>n.depth===d&&n.edge)}
-      const yAt=[];let y=12;for(let d=0;d<=maxD;d++){if(d>0)y+=rowH[d-1]+(hasEdge[d]?58:38);yAt[d]=y}
-      let lx=0;
-      const assignX=i=>{const nd=nodes[i];
-        if(!nd.children.length){const cx=ox+lx*(bw+gapX)+bw/2;lx++;P[i]={x:cx-bw/2,cx,y:yAt[nd.depth],w:bw,h:rowH[nd.depth],wr:wr[i]}}
-        else{nd.children.forEach(assignX);const cx=(P[nd.children[0]].cx+P[nd.children[nd.children.length-1]].cx)/2;P[i]={x:cx-bw/2,cx,y:yAt[nd.depth],w:bw,h:rowH[nd.depth],wr:wr[i]}}};
-      assignX(0);
-      H=yAt[maxD]+rowH[maxD]+14;
+      const gapY=hasDeps?26:38;
+      const yAt=[];let y=12;for(let d=0;d<=maxD;d++){if(d>0)y+=rowH[d-1]+(hasEdge[d]?56:gapY);yAt[d]=y}
+      if(compact){
+        const ox=Math.max(8,(W-totalW)/2);
+        const place=(i,leftX)=>{
+          const nd=nodes[i],w=nodeW[i],h=nd.kind==="term"?hh[i]:rowH[nd.depth];
+          if(!nd.children.length){const cx=leftX+subW[i]/2;P[i]={x:cx-w/2,cx,y:yAt[nd.depth],w,h,wr:wr[i]};return}
+          const ch=nd.children,cw=ch.reduce((a,c)=>a+subW[c],0)+(ch.length-1)*gapX;
+          let cx0=leftX+(subW[i]-cw)/2;
+          ch.forEach(c=>{place(c,cx0);cx0+=subW[c]+gapX});
+          const rawCx=(P[ch[0]].cx+P[ch[ch.length-1]].cx)/2;
+          const cx=Math.max(leftX+w/2,Math.min(leftX+subW[i]-w/2,rawCx));
+          P[i]={x:cx-w/2,cx,y:yAt[nd.depth],w,h,wr:wr[i]};
+        };
+        place(0,ox);
+      } else {
+        const bw=nodeW[0],ox=(W-(leafN*bw+(leafN-1)*gapX))/2;
+        let lx=0;
+        const assignX=i=>{const nd=nodes[i];
+          if(!nd.children.length){const cx=ox+lx*(bw+gapX)+bw/2;lx++;P[i]={x:cx-bw/2,cx,y:yAt[nd.depth],w:bw,h:rowH[nd.depth],wr:wr[i]}}
+          else{nd.children.forEach(assignX);const cx=(P[nd.children[0]].cx+P[nd.children[nd.children.length-1]].cx)/2;P[i]={x:cx-bw/2,cx,y:yAt[nd.depth],w:bw,h:rowH[nd.depth],wr:wr[i]}}};
+        assignX(0);
+      }
+      H=Math.max(...nodes.map(nd=>P[nd.i].y+P[nd.i].h))+16;
     } else {
-      const indent=Math.min(20,Math.max(12,Math.floor(W*.045)));
+      const gutter=hasDeps?Math.min(72,Math.max(48,Math.floor(W*.18))):0;
+      const indent=Math.min(hasDeps?14:20,Math.max(10,Math.floor(W*(hasDeps?.032:.045))));
       const order=[];(function dfs(i){order.push(i);nodes[i].children.forEach(dfs)})(0);
       let y=10;
-      order.forEach((i,k)=>{const nd=nodes[i],x=10+nd.depth*indent,bw=Math.max(150,W-x-10);
-        if(k>0)y+=nd.edge?32:14;
-        const w={t:fit(nd.t,bw-28,14),s:nd.sub?fit(nd.sub,bw-28,12):[]};
-        const h=14+15+w.t.length*18+(w.s.length?3+w.s.length*15.5:0)+(nd.tag?28:0)+12;
+      order.forEach((i,k)=>{const nd=nodes[i],x=10+nd.depth*indent,bw=Math.max(134,W-x-10-gutter);
+        if(k>0)y+=nd.edge?30:(compact?9:14);
+        const w=nodeText(nd,bw),h=nodeHeight(nd,w);
         P[i]={x,cx:x+bw/2,y,w:bw,h,wr:w};y+=h;
       });
-      H=y+12;
+      H=y+14;
     }
+    const attrPos=(nd,p)=>{const out={};if(!nd.attrs.length)return out;
+      const base=p.y+8+p.wr.t.length*16+3;
+      nd.attrs.forEach((a,ai)=>{out[a.k]={y:base+ai*16+8,ai}});
+      return out;
+    };
+    const Apos=nodes.map(nd=>attrPos(nd,P[nd.i]));
     svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
-    const edgeRoles=[...new Set(nodes.map(nd=>nd.edgeRole||nd.role).filter(Boolean))];
-    let s=markers(S.uid)+edgeRoles.map(rk=>`<defs><marker id="${S.uid}-on-${rk}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head on" style="fill:var(--m-${rk})"/></marker></defs>`).join("");
+    const edgeRoles=[...new Set([...nodes.map(nd=>nd.edgeRole||nd.role),...deps.map(d=>d.role)].filter(Boolean))];
+    let s=markers(S.uid)+edgeRoles.map(rk=>`<defs><marker id="${S.uid}-on-${rk}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head on" style="fill:var(--m-${rk})"/></marker><marker id="${S.uid}-off-${rk}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head" style="fill:var(--m-${rk});opacity:.55"/></marker></defs>`).join("");
+    s+=`<g class="k-skel-layer">`;
     nodes.forEach(nd=>{
       if(nd.parent<0)return;
       const A=P[nd.parent],B=P[nd.i],erk=nd.edgeRole||nd.role,rc=nd.color||(erk?`var(--m-${erk})`:"var(--pc)");
       let d,px,py;
       if(useWide){
-        const x1=A.cx,y1=A.y+A.h,x2=B.cx,y2=B.y-4,ym=(y1+y2)/2,t=.62,mt=1-t;
+        const x1=A.cx,y1=A.y+A.h,x2=B.cx,y2=B.y-(hasDeps?2:4),ym=(y1+y2)/2,t=.62,mt=1-t;
         d=`M${x1.toFixed(1)},${y1.toFixed(1)} C${x1.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
         px=(mt**3+3*mt*mt*t)*x1+(3*mt*t*t+t**3)*x2;
         py=mt**3*y1+3*mt*mt*t*ym+3*mt*t*t*ym+t**3*y2;
       } else {
-        const sx=A.x+12,sy=A.y+A.h,ex=B.x-3,ey=B.y+B.h/2;
+        const sx=A.x+10,sy=A.y+A.h,ex=B.x-3,ey=B.y+B.h/2;
         d=`M${sx.toFixed(1)},${sy.toFixed(1)} V${ey.toFixed(1)} H${ex.toFixed(1)}`;
         const pw=nd.edge?Math.max(28,Math.ceil(nd.edge.length*11*.66)+22):0;
         px=Math.max(B.x+pw/2+4,sx+pw/2+8);py=B.y-15;
       }
-      s+=`<path class="k-tree-edge" data-c="${nd.i}"${erk?` data-er="${erk}"`:""} style="--rc:${rc}" pathLength="1" d="${d}"/>`;
+      const cls=hasDeps?"k-tree-edge k-tree-skel":"k-tree-edge";
+      s+=`<path class="${cls}" data-c="${nd.i}"${erk?` data-er="${erk}"`:""} style="--rc:${rc}" pathLength="1" d="${d}"/>`;
       if(nd.edge)s+=`<g class="k-edge-pill" data-c="${nd.i}">${pillSvg(px,py,nd.edge,{W,H,fs:11,cls:"k-epill",tcls:"k-epill-t",role:erk,minW:26})}</g>`;
     });
+    s+=`</g><g class="k-node-layer">`;
     nodes.forEach(nd=>{
       const p=P[nd.i],w=p.wr,rk=nd.role,rc=nd.color||(rk?`var(--m-${rk})`:"var(--pc)");
-      const rx=nd.kind==="leaf"?18:13,gId=S.uid+"-tc"+nd.i;
-      let t=`<g class="k-tn clickable" data-i="${nd.i}" tabindex="0" role="button" aria-label="${escAttr(nd.t)}"${rk?` data-role="${rk}"`:""}${nd.use?` data-use="${escAttr(nd.use)}" data-uname="${escAttr(nd.t)}"`:""} style="--rc:${rc}">`;
+      const rx=w.term?12:(nd.kind==="leaf"?18:(compact?10:13)),gId=S.uid+"-tc"+nd.i;
+      const cls="k-tn clickable"+(w.term?" k-term":"")+(compact?" k-compact":"");
+      let t=`<g class="${cls}" data-i="${nd.i}" tabindex="0" role="button" aria-label="${escAttr(nd.t)}"${rk?` data-role="${rk}"`:""}${nd.use?` data-use="${escAttr(nd.use)}" data-uname="${escAttr(nd.t)}"`:""} style="--rc:${rc}">`;
       t+=`<clipPath id="${gId}"><rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="${rx}"/></clipPath>`;
-      t+=`<rect class="k-node" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="${rx}"/>`;
-      t+=`<rect class="k-accent" x="${p.x}" y="${p.y}" width="5" height="${p.h}" clip-path="url(#${gId})"/>`;
-      t+=`<text class="k-kind" x="${p.x+14}" y="${p.y+20}">${kindGlyph[nd.kind]||"•"} ${kindLabel[nd.kind]||nd.kind.toUpperCase()}</text>`;
-      t+=tlines(p.x+14,p.y+36,w.t,"k-t",18);
-      if(w.s.length)t+=tlines(p.x+14,p.y+36+w.t.length*18+2,w.s,"k-s",15.5);
-      if(nd.tag){const tw=Math.min(p.w-26,Math.ceil(nd.tag.length*7.8)+22);t+=`<g class="k-tag"><rect x="${p.x+14}" y="${p.y+p.h-34}" width="${tw}" height="22" rx="11"/><text class="k-c" x="${p.x+24}" y="${p.y+p.h-18.5}">${escHtml(nd.tag)}</text></g>`}
-      t+=`<line class="k-slash hide" x1="${p.x+8}" y1="${p.y+p.h-8}" x2="${p.x+p.w-8}" y2="${p.y+8}"/>`;
+      if(w.term){
+        t+=`<rect class="k-node k-term-box" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="${rx}"/>`;
+        t+=`<text class="k-term-t" x="${p.cx}" y="${p.y+(w.s.length?18:p.h/2+4.5)}" text-anchor="middle">${escHtml(nd.t)}</text>`;
+        if(w.s.length)t+=`<text class="k-s" x="${p.cx}" y="${p.y+31}" text-anchor="middle">${escHtml(nd.sub)}</text>`;
+      } else {
+        t+=`<rect class="k-node" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="${rx}"/>`;
+        t+=`<rect class="k-accent" x="${p.x}" y="${p.y}" width="${compact?4:5}" height="${p.h}" clip-path="url(#${gId})"/>`;
+        const padL=compact?10:14;
+        if(!compact)t+=`<text class="k-kind" x="${p.x+padL}" y="${p.y+20}">${kindGlyph[nd.kind]||"•"} ${kindLabel[nd.kind]||nd.kind.toUpperCase()}</text>`;
+        const ty=compact?p.y+19:p.y+36,lh=compact?16:18;
+        t+=tlines(p.x+padL,ty,w.t,"k-t",lh);
+        if(nd.order!=null){const ox=p.x+p.w-12,oy=p.y+12;t+=`<g class="k-ord"><circle cx="${ox}" cy="${oy}" r="8"/><text class="k-ord-t" x="${ox}" y="${oy+3.5}" text-anchor="middle">${escHtml(String(nd.order))}</text></g>`}
+        if(nd.attrs.length){
+          const ab=p.y+8+w.t.length*16+3;
+          nd.attrs.forEach((a,ai)=>{
+            const ry=ab+ai*16,col=roleCol(a.role,"var(--pc)"),full=attrTxt(a),pend=a.pending||(a.k?`${a.k} = ?`:"?");
+            t+=`<g class="k-attr-row" data-k="${escAttr(a.k)}" data-full="${escAttr(full)}" data-pend="${escAttr(pend)}"><circle class="k-attr-dot" cx="${p.x+10}" cy="${ry+8}" r="2.7" style="fill:${col}"/><text class="k-attr-t" x="${p.x+16}" y="${ry+12}">${escHtml(full)}</text></g>`;
+          });
+        }
+        const sy=compact?(p.y+8+w.t.length*16+(nd.attrs.length?3+nd.attrs.length*16:0)+14):(p.y+36+w.t.length*18+2);
+        if(w.s.length)t+=tlines(p.x+padL,sy,w.s,"k-s",compact?14:15.5);
+        if(nd.tag){const tw=Math.min(p.w-20,Math.ceil(nd.tag.length*7.4)+18);t+=`<g class="k-tag"><rect x="${p.x+padL}" y="${p.y+p.h-26}" width="${tw}" height="19" rx="9.5"/><text class="k-c" x="${p.x+padL+8}" y="${p.y+p.h-13}">${escHtml(nd.tag)}</text></g>`}
+        t+=`<line class="k-slash hide" x1="${p.x+8}" y1="${p.y+p.h-8}" x2="${p.x+p.w-8}" y2="${p.y+8}"/>`;
+      }
       s+=t+"</g>";
     });
+    s+=`</g>`;
+    if(hasDeps){
+      s+=`<g class="k-dep-layer">`;
+      const pillDefs=[];
+      deps.forEach(dp=>{
+        const fi=byId.get(dp.from),ti=byId.get(dp.to);if(fi==null||ti==null)return;
+        const F=nodes[fi],T=nodes[ti],fp=P[fi],tp=P[ti];
+        const fy=dp.fromAttr&&Apos[fi][dp.fromAttr]?Apos[fi][dp.fromAttr].y:fp.y+fp.h/2;
+        const ty=dp.toAttr&&Apos[ti][dp.toAttr]?Apos[ti][dp.toAttr].y:tp.y+tp.h/2;
+        let x1,y1,x2,y2,c1x,c1y,c2x,c2y,mx,my;
+        if(useWide){
+          if(Math.abs(fp.y-tp.y)<18){
+            const lr=tp.cx>=fp.cx;x1=lr?fp.x+fp.w+2:fp.x-2;y1=fy;x2=lr?tp.x-4:tp.x+tp.w+4;y2=ty;
+            const arch=dp.curve||(lr?-20:20);c1x=x1+(x2-x1)*.33;c1y=y1+arch;c2x=x1+(x2-x1)*.67;c2y=y2+arch;
+          } else if(fp.y>tp.y){
+            const rightSide=fp.cx>tp.cx+24;
+            x1=rightSide?fp.x+fp.w*.72:(fp.cx<tp.cx-24?fp.x+fp.w*.28:fp.cx);
+            y1=fp.y-2;
+            x2=rightSide?tp.x+tp.w+4:(fp.cx<tp.cx-24?tp.x-4:tp.cx);
+            y2=Math.abs(fp.cx-tp.cx)<=24?tp.y+tp.h+4:ty;
+            const bulge=dp.curve||(rightSide?22:(fp.cx<tp.cx-24?-22:18));
+            c1x=x1+bulge;c1y=(y1+y2)*.55;c2x=x2+bulge*.65;c2y=y2+(y1>y2?8:-8);
+          } else {
+            const lr=tp.cx>=fp.cx;
+            x1=Math.abs(tp.cx-fp.cx)<18?fp.x+fp.w+2:(lr?fp.x+fp.w+2:fp.x-2);
+            y1=fy;
+            x2=Math.abs(tp.cx-fp.cx)<18?tp.x+tp.w+4:(lr?tp.x-4:tp.x+tp.w+4);
+            y2=ty;
+            const b=dp.curve||(Math.abs(tp.cx-fp.cx)<18?24:(lr?14:-14));
+            c1x=x1+b;c1y=y1+(y2-y1)*.25;c2x=x2+(Math.abs(tp.cx-fp.cx)<18?b:-b*.6);c2y=y2-(y2-y1)*.25;
+          }
+          mx=(x1+3*c1x+3*c2x+x2)/8;my=(y1+3*c1y+3*c2y+y2)/8;
+        } else {
+          const laneX=W-10-(dp.di%4)*9;
+          x1=fp.x+fp.w+2;y1=fy;x2=tp.x+tp.w+4;y2=ty;
+          c1x=laneX;c1y=y1;c2x=laneX;c2y=y2;
+          mx=laneX-18;my=(y1+y2)/2;
+        }
+        const rc=roleCol(dp.role,"var(--pc)");
+        const dPath=`M${x1.toFixed(1)},${y1.toFixed(1)} C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+        s+=`<path class="k-dep-edge${dp.use?" clickable":""}" data-d="${dp.di}" data-f="${fi}" data-t="${ti}" data-kind="${dp.kind}" data-role="${dp.role}" style="--rc:${rc}"${dp.use?` data-use="${escAttr(dp.use)}" data-uname="${escAttr(dp.label||dp.kind)}"`:""} pathLength="1" d="${dPath}"/>`;
+        if(dp.label)pillDefs.push({dp,mx,my});
+      });
+      pillDefs.forEach(({dp,mx,my})=>{
+        s+=`<g class="k-dep-pill hide" data-d="${dp.di}">${pillSvg(mx,my,dp.label,{W,H,fs:10.5,cls:"k-epill",tcls:"k-epill-t",role:dp.role,on:true,minW:28})}</g>`;
+      });
+      s+=`</g>`;
+    }
     svg.innerHTML=s;render(cur);
   }
   function render(i){cur=i;const s=steps[i]||{};
@@ -1040,30 +1179,58 @@ Kit.tree=(id,o)=>{
     const on=new Set((s.on||[]).map(idxOf).filter(k=>k!=null));
     const pruned=new Set();(s.prune||[]).forEach(x=>{const k=idxOf(x);if(k!=null&&k>=0)nodes[k].subtree.forEach(u=>pruned.add(u))});
     nodes.forEach(nd=>{if(nd.kind==="pruned")nd.subtree.forEach(u=>pruned.add(u))});
-    const path=s.path?expandAnc(s.path):(o.showPath!==false?expandAnc([...on]):new Set());
+    const path=s.path?expandAnc(s.path):((!hasDeps&&o.showPath!==false)?expandAnc([...on]):new Set());
     const visit=new Set((s.visit||[]).map(idxOf).filter(k=>k!=null));
-    $$(".k-tn",svg).forEach(g=>{const k=+g.dataset.i,vis=rev.has(k),isNew=vis&&!prevRev.has(k);
+    const actDeps=new Set((s.deps||[]).map(depIdxOf).filter(k=>k!=null));
+    const doneDeps=new Set((s.doneDeps||[]).map(depIdxOf).filter(k=>k!=null));
+    const stepOrder=s.order!=null?s.order:null;
+    const revAttrs=s.attrs?new Set(Array.isArray(s.attrs)?s.attrs:Object.keys(s.attrs)):null;
+    $$(".k-tn",svg).forEach(g=>{const k=+g.dataset.i,nd=nodes[k],vis=rev.has(k),isNew=vis&&!prevRev.has(k);
       g.classList.toggle("hide",!vis);
       g.classList.toggle("k-pop",isNew&&E.motionOn());
       g.classList.toggle("on",on.has(k));
       g.classList.toggle("pruned",pruned.has(k));
       g.classList.toggle("path",path.has(k)&&!pruned.has(k));
-      g.classList.toggle("done",!on.has(k)&&!pruned.has(k)&&(visit.has(k)||path.has(k)));
+      g.classList.toggle("done",!on.has(k)&&!pruned.has(k)&&(visit.has(k)||path.has(k)||(stepOrder!=null&&nd.order!=null&&nd.order<=stepOrder)));
       g.classList.toggle("todo",vis&&!on.has(k)&&!visit.has(k)&&!path.has(k)&&!pruned.has(k));
       const sl=$(".k-slash",g);if(sl)sl.classList.toggle("hide",!pruned.has(k));
+      if(nd.attrs.length){
+        $$(".k-attr-row",g).forEach((row,ai)=>{
+          const a=nd.attrs[ai];if(!a)return;
+          const attrId=`${nd.id}.${a.k}`;
+          const showFull=(revAttrs?revAttrs.has(attrId)||revAttrs.has(a.k):true)&&(a.at==null||(stepOrder!=null?a.at<=stepOrder:i>=a.at));
+          const tx=$(".k-attr-t",row);if(tx)tx.textContent=showFull?row.dataset.full:row.dataset.pend;
+          row.classList.toggle("pend",!showFull);
+        });
+      }
     });
-    $$(".k-tree-edge",svg).forEach(e=>{const k=+e.dataset.c,vis=rev.has(k),isNew=vis&&!prevRev.has(k),isPr=pruned.has(k),isPa=path.has(k)&&!isPr,isDn=isPa||visit.has(k),erk=e.dataset.er;
+    $$(".k-tree-edge",svg).forEach(e=>{const k=+e.dataset.c,vis=rev.has(k),isNew=vis&&!prevRev.has(k),isPr=pruned.has(k),isPa=path.has(k)&&!isPr,isDn=isPa||visit.has(k),erk=e.dataset.er,isSk=e.classList.contains("k-tree-skel");
       e.classList.toggle("hide",!vis);
       e.classList.toggle("k-tree-draw",isNew&&E.motionOn());
       e.classList.toggle("pruned",isPr);
       e.classList.toggle("path",isPa);
       e.classList.toggle("flowline",isPa);
-      e.classList.toggle("done",isDn&&!isPr);
-      e.classList.toggle("todo",vis&&!isDn&&!isPr);
-      e.setAttribute("marker-end",`url(#${S.uid}-${isDn&&!isPr?(erk?"on-"+erk:"on"):"off"})`);
+      e.classList.toggle("done",!isSk&&isDn&&!isPr);
+      e.classList.toggle("todo",!isSk&&vis&&!isDn&&!isPr);
+      if(!isSk)e.setAttribute("marker-end",`url(#${S.uid}-${isDn&&!isPr?(erk?"on-"+erk:"on"):"off"})`);
     });
     $$(".k-edge-pill",svg).forEach(p=>{const k=+p.dataset.c,vis=rev.has(k);p.classList.toggle("hide",!vis);
       const r=$(".k-epill",p);if(r)r.classList.toggle("on",path.has(k)&&!pruned.has(k))});
+    if(hasDeps){
+      $$(".k-dep-edge",svg).forEach(e=>{const di=+e.dataset.d,dp=deps[di];if(!dp)return;
+        const fi=byId.get(dp.from),ti=byId.get(dp.to),vis=rev.has(fi)&&rev.has(ti);
+        const isAct=actDeps.has(di),isDone=doneDeps.has(di)&&!isAct,isNew=isAct&&!prevDeps.has(di);
+        e.classList.toggle("hide",!vis);
+        e.classList.toggle("on",isAct);
+        e.classList.toggle("done",isDone);
+        e.classList.toggle("todo",vis&&!isAct&&!isDone);
+        e.classList.toggle("flowline",isAct&&E.motionOn());
+        e.classList.toggle("k-tree-draw",isNew&&E.motionOn());
+        e.setAttribute("marker-end",`url(#${S.uid}-${(isAct||isDone)?"on-"+dp.role:"off-"+dp.role})`);
+      });
+      $$(".k-dep-pill",svg).forEach(p=>{const di=+p.dataset.d;p.classList.toggle("hide",!actDeps.has(di))});
+      prevDeps=new Set([...actDeps,...doneDeps]);
+    }
     prevRev=rev;
     if(an&&on.size===1){const u=[...on][0];if(nodes[u]?.use)an.showUse(nodes[u].t,nodes[u].use,roleCol(nodes[u].role,"var(--pc)"))}
     if(o.on)o.on(i,svg,s);
@@ -1074,13 +1241,263 @@ Kit.tree=(id,o)=>{
     if(an&&nd.use)an.showUse(nd.t,nd.use,roleCol(nd.role,"var(--pc)"));
   };
   svg.addEventListener("pointerover",e=>{const g=e.target.closest(".k-tn");if(!g||svg.closest(".m-has-focus"))return;
-    const k=+g.dataset.i,nd=nodes[k];if(!nd)return;const anc=new Set([...nd.ancestors,k]);
-    $$(".k-tn",svg).forEach(n=>{const m=anc.has(+n.dataset.i);n.style.opacity=m?"1":".3"});
-    $$(".k-tree-edge",svg).forEach(ed=>{const m=anc.has(+ed.dataset.c);ed.style.opacity=m?"1":".2"});
+    const k=+g.dataset.i,nd=nodes[k];if(!nd)return;
+    if(hasDeps){
+      const keepN=new Set([k]),keepD=new Set();
+      deps.forEach(dp=>{const fi=byId.get(dp.from),ti=byId.get(dp.to);if(fi===k||ti===k){keepD.add(dp.di);if(fi!=null)keepN.add(fi);if(ti!=null)keepN.add(ti)}});
+      if(nd.parent>=0)keepN.add(nd.parent);nd.children.forEach(c=>keepN.add(c));
+      $$(".k-tn",svg).forEach(n=>n.style.opacity=keepN.has(+n.dataset.i)?"1":".24");
+      $$(".k-tree-skel",svg).forEach(ed=>{const c=+ed.dataset.c,p=nodes[c]?.parent;ed.style.opacity=(c===k||p===k)?".7":".12"});
+      $$(".k-dep-edge",svg).forEach(ed=>ed.style.opacity=keepD.has(+ed.dataset.d)?"1":".14");
+    } else {
+      const anc=new Set([...nd.ancestors,k]);
+      $$(".k-tn",svg).forEach(n=>{const m=anc.has(+n.dataset.i);n.style.opacity=m?"1":".3"});
+      $$(".k-tree-edge",svg).forEach(ed=>{const m=anc.has(+ed.dataset.c);ed.style.opacity=m?"1":".2"});
+    }
   });
-  svg.addEventListener("pointerleave",()=>{$$(".k-tn,.k-tree-edge",svg).forEach(n=>n.style.opacity="")});
+  svg.addEventListener("pointerleave",()=>{$$(".k-tn,.k-tree-edge,.k-dep-edge",svg).forEach(n=>n.style.opacity="")});
   svg.addEventListener("click",e=>{const g=e.target.closest(".k-tn");if(g)jumpTree(g)});
   svg.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches(".k-tn")){e.preventDefault();jumpTree(e.target)}});
+  responsive(S,layout);
+  player=E.stepper(S.viz,steps,i=>render(i),{ms:o.ms});
+  return player;
+};
+
+/* =================================================================
+   11. dag — general directed acyclic graphs (Sugiyama layered DAG)
+   ================================================================= */
+Kit.dag=(id,o)=>{
+  const S=setup(id,"dag");if(!S||!o.nodes?.length)return;
+  const svg=svgIn(S,o.alt);
+  const rawN=o.nodes,rawE=o.edges||[];
+  const byId=new Map();
+  const nodes=rawN.map((nd,i)=>{const cid=nd.id!=null?String(nd.id):"n"+i;byId.set(cid,i);
+    return {i,id:cid,t:nd.t||cid,sub:nd.sub||"",tag:nd.tag||"",role:roleKey(nd.role)||"",color:nd.color||"",layer:nd.layer!=null?nd.layer:null,order:nd.order!=null?nd.order:null,shared:nd.shared===true,use:nd.use||"",preds:[],succs:[]};
+  });
+  const edges=[];
+  rawE.forEach((ed,ei)=>{
+    const u=byId.get(String(ed.from)),v=byId.get(String(ed.to));
+    if(u==null||v==null||u===v)return;
+    nodes[u].succs.push(v);nodes[v].preds.push(u);
+    edges.push({ei,id:ed.id!=null?String(ed.id):"e"+ei,u,v,label:ed.label||"",role:roleKey(ed.role)||"",kind:ed.kind||"",use:ed.use||""});
+  });
+  nodes.forEach(nd=>{
+    if(nd.preds.length>1)nd.shared=true;
+    if(!nd.role)nd.role=nd.preds.length===0?"v":(nd.shared?"f":(nd.succs.length===0?"r":"c"));
+  });
+  edges.forEach(ed=>{if(!ed.role)ed.role=nodes[ed.v].shared?"f":(nodes[ed.u].role||"c")});
+  const indeg=nodes.map(nd=>nd.preds.length),q=[],topo=[];
+  indeg.forEach((d,i)=>{if(d===0)q.push(i)});
+  while(q.length){const u=q.shift();topo.push(u);nodes[u].succs.forEach(v=>{indeg[v]--;if(indeg[v]===0)q.push(v)})}
+  if(topo.length<nodes.length)nodes.forEach(nd=>{if(!topo.includes(nd.i))topo.push(nd.i)});
+  const topoRank=new Array(nodes.length).fill(0);
+  topo.forEach((u,rk)=>{topoRank[u]=rk;if(nodes[u].order==null&&o.showOrder!==false)nodes[u].order=rk+1});
+  const rank=new Array(nodes.length).fill(0);
+  topo.forEach(u=>{const nd=nodes[u];if(nd.layer!=null)rank[u]=nd.layer;else if(nd.preds.length)rank[u]=Math.max(...nd.preds.map(p=>rank[p]+1))});
+  const maxL=Math.max(0,...rank);
+  if(o.rankDir==="BT")rank.forEach((r,i)=>{rank[i]=maxL-r});
+  const layers=Array.from({length:maxL+1},()=>[]);
+  nodes.forEach(nd=>layers[rank[nd.i]].push(nd.i));
+  const barySort=(L,refL,adj)=>{
+    const pos=new Map();refL.forEach((u,k)=>pos.set(u,k));
+    layers[L].sort((a,b)=>{
+      const nsA=adj(a).filter(x=>pos.has(x)),nsB=adj(b).filter(x=>pos.has(x));
+      const ba=nsA.length?nsA.reduce((s,x)=>s+pos.get(x),0)/nsA.length:nodes[a].i;
+      const bb=nsB.length?nsB.reduce((s,x)=>s+pos.get(x),0)/nsB.length:nodes[b].i;
+      return ba-bb||nodes[a].i-nodes[b].i;
+    });
+  };
+  for(let L=1;L<=maxL;L++)barySort(L,layers[L-1],u=>rank[u]>rank[u]?[]:(o.rankDir==="BT"?nodes[u].succs:nodes[u].preds));
+  for(let L=maxL-1;L>=0;L--)barySort(L,layers[L+1],u=>o.rankDir==="BT"?nodes[u].preds:nodes[u].succs);
+  for(let L=1;L<=maxL;L++)barySort(L,layers[L-1],u=>o.rankDir==="BT"?nodes[u].succs:nodes[u].preds);
+  const defSteps=layers.map((arr,L)=>{
+    const prevAll=layers.slice(0,L+1).flat();
+    return {t:`Layer ${L+1}`,d:arr.some(u=>nodes[u].shared)?"Shared/merge node reuses an already-computed result without duplicating work.":nodes[arr[0]].use||"",on:arr.map(u=>nodes[u].id),visit:layers.slice(0,L).flat().map(u=>nodes[u].id),edges:edges.filter(e=>arr.includes(e.v)).map(e=>e.id),reveal:prevAll.map(u=>nodes[u].id)};
+  });
+  const steps=stepsOr(o,defSteps);
+  const idxOf=x=>typeof x==="number"?x:byId.get(String(x));
+  const eById=new Map(edges.map(e=>[e.id,e.ei]));
+  const eIdxOf=x=>typeof x==="number"?x:eById.get(String(x));
+  const wantLeg=o.legend!==false;
+  const an=wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:"Hover any node to trace every upstream input and downstream dependent."}):null;
+  if(an){
+    const defLeg=[];const seen=new Set();
+    const lbl={v:"Source / Input",f:"Shared / Merge (×2+)",c:"Intermediate Op",r:"Output / Sink",g:"Group",k:"Cut",a:"Highlight"};
+    const sw={v:"box",f:"box",c:"box",r:"dot",g:"area",k:"cut",a:"dot"};
+    nodes.forEach(nd=>{if(nd.role&&!seen.has(nd.role)){seen.add(nd.role);defLeg.push({role:nd.role,label:lbl[nd.role]||nd.role,swatch:sw[nd.role]||"box",use:`Nodes in the ${lbl[nd.role]||nd.role} role.`})}});
+    an.setItems(Array.isArray(o.legend)?o.legend:defLeg);an.wire(svg);
+  }
+  let cur=0,prevRev=new Set(nodes.map(n=>n.i)),player=null;
+  function layout(W){
+    const useWide=W>=500;
+    const P=[];let H=200;
+    if(useWide){
+      const maxPer=Math.max(1,...layers.map(a=>a.length));
+      const gapX=maxPer>4?14:22;
+      const bw=Math.max(82,Math.min(o.boxWidth||144,Math.floor((W-56-(maxPer-1)*gapX)/maxPer)));
+      const wr=nodes.map(nd=>({t:fit(nd.t,bw-(nd.order!=null?30:18),13.5),s:nd.sub?fit(nd.sub,bw-18,11.5):[]}));
+      const hh=wr.map((w,i)=>10+w.t.length*16.5+(w.s.length?3+w.s.length*14.5:0)+(nodes[i].tag?24:0)+10);
+      const hasSkip=edges.some(e=>Math.abs(rank[e.v]-rank[e.u])>1);
+      const gapY=hasSkip?48:40;
+      const rowH=layers.map(arr=>arr.length?Math.max(...arr.map(i=>hh[i])):44);
+      const yAt=[];let y=14;for(let L=0;L<=maxL;L++){if(L>0)y+=rowH[L-1]+gapY;yAt[L]=y}
+      layers.forEach((arr,L)=>{
+        const rw=arr.length*bw+(arr.length-1)*gapX,ox=(W-rw)/2;
+        arr.forEach((i,k)=>{const x=ox+k*(bw+gapX);P[i]={x,cx:x+bw/2,y:yAt[L],w:bw,h:rowH[L],wr:wr[i]}});
+      });
+      H=yAt[maxL]+rowH[maxL]+18;
+    } else {
+      const gutter=34,gapX=10;
+      let y=12;
+      layers.forEach(arr=>{
+        if(!arr.length)return;
+        const cols=arr.length>1?2:1,bw=Math.floor((W-24-gutter-(cols-1)*gapX)/cols);
+        for(let s0=0;s0<arr.length;s0+=cols){
+          const chunk=arr.slice(s0,s0+cols),wrs=chunk.map(i=>({t:fit(nodes[i].t,bw-(nodes[i].order!=null?28:16),13),s:nodes[i].sub?fit(nodes[i].sub,bw-16,11.5):[]}));
+          const rh=Math.max(...chunk.map((i,ci)=>10+wrs[ci].t.length*16+(wrs[ci].s.length?3+wrs[ci].s.length*14:0)+(nodes[i].tag?22:0)+9));
+          chunk.forEach((i,ci)=>{const x=12+ci*(bw+gapX);P[i]={x,cx:x+bw/2,y,w:bw,h:rh,wr:wrs[ci]}});
+          y+=rh+(s0+cols<arr.length?14:32);
+        }
+      });
+      H=y-16;
+    }
+    svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+    const eRoles=[...new Set(edges.map(e=>e.role).filter(Boolean))];
+    let s=markers(S.uid)+eRoles.map(rk=>`<defs><marker id="${S.uid}-on-${rk}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head on" style="fill:var(--m-${rk})"/></marker><marker id="${S.uid}-off-${rk}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head" style="fill:var(--m-${rk});opacity:.55"/></marker></defs>`).join("");
+    let skipLane=0;const pills=[];
+    s+=`<g class="k-edge-layer">`;
+    edges.forEach(ed=>{
+      const A=P[ed.u],B=P[ed.v],rc=roleCol(ed.role,"var(--pc)"),lu=rank[ed.u],lv=rank[ed.v];
+      let dPath,mx,my;
+      if(useWide){
+        const down=B.y>A.y,x1=A.cx,y1=down?A.y+A.h:A.y,x2=B.cx,y2=down?B.y-4:B.y+B.h+4;
+        const lMin=Math.min(lu,lv),lMax=Math.max(lu,lv);
+        let blocked=false,minX=W,maxX=0;
+        if(lMax-lMin>1){
+          const bx1=Math.min(x1,x2)-20,bx2=Math.max(x1,x2)+20;
+          nodes.forEach(nd=>{const r=rank[nd.i];if(r>lMin&&r<lMax){const q=P[nd.i];minX=Math.min(minX,q.x);maxX=Math.max(maxX,q.x+q.w);if(q.x<=bx2&&q.x+q.w>=bx1)blocked=true}});
+        }
+        let corridor=null;
+        if(blocked||(!down&&lu===lv)){
+          // Look for an open interior vertical corridor across intermediate layers before falling back to outer margins
+          const mids=nodes.filter(nd=>rank[nd.i]>lMin&&rank[nd.i]<lMax).map(nd=>P[nd.i]);
+          if(mids.length){
+            const spans=[...mids].sort((a,b)=>a.x-b.x);
+            const gaps=[];
+            for(let gi=0;gi<spans.length-1;gi++){const g0=spans[gi].x+spans[gi].w,g1=spans[gi+1].x;if(g1-g0>=14)gaps.push((g0+g1)/2)}
+            const freeGaps=gaps.filter(gx=>!mids.some(q=>gx>q.x-5&&gx<q.x+q.w+5));
+            if(freeGaps.length){
+              freeGaps.sort((a,b)=>Math.abs(a-(x1+x2)/2)-Math.abs(b-(x1+x2)/2));
+              corridor=freeGaps[0];
+            }
+          }
+        }
+        if(corridor!=null){
+          const sx=x1+(corridor>x1?A.w*.22:-A.w*.22),ex=x2+(corridor>x2?B.w*.22:-B.w*.22),ym=(y1+y2)/2;
+          dPath=`M${sx.toFixed(1)},${y1.toFixed(1)} C${corridor.toFixed(1)},${(y1+(ym-y1)*.55).toFixed(1)} ${corridor.toFixed(1)},${(y2-(y2-ym)*.55).toFixed(1)} ${ex.toFixed(1)},${y2.toFixed(1)}`;
+          mx=(sx+6*corridor+ex)/8;my=ym;
+        } else if(blocked){
+          const sideR=Math.abs(A.cx-W/2)>=Math.abs(B.cx-W/2)?A.cx>=W/2:B.cx>=W/2;
+          const chX=sideR?Math.min(W-10,maxX+18+(skipLane%3)*9):Math.max(10,minX-18-(skipLane%3)*9);
+          skipLane++;
+          const sy1=A.y+A.h/2,sy2=B.y+B.h/2,sx1=sideR?A.x+A.w+2:A.x-2,sx2=sideR?B.x+B.w+4:B.x-4;
+          dPath=`M${sx1.toFixed(1)},${sy1.toFixed(1)} C${chX.toFixed(1)},${sy1.toFixed(1)} ${chX.toFixed(1)},${sy2.toFixed(1)} ${sx2.toFixed(1)},${sy2.toFixed(1)}`;
+          mx=(sx1+6*chX+sx2)/8;my=(sy1+sy2)/2;
+        } else {
+          const ym=(y1+y2)/2;
+          dPath=`M${x1.toFixed(1)},${y1.toFixed(1)} C${x1.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+          mx=(x1+x2)/2;my=ym;
+        }
+      } else {
+        const lMax=Math.max(lu,lv),lMin=Math.min(lu,lv);
+        if(lMax-lMin>1||B.y<=A.y){
+          const mids=nodes.filter(nd=>rank[nd.i]>lMin&&rank[nd.i]<lMax).map(nd=>P[nd.i]).sort((a,b)=>a.x-b.x);
+          let corridor=null;
+          for(let gi=0;gi<mids.length-1;gi++){const g0=mids[gi].x+mids[gi].w,g1=mids[gi+1].x;if(g1-g0>=8&&!mids.some(q=>(g0+g1)/2>q.x-3&&(g0+g1)/2<q.x+q.w+3)){corridor=(g0+g1)/2;break}}
+          if(corridor!=null&&Math.abs(A.cx-B.cx)>20){
+            const y1=A.y+A.h,y2=B.y-4,sx=A.cx+(corridor>A.cx?A.w*.2:-A.w*.2),ex=B.cx+(corridor>B.cx?B.w*.2:-B.w*.2),ym=(y1+y2)/2;
+            dPath=`M${sx.toFixed(1)},${y1.toFixed(1)} C${corridor.toFixed(1)},${(y1+(ym-y1)*.55).toFixed(1)} ${corridor.toFixed(1)},${(y2-(y2-ym)*.55).toFixed(1)} ${ex.toFixed(1)},${y2.toFixed(1)}`;
+            mx=(sx+6*corridor+ex)/8;my=ym;
+          } else {
+            const laneX=W-10-(skipLane%3)*8;skipLane++;
+            const sy1=A.y+A.h/2,sy2=B.y+B.h/2,sx1=A.x+A.w+2,sx2=B.x+B.w+4;
+            dPath=`M${sx1.toFixed(1)},${sy1.toFixed(1)} C${laneX.toFixed(1)},${sy1.toFixed(1)} ${laneX.toFixed(1)},${sy2.toFixed(1)} ${sx2.toFixed(1)},${sy2.toFixed(1)}`;
+            mx=laneX-14;my=(sy1+sy2)/2;
+          }
+        } else {
+          const x1=A.cx,y1=A.y+A.h,x2=B.cx,y2=B.y-4,ym=(y1+y2)/2;
+          dPath=`M${x1.toFixed(1)},${y1.toFixed(1)} C${x1.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+          mx=(x1+x2)/2;my=ym;
+        }
+      }
+      s+=`<path class="k-dag-edge" data-e="${ed.ei}" data-f="${ed.u}" data-t="${ed.v}" data-role="${ed.role}" style="--rc:${rc}" pathLength="1" d="${dPath}"/>`;
+      if(ed.label)pills.push({ed,mx,my});
+    });
+    pills.forEach(({ed,mx,my})=>{s+=`<g class="k-dag-pill${o.edgeLabels==="all"?"":" hide"}" data-e="${ed.ei}">${pillSvg(mx,my,ed.label,{W,H,fs:10.5,cls:"k-epill",tcls:"k-epill-t",role:ed.role,on:true,minW:26})}</g>`});
+    s+=`</g><g class="k-node-layer">`;
+    nodes.forEach(nd=>{
+      const p=P[nd.i],w=p.wr,rk=nd.role,rc=nd.color||(rk?`var(--m-${rk})`:"var(--pc)"),rx=12,gId=S.uid+"-dc"+nd.i;
+      let t=`<g class="k-dn clickable${nd.shared?" is-shared":""}" data-i="${nd.i}" tabindex="0" role="button" aria-label="${escAttr(nd.t)}"${rk?` data-role="${rk}"`:""}${nd.use?` data-use="${escAttr(nd.use)}" data-uname="${escAttr(nd.t)}"`:""} style="--rc:${rc}">`;
+      if(nd.shared)t+=`<rect class="k-dag-shared" x="${p.x-4}" y="${p.y-4}" width="${p.w+8}" height="${p.h+8}" rx="${rx+3}"/>`;
+      t+=`<clipPath id="${gId}"><rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="${rx}"/></clipPath>`;
+      t+=`<rect class="k-node" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="${rx}"/>`;
+      t+=`<rect class="k-accent" x="${p.x}" y="${p.y}" width="4" height="${p.h}" clip-path="url(#${gId})"/>`;
+      t+=tlines(p.x+10,p.y+21,w.t,"k-t",16.5);
+      if(nd.order!=null){const ox=p.x+p.w-12,oy=p.y+12;t+=`<g class="k-ord"><circle cx="${ox}" cy="${oy}" r="8"/><text class="k-ord-t" x="${ox}" y="${oy+3.5}" text-anchor="middle">${escHtml(String(nd.order))}</text></g>`}
+      if(w.s.length)t+=tlines(p.x+10,p.y+21+w.t.length*16.5+1,w.s,"k-s",14.5);
+      if(nd.tag){const tw=Math.min(p.w-20,Math.ceil(nd.tag.length*7.4)+18);t+=`<g class="k-tag"><rect x="${p.x+10}" y="${p.y+p.h-26}" width="${tw}" height="19" rx="9.5"/><text class="k-c" x="${p.x+18}" y="${p.y+p.h-13}">${escHtml(nd.tag)}</text></g>`}
+      s+=t+"</g>";
+    });
+    svg.innerHTML=s+`</g>`;render(cur);
+  }
+  function render(i){cur=i;const s=steps[i]||{};
+    const rev=(s.reveal==="all"||s.reveal==null)?new Set(nodes.map(n=>n.i)):new Set((s.reveal||[]).map(idxOf).filter(k=>k!=null));
+    const on=new Set((s.on||[]).map(idxOf).filter(k=>k!=null));
+    const visit=new Set((s.visit||[]).map(idxOf).filter(k=>k!=null));
+    const actEdges=new Set((s.edges||[]).map(eIdxOf).filter(k=>k!=null));
+    $$(".k-dn",svg).forEach(g=>{const k=+g.dataset.i,vis=rev.has(k),isNew=vis&&!prevRev.has(k);
+      g.classList.toggle("hide",!vis);
+      g.classList.toggle("k-pop",isNew&&E.motionOn());
+      g.classList.toggle("on",on.has(k));
+      g.classList.toggle("done",!on.has(k)&&visit.has(k));
+      g.classList.toggle("todo",vis&&!on.has(k)&&!visit.has(k));
+    });
+    $$(".k-dag-edge",svg).forEach(e=>{const ei=+e.dataset.e,ed=edges[ei];if(!ed)return;
+      const vis=rev.has(ed.u)&&rev.has(ed.v),isAct=actEdges.size?actEdges.has(ei):on.has(ed.v),isDn=!isAct&&(visit.has(ed.v)||on.has(ed.v)),rk=ed.role;
+      e.classList.toggle("hide",!vis);
+      e.classList.toggle("on",isAct);
+      e.classList.toggle("done",isDn);
+      e.classList.toggle("todo",vis&&!isAct&&!isDn);
+      e.classList.toggle("flowline",isAct&&E.motionOn());
+      e.setAttribute("marker-end",`url(#${S.uid}-${(isAct||isDn)?(rk?"on-"+rk:"on"):(rk?"off-"+rk:"off")})`);
+    });
+    $$(".k-dag-pill",svg).forEach(p=>{const ei=+p.dataset.e,ed=edges[ei];if(!ed)return;
+      const vis=rev.has(ed.u)&&rev.has(ed.v),isAct=actEdges.size?actEdges.has(ei):on.has(ed.v);
+      p.classList.toggle("hide",!vis||(o.edgeLabels!=="all"&&!isAct));
+    });
+    prevRev=rev;
+    if(an&&on.size===1){const u=[...on][0];if(nodes[u]?.use)an.showUse(nodes[u].t,nodes[u].use,roleCol(nodes[u].role,"var(--pc)"))}
+    if(o.on)o.on(i,svg,s);
+  }
+  const coneOf=k=>{const keep=new Set([k]);
+    const walk=(u,fn)=>{adjWalk(u,fn)};
+    function adjWalk(u,fn){fn(u).forEach(v=>{if(!keep.has(v)){keep.add(v);adjWalk(v,fn)}})}
+    walk(k,u=>nodes[u].preds);walk(k,u=>nodes[u].succs);
+    return keep;
+  };
+  svg.addEventListener("pointerover",e=>{const g=e.target.closest(".k-dn");if(!g||svg.closest(".m-has-focus"))return;
+    const k=+g.dataset.i,keep=coneOf(k);
+    $$(".k-dn",svg).forEach(n=>n.style.opacity=keep.has(+n.dataset.i)?"1":".22");
+    $$(".k-dag-edge",svg).forEach(ed=>ed.style.opacity=(keep.has(+ed.dataset.f)&&keep.has(+ed.dataset.t))?"1":".14");
+  });
+  svg.addEventListener("pointerleave",()=>{$$(".k-dn,.k-dag-edge",svg).forEach(n=>n.style.opacity="")});
+  const jumpDag=g=>{const k=+g.dataset.i,nd=nodes[k];if(!nd)return;
+    const si=steps.findIndex(s=>(s.on||[]).map(idxOf).includes(k));
+    if(si>=0&&player){player.stop();player.show(si)}
+    if(an&&nd.use)an.showUse(nd.t,nd.use,roleCol(nd.role,"var(--pc)"));
+  };
+  svg.addEventListener("click",e=>{const g=e.target.closest(".k-dn");if(g)jumpDag(g)});
+  svg.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches(".k-dn")){e.preventDefault();jumpDag(e.target)}});
   responsive(S,layout);
   player=E.stepper(S.viz,steps,i=>render(i),{ms:o.ms});
   return player;

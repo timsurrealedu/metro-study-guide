@@ -1492,18 +1492,18 @@ pre code{background:none;padding:0;font-size:inherit}
 .kit svg .k-fl{font-size:14px}
 .kit svg .k-elab{font-style:italic}
 .kit svg .k-axl{font-weight:600}
-/* boxes (flow, cycle, tree) */
-.kit .k-n,.kit .k-ev,.kit .k-b,.kit .k-tn,.kit .k-feat{transition:opacity .3s var(--ease),filter .25s var(--ease)}
+/* boxes (flow, cycle, tree, dag) */
+.kit .k-n,.kit .k-ev,.kit .k-b,.kit .k-tn,.kit .k-dn,.kit .k-feat{transition:opacity .3s var(--ease),filter .25s var(--ease)}
 .kit .k-node{fill:var(--surface);stroke:rgb(var(--fg-rgb) / .22);stroke-width:1.5;transition:fill .3s var(--ease),stroke .3s var(--ease),stroke-width .2s var(--ease)}
 .kit .k-accent{fill:var(--rc,var(--pc));transition:opacity .3s var(--ease)}
-.kit .k-n.on .k-node,.kit .k-tn.on .k-node{fill:color-mix(in srgb,var(--rc,var(--pc)) 16%,var(--surface));stroke:var(--rc,var(--pc));stroke-width:2.2}
-.kit .k-n.done .k-node,.kit .k-tn.done .k-node{stroke:color-mix(in srgb,var(--rc,var(--pc)) 78%,var(--surface));stroke-width:1.75}
-.kit .k-n.todo,.kit .k-ev.todo,.kit .k-b.todo,.kit .k-tn.todo{opacity:.38}
-.kit .k-n.clickable,.kit .k-ev.clickable,.kit .k-tn.clickable,.kit [data-part].clickable{cursor:pointer}
-.kit .k-n.clickable:hover .k-node,.kit .k-tn.clickable:hover .k-node{stroke:var(--rc,var(--pc));stroke-width:2.2}
+.kit .k-n.on .k-node,.kit .k-tn.on .k-node,.kit .k-dn.on .k-node{fill:color-mix(in srgb,var(--rc,var(--pc)) 16%,var(--surface));stroke:var(--rc,var(--pc));stroke-width:2.2}
+.kit .k-n.done .k-node,.kit .k-tn.done .k-node,.kit .k-dn.done .k-node{stroke:color-mix(in srgb,var(--rc,var(--pc)) 78%,var(--surface));stroke-width:1.75}
+.kit .k-n.todo,.kit .k-ev.todo,.kit .k-b.todo,.kit .k-tn.todo,.kit .k-dn.todo{opacity:.38}
+.kit .k-n.clickable,.kit .k-ev.clickable,.kit .k-tn.clickable,.kit .k-dn.clickable,.kit .k-dep-edge.clickable,.kit [data-part].clickable{cursor:pointer}
+.kit .k-n.clickable:hover .k-node,.kit .k-tn.clickable:hover .k-node,.kit .k-dn.clickable:hover .k-node{stroke:var(--rc,var(--pc));stroke-width:2.2}
 .kit .k-tag rect{fill:rgb(var(--fg-rgb) / .08)}
-.kit .k-n.on .k-tag rect,.kit .k-tn.on .k-tag rect{fill:var(--rc,var(--acc))}
-.kit .k-n.on .k-tag text,.kit .k-tn.on .k-tag text{fill:var(--lc-on)}
+.kit .k-n.on .k-tag rect,.kit .k-tn.on .k-tag rect,.kit .k-dn.on .k-tag rect{fill:var(--rc,var(--acc))}
+.kit .k-n.on .k-tag text,.kit .k-tn.on .k-tag text,.kit .k-dn.on .k-tag text{fill:var(--lc-on)}
 .kit .k-kind{font:700 11px/1 var(--font);fill:var(--rc,var(--text-2));letter-spacing:.02em}
 /* semantic pills inside SVG (always opaque, never pierced by strokes) */
 .kit .k-pill,.kit .k-epill{fill:var(--surface);stroke:color-mix(in srgb,var(--rc,var(--sep-strong)) 55%,var(--sep-strong));stroke-width:1.25}
@@ -1511,14 +1511,33 @@ pre code{background:none;padding:0;font-size:inherit}
 .kit svg .k-pill-t{font:700 12px/1 var(--font);fill:var(--rc,var(--head));letter-spacing:-.01em}
 .kit svg .k-epill-t{font:700 11.5px/1 var(--font);fill:var(--rc,var(--head));letter-spacing:-.01em}
 /* arrows & edges */
-.kit .k-edge,.kit .k-tree-edge{fill:none;stroke:rgb(var(--fg-rgb) / .3);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:stroke .35s var(--ease),opacity .3s var(--ease),stroke-width .25s var(--ease)}
-.kit .k-edge.done,.kit .k-tree-edge.done{stroke:var(--rc,var(--pc))}
-.kit .k-edge.todo,.kit .k-tree-edge.todo{stroke:rgb(var(--fg-rgb) / .28);stroke-dasharray:4 5}
-.kit .k-tree-edge.path{stroke:var(--rc,var(--pc));stroke-width:3.2}
+.kit .k-edge,.kit .k-tree-edge,.kit .k-dag-edge{fill:none;stroke:rgb(var(--fg-rgb) / .3);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:stroke .35s var(--ease),opacity .3s var(--ease),stroke-width .25s var(--ease)}
+.kit .k-edge.done,.kit .k-tree-edge.done,.kit .k-dag-edge.done{stroke:var(--rc,var(--pc))}
+.kit .k-edge.todo,.kit .k-tree-edge.todo,.kit .k-dag-edge.todo{stroke:rgb(var(--fg-rgb) / .28);stroke-dasharray:4 5}
+.kit .k-tree-edge.path,.kit .k-dag-edge.on{stroke:var(--rc,var(--pc));stroke-width:3}
 .kit .k-tree-edge.pruned{stroke:var(--m-k);stroke-dasharray:4 5;opacity:.45}
 .kit .k-head{fill:rgb(var(--fg-rgb) / .3)}
 .kit .k-head.on{fill:var(--rc,var(--pc))}
-/* tree specific */
+/* tree & SDD / DAG specific */
+.kit .k-tree-skel{stroke:rgb(var(--fg-rgb) / .22);stroke-width:1.35}
+.kit .k-dep-edge{fill:none;stroke:var(--rc,var(--pc));stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.48;transition:opacity .28s var(--ease),stroke-width .25s var(--ease)}
+.kit .k-dep-edge.done{stroke-width:2.1;opacity:.82}
+.kit .k-dep-edge.on{stroke-width:3;opacity:1;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--rc,var(--pc)) 42%,transparent))}
+.kit .k-dep-edge.todo{opacity:.24;stroke-dasharray:4 4}
+.kit .k-dep-edge[data-kind="inh"]{stroke-dasharray:5 3}
+.kit .k-dep-edge[data-kind="inh"].on{stroke-dasharray:6 4}
+.kit svg .k-compact .k-t{font-size:13.5px;font-weight:700}
+.kit svg .k-compact .k-s{font-size:11.5px}
+.kit .k-attr-row.pend{opacity:.48}
+.kit svg .k-attr-t{font:600 11.5px/1 var(--font-m,var(--font));fill:var(--fg);font-variant-numeric:tabular-nums}
+.kit .k-term-box{fill:color-mix(in srgb,var(--rc,var(--m-v)) 10%,var(--surface));stroke:color-mix(in srgb,var(--rc,var(--m-v)) 48%,var(--sep-strong));stroke-width:1.35}
+.kit .k-tn.on .k-term-box{fill:color-mix(in srgb,var(--rc,var(--m-v)) 20%,var(--surface));stroke:var(--rc,var(--m-v));stroke-width:2}
+.kit svg .k-term-t{font:700 12px/1 var(--font-m,var(--font));fill:var(--rc,var(--head))}
+.kit .k-ord circle{fill:var(--rc,var(--pc))}
+.kit svg .k-ord-t{font:700 10.5px/1 var(--font);fill:var(--lc-on,#fff);font-variant-numeric:tabular-nums}
+.kit .k-dag-shared{fill:none;stroke:var(--rc,var(--m-f));stroke-width:1.5;stroke-dasharray:4 3;opacity:.62;transition:opacity .25s var(--ease),stroke-width .25s var(--ease)}
+.kit .k-dn.on .k-dag-shared{opacity:1;stroke-width:2}
+.kit .k-tn.hide,.kit .k-dn.hide,.kit .k-tree-edge.hide,.kit .k-edge-pill.hide,.kit .k-dep-edge.hide,.kit .k-dep-pill.hide,.kit .k-dag-edge.hide,.kit .k-dag-pill.hide{opacity:0!important;pointer-events:none}
 .kit .k-tn.pruned{opacity:.42}
 .kit .k-tn.pruned .k-node{stroke:var(--m-k);stroke-dasharray:5 4}
 .kit .k-tn.path:not(.on) .k-node{stroke:var(--rc,var(--pc));stroke-width:2;fill:color-mix(in srgb,var(--rc,var(--pc)) 8%,var(--surface))}
@@ -1584,8 +1603,8 @@ pre code{background:none;padding:0;font-size:inherit}
 .k-use{display:flex;align-items:baseline;gap:8px;width:100%;min-height:34px;margin:8px 0 2px;padding:6px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--sep);font:400 13.5px/1.4 var(--font);color:var(--text-2)}
 .k-use b{color:var(--rc,var(--head));font-weight:700;white-space:nowrap}
 .k-use span{min-width:0}
-.m-has-focus .kit svg :is(.k-feat,.k-n,.k-tn,[data-part]):not(.m-focus){opacity:.2}
-.m-has-focus .kit svg :is(.k-feat,.k-n,.k-tn,[data-part]).m-focus{opacity:1;filter:drop-shadow(0 0 5px color-mix(in srgb,var(--rc,var(--pc)) 45%,transparent))}
+.m-has-focus .kit svg :is(.k-feat,.k-n,.k-tn,.k-dn,[data-part]):not(.m-focus){opacity:.2}
+.m-has-focus .kit svg :is(.k-feat,.k-n,.k-tn,.k-dn,[data-part]).m-focus{opacity:1;filter:drop-shadow(0 0 5px color-mix(in srgb,var(--rc,var(--pc)) 45%,transparent))}
 html[data-motion="off"] .k-pop,html[data-motion="off"] .k-anim-in,html[data-motion="off"] .k-tree-draw,html[data-motion="off"] .k-pulse-ring{animation:none;stroke-dasharray:none;stroke-dashoffset:0}
 @media (prefers-reduced-motion:reduce){
   html:not([data-motion="on"]) .k-pop,html:not([data-motion="on"]) .k-anim-in,html:not([data-motion="on"]) .k-tree-draw,html:not([data-motion="on"]) .k-pulse-ring{animation:none!important;stroke-dasharray:none!important;stroke-dashoffset:0!important}

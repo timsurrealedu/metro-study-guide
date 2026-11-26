@@ -1,5 +1,13 @@
 # Changelog
 
+## Metro Engine v1.5.1 — 26 November 2026
+
+**DAG optimization across parse-dependency trees (`Kit.tree`) and first-class Sugiyama layered DAGs (`Kit.dag`).**
+
+- **SDD & Dependency Tree Mode (`Kit.tree`)**: Added `compact`, `kind: "nt" | "term"`, proportional Reingold-Tilford subtree widths, stacked color-coded attribute rows (`attrs`), quiet parse skeleton strokes (`.k-tree-skel`), curved synthesized/inherited/merge `deps` Bezier overlays with active-only value pills, progressive `.k-ord` step watermarks, direct-neighbor + connected-dep hover isolation, and clean right-gutter phone routing.
+- **First-Class `Kit.dag` (`engine/kit.js`, `engine/metro.css`)**: Added Sugiyama layered DAG engine with longest-path topological ranking, 2-pass barycenter crossing reduction, skip-layer side-channel routing, `.k-dag-shared` double-halo rings on multi-parent merge nodes, topological `.k-ord` badges, full causal cone hover tracing, and 2-column wrapped phone layout.
+- **Explainer, Validation & Showcase (`engine/explainer.js`, `tools/`, `guides/visual-systems-studio`)**: Tuned SVG fit floor (`0.4`), updated `check.py` / `verify_chromium.py`, and added Station **3.3 DAGs & SDD Trees** (`tr-sdd` for `7 + (8 / 2) = 11` and `dag-expr` for `a + a*(b−c) + (b−c)*d`).
+
 ## Metro Engine v1.5 — 26 November 2026
 
 **Cohesive semantic color-coding, interactive anatomy inspectors, animated trees, and smart comparison tables across all visuals.**

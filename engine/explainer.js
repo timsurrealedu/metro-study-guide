@@ -209,7 +209,7 @@ function squeeze(avail,keepTop,keep,floor=.72){
   } else if(over()>0&&st&&$(".player",card)&&!st.querySelector(":scope>svg")){const want=st.offsetHeight-over();
     if(want>=110){st.classList.add("ex-win");st.style.maxHeight=want+"px";const left=over();if(left>0)st.style.maxHeight=(want-left)+"px";st.scrollTop=keepTop;follow(!!keep);winEdges(st)}}
   if(!hasSplit&&over()>0){const svgs=$$("svg",med).filter(g=>!g.closest(".ex-win,.ic,button")&&g.getBoundingClientRect().height>120).sort((a,b)=>b.getBoundingClientRect().height-a.getBoundingClientRect().height);
-    if(svgs[0]){const g=svgs[0],gh=g.getBoundingClientRect().height,want=gh-over();if(want/gh>=Math.min(floor,.52)){g.classList.add("ex-fit");g.style.maxHeight=Math.floor(want)+"px"}}}
+    if(svgs[0]){const g=svgs[0],gh=g.getBoundingClientRect().height,want=gh-over();if(want/gh>=Math.min(floor,.4)){g.classList.add("ex-fit");g.style.maxHeight=Math.floor(want)+"px"}}}
   return over();
 }
 function refit(keep){

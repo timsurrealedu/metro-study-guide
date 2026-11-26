@@ -463,3 +463,173 @@ Kit.tree("tr-ab", {
     { t: "Prune remaining leaf (β ≤ α)", d: "Leaf d is slashed and skipped! MAX selects the green Left move with optimal score 4.", on: ["min1", "l1"], visit: ["max", "min1", "l1", "l2", "min2", "r1"], prune: ["r2"], path: ["max", "min1", "l1"] }
   ]
 });
+
+Kit.tree("tr-sdd", {
+  alt: "Annotated L-attributed parse tree with synthesized and inherited dependency arrows for 7 + (8 / 2) = 11.",
+  compact: true,
+  root: {
+    id: "A0", t: "A", kind: "nt", order: 5,
+    attrs: [{ k: "val", v: "11", role: "r", at: 4 }],
+    use: "Top nonterminal A receives the final synthesized result C₁.s = 11.",
+    children: [
+      {
+        id: "B0", t: "B", kind: "nt", order: 2,
+        attrs: [{ k: "val", v: "7", role: "r", at: 1 }],
+        use: "Left factor B synthesizes 7 from D and tail E, then supplies B.val = 7.",
+        children: [
+          {
+            id: "D0", t: "D", kind: "nt", order: 1,
+            attrs: [{ k: "val", v: "7", role: "r", at: 0 }],
+            use: "Leaf factor D copies token value 7 upward.",
+            children: [{ id: "n7", t: "num:7", kind: "term" }]
+          },
+          {
+            id: "E0", t: "E", kind: "nt",
+            attrs: [{ k: "i", v: "7", role: "c", at: 1 }, { k: "s", v: "7", role: "r", at: 1 }],
+            use: "Empty tail E → ε copies inherited i = 7 straight into synthesized s = 7.",
+            children: [{ id: "eps0", t: "ε", kind: "term", role: "a" }]
+          }
+        ]
+      },
+      {
+        id: "C0", t: "C", kind: "nt", order: 5,
+        attrs: [{ k: "i", v: "7", role: "c", at: 1 }, { k: "s", v: "11", role: "r", at: 4 }],
+        use: "Addition tail C gets inherited i = 7 from B.val and returns total s = 11.",
+        children: [
+          { id: "plus", t: "+", kind: "term" },
+          {
+            id: "B1", t: "B", kind: "nt", order: 4,
+            attrs: [{ k: "val", v: "4", role: "r", at: 3 }],
+            use: "Right addend B evaluates the parenthesized group (8 / 2) = 4.",
+            children: [
+              {
+                id: "D1", t: "D", kind: "nt", order: 4,
+                attrs: [{ k: "val", v: "4", role: "r", at: 3 }],
+                use: "Parenthesized factor D forwards inner A.val = 4.",
+                children: [
+                  { id: "lp", t: "(", kind: "term" },
+                  {
+                    id: "A1", t: "A", kind: "nt", order: 4,
+                    attrs: [{ k: "val", v: "4", role: "r", at: 3 }],
+                    use: "Inner A equals inner C.s = 4.",
+                    children: [
+                      {
+                        id: "B2", t: "B", kind: "nt", order: 3,
+                        attrs: [{ k: "val", v: "4", role: "r", at: 2 }],
+                        use: "Inner product subtree computes 8 / 2 = 4.",
+                        children: [
+                          {
+                            id: "D2", t: "D", kind: "nt", order: 3,
+                            attrs: [{ k: "val", v: "8", role: "r", at: 2 }],
+                            use: "Dividend factor D reads 8.",
+                            children: [{ id: "n8", t: "num:8", kind: "term" }]
+                          },
+                          {
+                            id: "E1", t: "E", kind: "nt", order: 3,
+                            attrs: [{ k: "i", v: "8", role: "c", at: 2 }, { k: "s", v: "4", role: "r", at: 2 }],
+                            use: "Division node E takes dividend i = 8 and bubbles up quotient s = 4.",
+                            children: [
+                              { id: "div", t: "/", kind: "term" },
+                              {
+                                id: "D3", t: "D", kind: "nt",
+                                attrs: [{ k: "val", v: "2", role: "r", at: 2 }],
+                                use: "Divisor D reads 2.",
+                                children: [{ id: "n2", t: "num:2", kind: "term" }]
+                              },
+                              {
+                                id: "E2", t: "E", kind: "nt",
+                                attrs: [{ k: "i", v: "4", role: "c", at: 2 }, { k: "s", v: "4", role: "r", at: 2 }],
+                                use: "Tail division node computes i = 8 / 2 = 4, then returns s = 4.",
+                                children: [{ id: "eps1", t: "ε", kind: "term", role: "a" }]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        id: "C1", t: "C", kind: "nt",
+                        attrs: [{ k: "i", v: "4", role: "c", at: 3 }, { k: "s", v: "4", role: "r", at: 3 }],
+                        use: "Inner tail C → ε echoes i = 4 to s = 4.",
+                        children: [{ id: "eps2", t: "ε", kind: "term", role: "a" }]
+                      }
+                    ]
+                  },
+                  { id: "rp", t: ")", kind: "term" }
+                ]
+              },
+              {
+                id: "E3", t: "E", kind: "nt",
+                attrs: [{ k: "i", v: "4", role: "c", at: 3 }, { k: "s", v: "4", role: "r", at: 3 }],
+                use: "Outer tail E → ε copies 4 from D₁.val.",
+                children: [{ id: "eps3", t: "ε", kind: "term", role: "a" }]
+              }
+            ]
+          },
+          {
+            id: "C2", t: "C", kind: "nt", order: 5,
+            attrs: [{ k: "i", v: "11", role: "c", at: 4 }, { k: "s", v: "11", role: "r", at: 4 }],
+            use: "Tail addition node adds C₀.i + B₁.val = 7 + 4 = 11 and terminates at ε.",
+            children: [{ id: "eps4", t: "ε", kind: "term", role: "a" }]
+          }
+        ]
+      }
+    ]
+  },
+  deps: [
+    { id: "d1", from: "n7", to: "D0.val", kind: "syn", label: "7" },
+    { id: "d2", from: "D0.val", to: "E0.i", kind: "inh", label: "7" },
+    { id: "d3", from: "E0.s", to: "B0.val", kind: "syn", label: "7" },
+    { id: "d4", from: "B0.val", to: "C0.i", kind: "inh", label: "i=7" },
+    { id: "d5", from: "D2.val", to: "E1.i", kind: "inh", label: "8" },
+    { id: "d6", from: "E1.i", to: "E2.i", kind: "inh", label: "8/2=4" },
+    { id: "d7", from: "E2.s", to: "B2.val", kind: "syn", label: "4" },
+    { id: "d8", from: "B2.val", to: "C1.i", kind: "inh", label: "4" },
+    { id: "d9", from: "C1.s", to: "A1.val", kind: "syn", label: "4" },
+    { id: "d10", from: "A1.val", to: "D1.val", kind: "syn", label: "4" },
+    { id: "d11", from: "D1.val", to: "E3.i", kind: "inh", label: "4" },
+    { id: "d12", from: "E3.s", to: "B1.val", kind: "syn", label: "4" },
+    { id: "d13", from: "B1.val", to: "C2.i", kind: "inh", label: "7+4=11" },
+    { id: "d14", from: "C2.s", to: "C0.s", kind: "syn", label: "11" },
+    { id: "d15", from: "C0.s", to: "A0.val", kind: "syn", label: "11" }
+  ],
+  steps: [
+    { t: "1. Synthesize left factor num = 7", d: "D reads token 7 upward into D.val = 7 before passing it rightward.", on: ["D0", "n7"], deps: ["d1"], order: 0 },
+    { t: "2. Pass inherited 7 across B → C", d: "E → ε reflects i = 7 to B.val = 7, which seeds C.i = 7 along the dashed amber arrow.", on: ["E0", "B0", "C0"], deps: ["d2", "d3", "d4"], doneDeps: ["d1"], order: 2 },
+    { t: "3. Divide inside parenthesis: 8 / 2 = 4", d: "Inner E carries dividend 8 rightward, divides by D.val = 2 to get E₁.i = 4, and sends 4 back up.", on: ["D2", "E1", "D3", "E2", "B2"], deps: ["d5", "d6", "d7"], doneDeps: ["d1", "d2", "d3", "d4"], order: 3 },
+    { t: "4. Unwrap (8 / 2) = 4 to right addend B", d: "Synthesized result 4 propagates from C → A → D → E → B, completing the right operand.", on: ["C1", "A1", "D1", "E3", "B1"], deps: ["d8", "d9", "d10", "d11", "d12"], doneDeps: ["d1", "d2", "d3", "d4", "d5", "d6", "d7"], order: 4 },
+    { t: "5. Sum 7 + 4 = 11 up to root A", d: "Tail C₂ merges inherited 7 with B.val = 4 to get 11, then synthesizes 11 up to A.val.", on: ["C2", "C0", "A0"], deps: ["d13", "d14", "d15"], doneDeps: ["d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d10", "d11", "d12"], order: 5 }
+  ]
+});
+
+Kit.dag("dag-expr", {
+  alt: "Expression DAG for a + a*(b - c) + (b - c)*d sharing (b - c) and a.",
+  nodes: [
+    { id: "addT", t: "+ (root)", sub: "final sum", role: "r", use: "Combines left term and right product into the complete expression." },
+    { id: "addL", t: "+", sub: "a + term₁", role: "c", use: "Adds leaf a with shared product a*(b - c)." },
+    { id: "mul2", t: "*", sub: "(b - c) * d", role: "c", use: "Reuses the already-built (b - c) node and multiplies by d." },
+    { id: "mul1", t: "*", sub: "a * (b - c)", role: "c", use: "Multiplies reused leaf a by shared difference (b - c)." },
+    { id: "sub", t: "- (shared)", sub: "b - c", tag: "×2 reuse", shared: true, role: "f", use: "Shared node with 2 parents: evaluated once instead of duplicating a subtree." },
+    { id: "a", t: "a", sub: "input (×2)", shared: true, role: "v", use: "Shared variable leaf referenced by both + and *." },
+    { id: "b", t: "b", sub: "input", role: "v", use: "Variable leaf b." },
+    { id: "c", t: "c", sub: "input", role: "v", use: "Variable leaf c." },
+    { id: "d", t: "d", sub: "input", role: "v", use: "Variable leaf d." }
+  ],
+  edges: [
+    { id: "e1", from: "addT", to: "addL", label: "L" },
+    { id: "e2", from: "addT", to: "mul2", label: "R" },
+    { id: "e3", from: "addL", to: "a", label: "reuse a", role: "v" },
+    { id: "e4", from: "addL", to: "mul1" },
+    { id: "e5", from: "mul1", to: "a" },
+    { id: "e6", from: "mul1", to: "sub", label: "shared", role: "f" },
+    { id: "e7", from: "mul2", to: "sub", label: "shared", role: "f" },
+    { id: "e8", from: "mul2", to: "d" },
+    { id: "e9", from: "sub", to: "b" },
+    { id: "e10", from: "sub", to: "c" }
+  ],
+  steps: [
+    { t: "1. Start at root sum +", d: "Top operator divides the expression into two main sub-terms anchored at addT.", on: ["addT"], reveal: ["addT", "addL", "mul2"], edges: ["e1", "e2"] },
+    { t: "2. Expand left branch with skip-edge to a", d: "Left + points straight to input a and product mul1.", on: ["addL", "mul1"], reveal: ["addT", "addL", "mul2", "mul1", "a"], visit: ["addT"], edges: ["e3", "e4", "e5"] },
+    { t: "3. Converge on double-halo shared (b - c)", d: "Both mul1 and mul2 point to the single shared minus node instead of cloning a subtree.", on: ["sub"], reveal: ["addT", "addL", "mul2", "mul1", "a", "sub"], visit: ["addT", "addL", "mul1"], edges: ["e6", "e7"] },
+    { t: "4. Anchor shared leaves a, b, c, d", d: "All variable leaves resolve cleanly with zero duplicate subtrees anywhere in memory.", on: ["a", "b", "c", "d"], reveal: "all", visit: ["addT", "addL", "mul1", "mul2", "sub"], edges: ["e8", "e9", "e10"] }
+  ]
+});

@@ -10,5 +10,7 @@
   { "k": "3.1", "f": "In an ID3 decision tree, what does the <b>root node</b> represent?", "b": "The attribute with the highest Information Gain—the split that removes the most uncertainty first." },
   { "k": "3.1", "f": "What does a <b>leaf node</b> do in a decision tree?", "b": "It ends the branch and outputs a concrete decision or class label (green result role)." },
   { "k": "3.2", "f": "When does <b>Alpha-Beta pruning</b> cut a branch in a Minimax tree?", "b": "When the current move already guarantees a worse outcome than a sibling option found earlier (<span class=\"m\">\\beta \\le \\alpha</span>)." },
-  { "k": "3.2", "f": "Why use semantic color roles across equations, graphs, trees, and tables?", "b": "The same color means the same thing everywhere in a section, so your eye connects the formula to the picture." }
+  { "k": "3.2", "f": "Why use semantic color roles across equations, graphs, trees, and tables?", "b": "The same color means the same thing everywhere in a section, so your eye connects the formula to the picture." },
+  { "k": "3.3", "f": "How do <b>synthesized</b> and <b>inherited</b> arrows differ on an SDD parse tree?", "b": "Green synthesized arrows carry values bottom-up from children; dashed amber inherited arrows pass left/parent context down or sideways." },
+  { "k": "3.3", "f": "What does a double halo on a <code>Kit.dag</code> node signal?", "b": "A <b>shared/merge node</b> with 2 or more incoming parents—computed once and reused without duplicating work." }
 ]

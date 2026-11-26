@@ -166,5 +166,33 @@
       ["Alpha-Beta Pruning", false, "Alpha-Beta solves two-player adversarial game trees, not weighted shortest paths."]
     ],
     "e": "A* guides shortest-path search toward the goal using f(n) = g(n) + h(n) while guaranteeing optimality when h is admissible."
+  },
+  {
+    "id": "q13",
+    "see": "c3-3",
+    "exam": true,
+    "src": "SDD Trees 3.3",
+    "q": "In an L-attributed parse tree like <span class=\"m\">7 + (8 / 2)</span>, why are inherited (<code>.i</code>) arrows drawn separately from synthesized (<code>.s</code>) arrows?",
+    "o": [
+      ["Inherited attributes flow top-down or across from left siblings before a node finishes, whereas synthesized attributes flow bottom-up", true, "Separating amber inherited flow from green synthesized flow keeps left-associative operations readable."],
+      ["Inherited attributes replace all terminal tokens with zero", false, "Terminal tokens supply raw values and stay intact along the leaf frontier."],
+      ["Synthesized attributes can only move downward from the root", false, "Synthesized values flow bottom-up from children toward the root."],
+      ["Both arrow types always point along parse skeleton edges", false, "Semantic dependency arrows often cut across siblings to pass left context."]
+    ],
+    "e": "Dashed amber inherited arrows carry context into subtrees, while solid green synthesized arrows return computed results upward."
+  },
+  {
+    "id": "q14",
+    "see": "c3-3",
+    "exam": true,
+    "src": "Expression DAGs 3.3",
+    "q": "Why does folding repeated subexpressions into a <b>DAG</b> save work over keeping an ordinary syntax tree?",
+    "o": [
+      ["Repeated expressions like (b - c) appear once with multiple parent edges instead of being computed separately twice", true, "Multi-parent shared nodes eliminate duplicate evaluation and storage."],
+      ["DAGs allow infinite feedback cycles inside arithmetic expressions", false, "DAGs are strictly acyclic, ensuring valid topological ordering."],
+      ["A tree cannot represent variables like a or d", false, "Trees represent all variables, they just duplicate common subtrees."],
+      ["DAGs remove all operators from the graph", false, "Operators stay in the DAG and simply share pointers to identical child subgraphs."]
+    ],
+    "e": "A DAG eliminates redundant subtrees by pointing multiple parents at a single shared node, highlighted with a double halo."
   }
 ]

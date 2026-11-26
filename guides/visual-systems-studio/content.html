@@ -208,6 +208,55 @@
     <div class="callout trap"><b>Thinking Alpha-Beta pruning is an approximation</b><div>Alpha-Beta pruning never guesses. It only discards branches that can never change the final Minimax value.</div></div>
   </div>
 </article>
+
+<article class="chapter" id="c3-3" data-n="3.3" data-short="DAGs &amp; SDD Trees" data-title="Dependency Trees &amp; Expression DAGs" data-tag="Trees as DAGs">
+  <p class="bigidea">A parse tree shows grammar structure, while overlaid dependency arrows turn that tree into a directed acyclic graph showing the exact order values flow and combine.</p>
+
+  <dl class="terms">
+    <dt><b>Synthesized attribute</b> (<code>.s</code> / <code>.val</code>)</dt>
+    <dd>A value pushed upward from children or a token leaf to its parent, drawn with solid green bottom-up arrows.</dd>
+    <dt><b>Inherited attribute</b> (<code>.i</code>)</dt>
+    <dd>Context passed from a parent or left sibling into a node before it finishes, drawn with dashed amber arrows so left-associative math stays accurate.</dd>
+    <dt><b>Expression DAG</b></dt>
+    <dd>A tree folded so repeated subexpressions are computed once and linked by multiple parents, flagged with a double violet halo.</dd>
+  </dl>
+
+  <div class="sec"><h3 data-eb="SDD Parse Tree">SDD dependency tree: <span class="m">[[7|v]] + ([[8 / 2|g]]) = [[11|r]]</span></h3>
+    <p>Syntax-directed definitions mix structure with execution order. Muting parse skeleton lines lets green synthesized arrows and amber inherited arrows pop clearly from leaf tokens up to <span class="m">[[A.val = 11|r]]</span>.</p>
+    <p class="lead">Step through the evaluation sequence below, or hover any nonterminal to isolate its exact attribute producers and consumers.</p>
+    <div class="viz" id="tr-sdd"></div>
+  </div>
+
+  <div class="sec"><h3 data-eb="Expression DAG">Sharing repeated work with <span class="m">Kit.dag</span></h3>
+    <p>In <span class="m">[[a|v]] + [[a|v]] \cdot ([[b - c|f]]) + ([[b - c|f]]) \cdot [[d|v]]</span>, a naive syntax tree builds <span class="m">(b - c)</span> twice. Folding identical nodes creates a true multi-parent DAG with automatic topological numbering.</p>
+    <p class="lead">Trace how double-halo shared nodes reuse values across branches, and hover any node to highlight its entire upstream and downstream cone.</p>
+    <div class="viz" id="dag-expr"></div>
+  </div>
+
+  <div class="sec"><h3 data-eb="Tree vs DAG">When to pick a tree, dependency tree, or general DAG</h3>
+    <p class="lead">Toggle <b>Differences</b> or click a column pill to compare node parents, edge types, and layout behavior.</p>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead>
+        <tr>
+          <th></th>
+          <th data-role="c">Decision / Game Tree<small>Single parent</small></th>
+          <th data-role="r">SDD Dependency Tree<small>Tree + dataflow overlay</small></th>
+          <th data-role="f">Expression / Task DAG<small>Multi-parent graph</small></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Parents per node<small>Graph structure rule</small></td><td>At most 1 parent</td><td>1 parse parent + attr deps</td><td>1 or more parents (merge)</td></tr>
+        <tr><td>Shared subtrees<small>Eliminates duplicate work</small></td><td class="no">Duplicated</td><td class="mid">Linked via attributes</td><td class="yes">Merged once (double halo)</td></tr>
+        <tr><td>Primary signal<small>What arrows represent</small></td><td>Branch decision or cut</td><td>Grammar + <span class="t-chip" data-role="r">.s</span> / <span class="t-chip" data-role="c">.i</span> flow</td><td>Topological dependencies</td></tr>
+        <tr><td>Engine kit<small>Best Kit call to use</small></td><td><code>Kit.tree</code></td><td><code>Kit.tree</code> + <code>deps</code></td><td><code>Kit.dag</code></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="traps">
+    <div class="callout trap"><b>Computing C.i after recursing into C&#8321;</b><div>Because an L-attributed left-to-right rule uses the left operand inside inherited context <span class="m">i</span>, parent/sibling values must propagate into <span class="m">C.i</span> before tail evaluation produces <span class="m">C.s</span>.</div></div>
+  </div>
+</article>
 </section>
 
 <section class="part" data-part="R" data-title="Review &amp; Reference" data-kicker="Review"

@@ -345,11 +345,39 @@ Kit.tree("k-id3", {
 
 | Field | Meaning |
 |---|---|
-| `root` | Nested `{ id?, t, sub?, tag?, kind?, role?, edge?, edgeRole?, use?, children? }`. `kind`: `"root"`, `"decision"`, `"branch"`, `"leaf"`, `"pruned"`. |
-| `orientation` | `"auto"` (top-down wide, indented narrow), `"top"`, or `"left"`. |
-| `showPath` | Highlights the active node's path from root (`true` by default). |
+| `root` | Nested `{ id?, t, sub?, tag?, kind?, role?, attrs?, order?, edge?, edgeRole?, use?, children? }`. `kind`: `"root"`, `"decision"`, `"branch"`, `"leaf"`, `"pruned"`, `"nt"`, `"term"`. |
+| `attrs` | Optional array `[{ k, v?, pending?, role?, use?, at? }]` of live node attributes (e.g. `.val`, `.i`, `.s`) shown as stacked color-coded rows inside `compact` nodes. |
+| `deps` | Optional dependency DAG overlay `[{ id?, from, to, kind?: "syn"|"inh"|"merge", role?, label?, use?, curve? }]` supporting `"nodeId.attrKey"` endpoints, curved Bezier arrows, active-only pills, and quiet parse-tree skeleton lines. |
+| `compact` | Auto-enabled when `deps` is present or tree > 9 nodes; uses proportional leaf widths and compact nonterminal/terminal boxes. |
+| `orientation` | `"auto"` (top-down wide, indented narrow with right-gutter `deps` on phones), `"top"`, or `"left"`. |
+| `showPath` | Highlights the active node's path from root (`true` by default when `deps` is omitted). |
 | `steps[].reveal` | Node IDs (plus ancestors) revealed so far, or `"all"`. |
-| `steps[].on`, `visit`, `prune` | Active nodes, visited nodes, and subtrees marked as pruned with an animated crimson slash. |
+| `steps[].on`, `visit`, `prune`, `deps`, `doneDeps`, `order`, `attrs` | Active/visited/pruned subtrees plus active/done dependency arrows, evaluation order watermark, and revealed attributes. |
+
+## Kit.dag — directed acyclic graphs (Sugiyama layered DAG)
+
+```js
+Kit.dag("k-expr-dag", {
+  alt: "Expression DAG sharing common subexpression (b - c).",
+  nodes: [
+    { id: "plus", t: "+", sub: "Sum", role: "r" },
+    { id: "mul1", t: "*", role: "c" },
+    { id: "sub", t: "b - c", shared: true, role: "f", use: "Shared subtree reused by both branches." },
+    { id: "a", t: "a", role: "v" }, { id: "d", t: "d", role: "v" }
+  ],
+  edges: [
+    { from: "plus", to: "mul1" }, { from: "mul1", to: "a" },
+    { from: "mul1", to: "sub" }, { from: "plus", to: "sub" }
+  ]
+});
+```
+
+| Field | Meaning |
+|---|---|
+| `nodes` | `[{ id, t, sub?, tag?, role?, layer?, order?, shared?, use? }]`. Nodes with > 1 parent (or `shared: true`) render with a double-halo `.k-dag-shared` ring. |
+| `edges` | `[{ id?, from, to, label?, role?, kind?, use? }]`. Uses longest-path topological ranking, 2-pass barycenter crossing reduction, and side-channel skip-layer routing. |
+| `rankDir`, `edgeLabels`, `showOrder` | Optional `"TB"` (default) / `"BT"` direction, `"all"` edge pills (default active-only), and topological `.k-ord` numbering (`true` by default). |
+| `steps` | Optional `{ t, d, on, visit, edges, reveal }`; defaults to wave-by-wave Kahn topological evaluation. |
 
 ---
 
