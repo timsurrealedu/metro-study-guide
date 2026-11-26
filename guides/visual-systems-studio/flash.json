@@ -1,0 +1,14 @@
+[
+  { "k": "1.1", "f": "What does a dashed <b>asymptote</b> line show on a graph?", "b": "A boundary line (rose role <span class=\"m\">[[k|k]]</span>) that the curve approaches closely but never crosses." },
+  { "k": "1.1", "f": "What is the role of the shaded area under <span class=\"m\">f(x)</span>?", "b": "It shows the accumulated total (integral) over an interval, matching the teal group role <span class=\"m\">[[g|g]]</span>." },
+  { "k": "1.2", "f": "In a bias-variance graph, what happens in the <b>overfitting</b> zone?", "b": "Training error keeps dropping, but validation error rises because the model memorizes noise." },
+  { "k": "1.2", "f": "How does the <b>Differences</b> filter help on a comparison table?", "b": "It dims rows where all options behave identically so only the real trade-offs stand out." },
+  { "k": "2.1", "f": "In a branching flowchart, what do green vs. rose edge pills signal?", "b": "Green (<span class=\"m\">[[Yes|r]]</span>) marks the pass/accepted branch; rose (<span class=\"m\">[[No|k]]</span>) marks the fallback or error branch." },
+  { "k": "2.1", "f": "Why does an API architecture diagram separate the <b>Cache</b> from the <b>Database</b>?", "b": "The cache serves repeated reads in milliseconds, shielding the slower persistent database from excess load." },
+  { "k": "2.2", "f": "Why is model training drawn as a <b>cycle</b> instead of a one-way line?", "b": "Each pass measures prediction loss and updates weights, looping until error settles." },
+  { "k": "2.2", "f": "What does the filled progress line on a timeline indicate?", "b": "Which milestones have already occurred up to the active step, separating past context from future events." },
+  { "k": "3.1", "f": "In an ID3 decision tree, what does the <b>root node</b> represent?", "b": "The attribute with the highest Information Gain—the split that removes the most uncertainty first." },
+  { "k": "3.1", "f": "What does a <b>leaf node</b> do in a decision tree?", "b": "It ends the branch and outputs a concrete decision or class label (green result role)." },
+  { "k": "3.2", "f": "When does <b>Alpha-Beta pruning</b> cut a branch in a Minimax tree?", "b": "When the current move already guarantees a worse outcome than a sibling option found earlier (<span class=\"m\">\\beta \\le \\alpha</span>)." },
+  { "k": "3.2", "f": "Why use semantic color roles across equations, graphs, trees, and tables?", "b": "The same color means the same thing everywhere in a section, so your eye connects the formula to the picture." }
+]

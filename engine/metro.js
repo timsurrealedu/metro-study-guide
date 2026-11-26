@@ -1,5 +1,5 @@
 /* =====================================================================
-   METRO ENGINE v1.3 — runtime  (docs/02-file-structure.md, docs/05-custom-visuals.md)
+   METRO ENGINE v1.5 — runtime  (docs/02-file-structure.md, docs/05-custom-visuals.md)
    Reads the page structure (.part > .chapter) and builds:
    sidebar + phone bar + sheet, scroll spy, progress, Auto/Light/Dark,
    motion switch, step players, flowing dots, quizzes, flashcards.
@@ -63,7 +63,8 @@ const I18N={
     stations:"Stations",ex_scroll:"Scroll",back:"Back",finish:"Finish",start_ride:"Start riding",
     try_it:"Try it yourself",try_d:"Drag a slider and watch the visual.",mark_sm:"Mark as learned",
     full_scr:"Full screen",free:"Or try it yourself",
-    how:"How",why:"Why",hide:"Hide",rule:"Rule",watch_out:"Watch out",replay:"Replay"},
+    how:"How",why:"Why",hide:"Hide",rule:"Rule",watch_out:"Watch out",replay:"Replay",
+    all:"All",diff_only:"Differences",tap_inspect:"Hover or tap any part to see what it does.",what_does:"Role & purpose"},
   id:{opt:"Opsi",done:"Selesai",mode:"Mode baca",scroll:"Gulir halaman",explain:"Penjelas",
     mode_ex:"Layar penuh, satu ide tiap langkah. Ketuk Lanjut.",
     mode_sc:"Seluruh panduan dalam satu halaman. Gulir sesuai ritme Anda.",
@@ -79,7 +80,8 @@ const I18N={
     stations:"Stasiun",ex_scroll:"Gulir",back:"Kembali",finish:"Selesai",start_ride:"Mulai belajar",
     try_it:"Coba sendiri",try_d:"Geser pengatur dan amati visualnya.",mark_sm:"Tandai dipelajari",
     full_scr:"Layar penuh",free:"Atau coba sendiri",
-    how:"Cara",why:"Mengapa",hide:"Tutup",rule:"Aturan",watch_out:"Hati-hati",replay:"Putar ulang"}
+    how:"Cara",why:"Mengapa",hide:"Tutup",rule:"Aturan",watch_out:"Hati-hati",replay:"Putar ulang",
+    all:"Semua",diff_only:"Perbedaan",tap_inspect:"Arahkan atau ketuk bagian untuk melihat fungsinya.",what_does:"Peran & fungsi"}
 };
 const origLang=root.lang==="id"?"id":"en";
 let lang=store.get("lang",origLang);
@@ -423,7 +425,8 @@ function segc(el,onchange){el.addEventListener("click",e=>{const b=e.target.clos
   const cur=$('button[aria-pressed="true"]',el)||$("button",el);cur.setAttribute("aria-pressed","true");return cur.dataset.v}
 
 const TEX={"\\times":"×","\\div":"÷","\\pm":"±","\\mp":"∓","\\le":"≤","\\ge":"≥","\\leq":"≤","\\geq":"≥","\\neq":"≠","\\ne":"≠","\\equiv":"≡","\\approx":"≈","\\simeq":"≃","\\cong":"≅","\\sim":"∼","\\propto":"∝","\\to":"→","\\rightarrow":"→","\\leftarrow":"←","\\leftrightarrow":"↔","\\implies":"⇒","\\Rightarrow":"⇒","\\Leftarrow":"⇐","\\iff":"⇔","\\Leftrightarrow":"⇔","\\mapsto":"↦","\\cdot":"·","\\bullet":"•","\\circ":"∘","\\star":"⋆","\\pi":"π","\\theta":"θ","\\Delta":"Δ","\\alpha":"α","\\beta":"β","\\gamma":"γ","\\delta":"δ","\\epsilon":"ε","\\varepsilon":"ε","\\zeta":"ζ","\\eta":"η","\\lambda":"λ","\\mu":"μ","\\nu":"ν","\\xi":"ξ","\\rho":"ρ","\\sigma":"σ","\\tau":"τ","\\phi":"φ","\\varphi":"φ","\\chi":"χ","\\psi":"ψ","\\omega":"ω","\\Gamma":"Γ","\\Theta":"Θ","\\Lambda":"Λ","\\Sigma":"Σ","\\Phi":"Φ","\\Psi":"Ψ","\\Omega":"Ω","\\rightleftharpoons":"⇌","\\infty":"∞","\\degree":"°","\\partial":"∂","\\nabla":"∇","\\forall":"∀","\\exists":"∃","\\emptyset":"∅","\\varnothing":"∅","\\in":"∈","\\notin":"∉","\\subset":"⊂","\\subseteq":"⊆","\\supset":"⊃","\\supseteq":"⊇","\\cup":"∪","\\cap":"∩","\\land":"∧","\\lor":"∨","\\lnot":"¬","\\neg":"¬","\\therefore":"∴","\\because":"∵","\\perp":"⊥","\\parallel":"∥","\\angle":"∠","\\triangle":"△","\\ldots":"…","\\cdots":"⋯","\\vdots":"⋮","\\ddots":"⋱","\\dots":"…","\\quad":"&emsp;","\\qquad":"&emsp;&emsp;","\\min":'<span class="mop">min</span>',"\\max":'<span class="mop">max</span>',"\\lim":'<span class="mop">lim</span>',"\\arg":'<span class="mop">arg</span>',"\\log":'<span class="mop">log</span>',"\\ln":'<span class="mop">ln</span>',"\\exp":'<span class="mop">exp</span>',"\\sin":'<span class="mop">sin</span>',"\\cos":'<span class="mop">cos</span>',"\\tan":'<span class="mop">tan</span>',"\\sec":'<span class="mop">sec</span>',"\\csc":'<span class="mop">csc</span>',"\\cot":'<span class="mop">cot</span>',"\\det":'<span class="mop">det</span>',"\\sum":'<span class="mop mop-big">∑</span>',"\\prod":'<span class="mop mop-big">∏</span>',"\\int":'<span class="mop mop-big">∫</span>',"\\left":"","\\right":"","\\bigl":"","\\bigr":"","\\Bigl":"","\\Bigr":"","\\big":"","\\Big":"","\\$":"$","\\%":"%","\\&":"&amp;","\\{":"{","\\}":"}"};
-const ROLE_MAP={var:"v",v:"v",coef:"c",c:"c",fn:"f",f:"f",grp:"g",g:"g",res:"r",r:"r",bad:"k",k:"k",acc:"a",a:"a",stay:"s",s:"s"};
+const ROLE_MAP={var:"v",v:"v",input:"v",coef:"c",c:"c",param:"c",decision:"c",fn:"f",f:"f",process:"f",rule:"f",grp:"g",g:"g",region:"g",group:"g",res:"r",r:"r",output:"r",goal:"r",bad:"k",k:"k",warn:"k",prune:"k",acc:"a",a:"a",aux:"a",vec:"a",stay:"s",s:"s"};
+const roleColor=r=>{const k=ROLE_MAP[String(r||"").trim().toLowerCase()];return k&&k!=="s"?`var(--m-${k})`:""};
 
 /* ---------- quizzes ---------- */
 const QUIZ=window.QUIZ||[];
@@ -593,13 +596,83 @@ function compact(){
     const hd=h("span",{class:"th"});while(d.firstChild&&!(d.firstChild.classList&&d.firstChild.classList.contains("d")))hd.appendChild(d.firstChild);d.prepend(hd);foldable(d,hd)});
   $$(".callout>div").forEach(d=>{if(d.textContent.length<300||d.closest(".cp-body"))return;const c=d.parentElement;c.classList.add("long");
     const m=h("button",{class:"more-btn",type:"button","aria-expanded":"false"},"Read more");m.onclick=()=>{const o=c.classList.toggle("open");m.textContent=o?"Show less":"Read more";m.setAttribute("aria-expanded",String(o))};c.appendChild(m)});
-  $$("table.tbl").forEach(t=>{const hs=[...t.querySelectorAll("thead th")].map(th=>{const c=th.cloneNode(true);c.querySelectorAll(".id").forEach(x=>x.remove());return c.textContent.trim()});if(!hs.length)return;
+  $$(".t-bar",main).forEach(b=>{
+    const p=b.dataset.p;if(p!=null)b.style.setProperty("--p",Math.max(0,Math.min(100,parseFloat(p)||0))+"%");
+    const r=b.dataset.role?ROLE_MAP[b.dataset.role.trim().toLowerCase()]||b.dataset.role:"";
+    if(r&&r!=="s"){b.dataset.role=r;b.style.setProperty("--bc",`var(--m-${r})`)}
+    if(!$("i",b)){const txt=b.innerHTML;b.innerHTML=`<i></i><span>${txt}</span>`}
+  });
+  $$("[data-role]",main).forEach(el=>{const r=ROLE_MAP[String(el.dataset.role||"").trim().toLowerCase()];if(r)el.dataset.role=r});
+  $$("table.tbl").forEach(tbl=>{
+    const ths=[...tbl.querySelectorAll("thead th")];
+    const hs=ths.map(th=>{const c=th.cloneNode(true);c.querySelectorAll(".id,small").forEach(x=>x.remove());return c.textContent.trim()});
+    if(!hs.length)return;
     /* comparison table: an empty corner cell, then the things being compared.
        Each compared thing gets its own colour; it stays a real table on phones. */
-    if(!hs[0]&&hs.length>=3){t.classList.add("cmp");if(hs.length>=5)t.classList.add("cmp-wide");t.style.setProperty("--n",hs.length-1);t.closest(".tbl-wrap")?.classList.add("cmp-wrap");
-      const paint=row=>[...row.children].forEach((c,i)=>{if(i)c.style.setProperty("--cc",`var(--c${i})`)});
-      $$("thead tr,tbody tr",t).forEach(paint);return}
-    t.classList.add("stackable");$$("tbody tr",t).forEach(tr=>[...tr.children].forEach((td,i)=>{if(hs[i])td.setAttribute("data-label",hs[i])}))});
+    if(!hs[0]&&hs.length>=3){
+      tbl.classList.add("cmp");if(hs.length>=5)tbl.classList.add("cmp-wide");tbl.style.setProperty("--n",hs.length-1);
+      const wrap=tbl.closest(".tbl-wrap");wrap?.classList.add("cmp-wrap");
+      const colSpecs=ths.map((th,i)=>{
+        if(!i)return {};
+        const nr=th.dataset.role?(ROLE_MAP[th.dataset.role.trim().toLowerCase()]||th.dataset.role):"";
+        const cc=nr&&nr!=="s"?`var(--m-${nr})`:`var(--c${((i-1)%6)+1})`;
+        return {nr,cc,label:hs[i]};
+      });
+      const paint=row=>[...row.children].forEach((c,i)=>{
+        if(!i)return;const sp=colSpecs[i]||{};
+        if(sp.cc)c.style.setProperty("--cc",sp.cc);
+        if(sp.nr&&sp.nr!=="s"&&!c.dataset.role)c.dataset.role=sp.nr;
+      });
+      $$("thead tr,tbody tr",tbl).forEach(paint);
+      let sameN=0,diffN=0;
+      $$("tbody tr",tbl).forEach(tr=>{
+        const vals=[...tr.children].slice(1).map(td=>td.textContent.replace(/\s+/g," ").trim().toLowerCase());
+        const same=vals.length>1&&vals.every(v=>v===vals[0]);
+        tr.dataset.same=same?"1":"0";tr.dataset.diff=same?"0":"1";
+        if(same)sameN++;else diffN++;
+      });
+      let activeCol=0;
+      const bar=(wrap&&!tbl.hasAttribute("data-plain"))?h("div",{class:"tbl-bar",role:"group","aria-label":"Table filters"}):null;
+      const setCol=col=>{
+        activeCol=activeCol===col?0:col;
+        tbl.classList.toggle("has-col-focus",activeCol>0);
+        ths.forEach((th,i)=>{if(i){th.classList.toggle("col-on",i===activeCol);th.setAttribute("aria-pressed",String(i===activeCol))}});
+        $$("tbody tr",tbl).forEach(tr=>[...tr.children].forEach((td,i)=>{if(i)td.classList.toggle("col-on",i===activeCol)}));
+        if(bar)$$("[data-col]",bar).forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.col===activeCol)));
+      };
+      ths.forEach((th,i)=>{
+        if(!i)return;
+        th.setAttribute("role","button");th.tabIndex=0;th.setAttribute("aria-pressed","false");
+        th.addEventListener("click",()=>setCol(i));
+        th.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setCol(i)}});
+      });
+      if(bar){
+        const allBtn=h("button",{class:"tbl-pill",type:"button","data-col":"0","aria-pressed":"true"},t("all"));
+        allBtn.onclick=()=>setCol(0);bar.appendChild(allBtn);
+        colSpecs.forEach((sp,i)=>{
+          if(!i)return;
+          const b=h("button",{class:"tbl-pill",type:"button","data-col":String(i),"aria-pressed":"false"},`<i></i><span>${sp.label}</span>`);
+          b.style.setProperty("--cc",sp.cc);b.onclick=()=>setCol(i);bar.appendChild(b);
+        });
+        if(sameN>0&&diffN>0){
+          const db=h("button",{class:"tbl-pill tbl-diff-btn",type:"button","aria-pressed":"false"},t("diff_only"));
+          db.onclick=()=>{const on=tbl.classList.toggle("diff-only");db.setAttribute("aria-pressed",String(on))};
+          bar.appendChild(db);
+        }
+        wrap.prepend(bar);
+      }
+      return;
+    }
+    tbl.classList.add("stackable");
+    const colRoles=ths.map(th=>th.dataset.role?(ROLE_MAP[th.dataset.role.trim().toLowerCase()]||th.dataset.role):"");
+    $$("tbody tr",tbl).forEach(tr=>{
+      [...tr.children].forEach((td,i)=>{
+        if(hs[i])td.setAttribute("data-label",hs[i]);
+        if(colRoles[i]&&colRoles[i]!=="s"&&!td.dataset.role)td.dataset.role=colRoles[i];
+      });
+      tr.addEventListener("click",e=>{if(!e.target.closest("a,button,.t-chip,.m-tok"))tr.classList.toggle("row-on")});
+    });
+  });
 }
 /* ---------- checkpoints: one row per station, traps + quiz inside ---------- */
 function paintCp(d,e){const m=$(".cp-m",d);if(!m)return;const tr=+m.dataset.traps||0;const q=$(".quiz",d);
@@ -932,34 +1005,41 @@ $$(".eq").forEach(el=>{
 });
 renderInlineMath(main);
 
-/* ---------- interactive cross-highlighting across math tokens and legend pills ---------- */
+/* ---------- interactive cross-highlighting across math tokens, visuals, tables, and legend pills ---------- */
 function setMathFocus(scope,tok,on){
   if(!scope)return;
   $$(".m-focus",scope).forEach(e=>e.classList.remove("m-focus"));
   scope.classList.remove("m-has-focus");
   if(!on||!tok)return;
-  const tid=tok.dataset.tid,role=tok.dataset.role;
-  const sel=tid?`[data-tid="${tid}"]`:role?`[data-role="${role}"]`:"";
+  const tid=tok.dataset.tid,rawRole=tok.dataset.role,role=rawRole?(ROLE_MAP[rawRole.trim().toLowerCase()]||rawRole):"",feat=tok.dataset.feat;
+  const sel=tid?`[data-tid="${tid}"]`:role?`[data-role="${role}"]`:feat?`[data-feat="${feat}"]`:"";
   if(!sel)return;
   scope.classList.add("m-has-focus");
   $$(sel,scope).forEach(e=>e.classList.add("m-focus"));
 }
+const FOCUS_SEL=".m-tok[data-tid],.m-tok[data-role],.m-leg-item[data-role],.k-leg-item[data-role],.k-leg-item[data-feat],.t-chip[data-role],.tbl [data-role],.k-feat[data-role],.k-n[data-role],.k-tn[data-role],[data-part][data-role]";
 document.addEventListener("pointerenter",e=>{
-  const t=e.target.closest&&e.target.closest(".m-tok[data-tid],.m-tok[data-role],.m-leg-item[data-role]");
-  if(!t)return;const sc=t.closest(".viz,.eq,.sec")||main;if(!sc.dataset.pinRole)setMathFocus(sc,t,true);
+  const t=e.target.closest&&e.target.closest(FOCUS_SEL);
+  if(!t)return;const sc=(t.dataset.tid?t.closest(".viz,.eq"):null)||t.closest(".sec")||t.closest(".viz,.eq")||main;if(!sc.dataset.pinRole&&!sc.dataset.pinFeat)setMathFocus(sc,t,true);
 },true);
 document.addEventListener("pointerleave",e=>{
-  const t=e.target.closest&&e.target.closest(".m-tok[data-tid],.m-tok[data-role],.m-leg-item[data-role]");
-  if(!t)return;const sc=t.closest(".viz,.eq,.sec")||main;if(!sc.dataset.pinRole)setMathFocus(sc,null,false);
+  const t=e.target.closest&&e.target.closest(FOCUS_SEL);
+  if(!t)return;const sc=(t.dataset.tid?t.closest(".viz,.eq"):null)||t.closest(".sec")||t.closest(".viz,.eq")||main;if(!sc.dataset.pinRole&&!sc.dataset.pinFeat)setMathFocus(sc,null,false);
 },true);
 document.addEventListener("click",e=>{
-  const leg=e.target.closest&&e.target.closest(".m-leg-item[data-role]");
+  const leg=e.target.closest&&e.target.closest(".m-leg-item[data-role],.k-leg-item[data-role],.k-leg-item[data-feat],.t-chip[data-role]");
   if(!leg)return;
-  const sc=leg.closest(".viz,.eq,.sec")||main,role=leg.dataset.role;
-  const same=sc.dataset.pinRole===role;
-  $$(".m-leg-item[aria-pressed]",sc).forEach(b=>b.setAttribute("aria-pressed","false"));
-  if(same){delete sc.dataset.pinRole;setMathFocus(sc,null,false)}
-  else{sc.dataset.pinRole=role;leg.setAttribute("aria-pressed","true");setMathFocus(sc,leg,true)}
+  const sc=leg.closest(".sec")||leg.closest(".viz,.eq")||main,role=leg.dataset.role||"",feat=leg.dataset.feat||"";
+  const same=(role&&sc.dataset.pinRole===role)||(!role&&feat&&sc.dataset.pinFeat===feat);
+  $$(".m-leg-item[aria-pressed],.k-leg-item[aria-pressed]",sc).forEach(b=>b.setAttribute("aria-pressed","false"));
+  delete sc.dataset.pinRole;delete sc.dataset.pinFeat;
+  if(same){setMathFocus(sc,null,false)}
+  else{
+    if(role)sc.dataset.pinRole=role;else if(feat)sc.dataset.pinFeat=feat;
+    if(role)$$(`.m-leg-item[data-role="${role}"],.k-leg-item[data-role="${role}"]`,sc).forEach(b=>b.setAttribute("aria-pressed","true"));
+    else if(feat)$$(`.k-leg-item[data-feat="${feat}"]`,sc).forEach(b=>b.setAttribute("aria-pressed","true"));
+    setMathFocus(sc,leg,true);
+  }
 });
 function alignMath(rootEl=main){
   $$(".kd-m,.eq.eq-multi .eq-scroll",rootEl).forEach(m=>{
@@ -1081,6 +1161,6 @@ function applyLang(l){
 if(lang!==origLang)requestAnimationFrame(()=>applyLang(lang));
 
 window.Engine={$,$$,h,ic,store,flow,stepper,segc,segSet,rangeFill,sorter,drills:DRILLS,watch,tickers,motionOn,markDone:id=>Engine_markDone(id),isDone:id=>done.has(id),visible,
-  openSheet,openOptions,applyTheme,getTheme:()=>theme,applyMotion,applyLang,getLang:()=>lang,t,showToast,lineVars,chapters,parts,counted,fitAll,paintProgress,phoneMQ,math:formatMath,alignMath,renderInlineMath};
+  openSheet,openOptions,applyTheme,getTheme:()=>theme,applyMotion,applyLang,getLang:()=>lang,t,showToast,lineVars,chapters,parts,counted,fitAll,paintProgress,phoneMQ,math:formatMath,alignMath,renderInlineMath,ROLE_MAP,roleColor};
 document.dispatchEvent(new Event("engine-ready"));
 })();

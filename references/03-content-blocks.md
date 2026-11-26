@@ -140,13 +140,10 @@ the steps fold to a list of titles.
   </tbody></table></div>
 ```
 
-- **Comparison table**: leave the first header cell **empty** and compare 2–4 things.
-  Each compared column gets its own colour (`--c1…--c4`) and the table stays a real
-  table on phones. **Every comparison in a guide is written like this.**
-- **Data table**: a first header with text (`<th>No.</th>`). On phones each row
-  becomes a small card with the header as a label. Add `class="tbl num"` for
-  right-aligned numbers.
-- `td.yes` / `td.no` colour a cell green / red.
+- **Comparison table**: leave the first header cell **empty** and compare 2–6 things (`--c1…--c6`, or set `data-role="v|c|f|g|r|k|a"` on `<th>` for semantic cross-highlighting). Each compared column gets its own colour, clickable header spotlight, a top `.tbl-bar` column filter, and an automatic **Differences** filter when rows share identical values (`data-plain` on `<table>` hides `.tbl-bar`).
+- **Data table**: a first header with text (`<th>No.</th>`). On phones each row becomes a small card with the header as a label. Add `class="tbl num"` for right-aligned numbers. Supports `data-role` on `<tr>`/`<th>`, `.t-chip` semantic pills, and `.t-bar` progress meters (`<span class="t-bar" data-p="80" data-role="r">80%</span>`).
+- `td.yes` / `td.mid` / `td.no` colour a cell green / amber / red.
+- Use `<small>` inside `<th>` or `<td>` in the first column to explain what a column or row criterion measures.
 - Always wrap in `<div class="tbl-wrap">`.
 
 ### Equation

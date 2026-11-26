@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Metro Engine v1.4 — check a guide folder before building it.
+Metro Engine v1.5 — check a guide folder before building it.
 
     python3 tools/check.py <guide-folder>
 
@@ -168,7 +168,7 @@ def main(folder):
         if not re.search(r"[\"'`#]" + re.escape(vid) + r"[\"'` ]", vis): warn(f"visual #{vid} is never used in visuals.js (it will be an empty box)")
     for m in re.finditer(r"Kit\.(\w+)\(\s*[\"'`]([\w-]+)[\"'`]", vis):
         kind, vid = m.group(1), m.group(2)
-        if kind not in ("diagram", "flow", "cycle", "timeline", "graph", "bars", "particles", "derive", "annotate"): err(f"visuals.js: Kit.{kind} does not exist")
+        if kind not in ("diagram", "flow", "cycle", "timeline", "graph", "bars", "particles", "derive", "annotate", "tree"): err(f"visuals.js: Kit.{kind} does not exist")
         if vid not in all_ids: err(f"visuals.js: Kit.{kind}(\"{vid}\") but content.html has no element with id=\"{vid}\"")
         if kind == "derive":
             bstart = vis.find("{", m.end())

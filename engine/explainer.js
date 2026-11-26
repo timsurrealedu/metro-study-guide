@@ -1,5 +1,5 @@
 /* =====================================================================
-   METRO ENGINE v1.3 · BOOT SCREEN · MODE PICKER · FULL-SCREEN EXPLAINER
+   METRO ENGINE v1.5 · BOOT SCREEN · MODE PICKER · FULL-SCREEN EXPLAINER
    Two ways to ride the same stations:
      scroll   – the whole guide on one page (the original layout)
      explain  – full screen, one idea per screen: explainer text on top,
@@ -206,10 +206,10 @@ function squeeze(avail,keepTop,keep,floor=.72){
       const want=Math.floor(avail-vpH-36);
       if(want>=120){sp.classList.add("ex-win");sp.style.maxHeight=want+"px";const left=over();if(left>0)sp.style.maxHeight=Math.max(110,want-left)+"px";sp.scrollTop=keepTop;follow(!!keep);winEdges(sp)}
     }
-  } else if(over()>0&&st&&$(".player",card)&&(!st.querySelector(":scope>svg")||st.querySelector(".on"))){const want=st.offsetHeight-over();
+  } else if(over()>0&&st&&$(".player",card)&&!st.querySelector(":scope>svg")){const want=st.offsetHeight-over();
     if(want>=110){st.classList.add("ex-win");st.style.maxHeight=want+"px";const left=over();if(left>0)st.style.maxHeight=(want-left)+"px";st.scrollTop=keepTop;follow(!!keep);winEdges(st)}}
   if(!hasSplit&&over()>0){const svgs=$$("svg",med).filter(g=>!g.closest(".ex-win,.ic,button")&&g.getBoundingClientRect().height>120).sort((a,b)=>b.getBoundingClientRect().height-a.getBoundingClientRect().height);
-    if(svgs[0]){const g=svgs[0],gh=g.getBoundingClientRect().height,want=gh-over();if(want/gh>=floor){g.classList.add("ex-fit");g.style.maxHeight=Math.floor(want)+"px"}}}
+    if(svgs[0]){const g=svgs[0],gh=g.getBoundingClientRect().height,want=gh-over();if(want/gh>=Math.min(floor,.52)){g.classList.add("ex-fit");g.style.maxHeight=Math.floor(want)+"px"}}}
   return over();
 }
 function refit(keep){
@@ -249,7 +249,7 @@ function refit(keep){
   parts();
 }
 /* where a part may start: the top of a block, a table row, a list item, an option… */
-const BREAKS=".ex-media>*,.ex-text>*,.ex-media .viz>*,.callout,tr,li,dl>div,.q-top,.q-text,.q-hint,.opt,.q-foot,.q-exp,.grid2>*,.grid3>*,.hn-b,.hn-end,.kd-given,.kd-legend,.kd-drawer,.eq-legend,.eq-why,p,h4,.eq,.cp-h,.flash,.sorter";
+const BREAKS=".ex-media>*,.ex-text>*,.ex-media .viz>*,.callout,tr,li,dl>div,.q-top,.q-text,.q-hint,.opt,.q-foot,.q-exp,.grid2>*,.grid3>*,.hn-b,.hn-end,.kd-given,.kd-legend,.kd-drawer,.k-legend,.k-use,.tbl-bar,.eq-legend,.eq-why,p,h4,.eq,.cp-h,.flash,.sorter";
 function stopsFor(H){
   const el=pgEl||med,o=el.getBoundingClientRect().top-el.scrollTop,total=el.scrollHeight;
   const bps=[...new Set($$(BREAKS,el).map(e=>Math.round(e.getBoundingClientRect().top-o-6)).filter(y=>y>0&&y<total))].sort((a,b)=>a-b);

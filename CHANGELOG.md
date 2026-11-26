@@ -1,5 +1,26 @@
 # Changelog
 
+## Metro Engine v1.5 — 26 November 2026
+
+**Cohesive semantic color-coding, interactive anatomy inspectors, animated trees, and smart comparison tables across all visuals.**
+
+- **Unified Semantic Continuity (`engine/metro.js`, `engine/metro.css`)**:
+  - Extended the comparison palette to `--c5` (amber) and `--c6` (sky) for 5–6 column comparison tables and multi-series visuals.
+  - Generalized `setMathFocus` across `.sec` containers so hovering or tapping a legend badge, `.m-tok`, `.t-chip`, table header/row, or SVG feature highlights every matching semantic role (`v`, `c`, `f`, `g`, `r`, `k`, `a`) across equations, graphs, diagrams, flows, trees, and tables simultaneously.
+- **Smart Interactive Tables (`engine/metro.js`, `engine/metro.css`)**:
+  - Added `.tbl-bar` above comparison tables (`.cmp`) with **column spotlight** pills (plus clickable column headers) and an automatic **Differences** toggle that dims identical rows so differences stand out at a glance.
+  - Added `.t-chip[data-role]`, `.t-bar` animated progress meters, `.tbl .mid` amber status cells, `<small>` criterion/header hints, and `tr[data-role]` / `th[data-role]` row and column role accents.
+- **Interactive Visual Anatomy & Purpose Inspector (`engine/kit.js`)**:
+  - Added `.k-legend` shape-and-color key pills and `.k-use` plain-English "what this part does" inspector across `Kit.graph`, `Kit.diagram`, `Kit.flow`, `Kit.cycle`, `Kit.timeline`, `Kit.bars`, and `Kit.tree`.
+- **Upgraded Visual Kits (`engine/kit.js`)**:
+  - **`Kit.graph`**: Added semantic `zones`, hatched `shade` (`pattern: "hatch"`), Riemann sample-point dots, pulsing `mark` targets, diamond `dots`, per-vector colored arrowheads, opaque `pillSvg` labels (zero stroke-piercing), axis arrowheads, and an interactive live curve probe.
+  - **`Kit.flow` & `Kit.diagram` & `Kit.cycle` & `Kit.timeline` & `Kit.bars`**: Added node `kind` badges (`start`, `input`, `process`, `decision`, `output`, `error`, `end`), left semantic accent bars, opaque edge-label pills with auto `Yes`/`No` coloring, clickable node/part/stage jump-to-step, animated timeline progress fill, and bar target thresholds + step delta badges.
+- **New `Kit.tree` (`engine/kit.js`, `tools/check.py`)**:
+  - Responsive decision, search, and hierarchy trees (tidy top-down Bezier layout on wide screens; indented cladogram on narrow screens), progressive branch draw-in, root-to-active ancestry path pulse, animated `prune` branch slashes, and interactive ancestry hover.
+- **Explainer & Verification (`engine/explainer.js`, `tools/verify_chromium.py`)**:
+  - Fixed Explainer `squeeze()` so SVG visuals scale cleanly instead of clipping, and added `Kit.tree` + new SVG classes to `check.py` and `verify_chromium.py`.
+- **New showcase guide**: `guides/visual-systems-studio` (**Visual Systems Studio** — Graphs, Architecture Diagrams, Flows, Feedback Cycles, Decision Trees, Minimax Alpha-Beta Pruning, and 5-Column Comparison Tables).
+
 ## Metro Engine v1.4 — 25 November 2026
 
 **Photomath-inspired animated math tutorials, semantic equation color-coding, and synced visualizers.**

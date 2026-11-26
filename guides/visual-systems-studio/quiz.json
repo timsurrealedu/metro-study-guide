@@ -1,0 +1,170 @@
+[
+  {
+    "id": "q1",
+    "see": "c1-1",
+    "exam": true,
+    "src": "Graphs 1.1",
+    "q": "On a graph of <span class=\"m\">f(x) = \\frac{1}{x - 2} + 1</span>, what does the dashed vertical line <span class=\"m\">x = 2</span> represent?",
+    "o": [
+      ["A vertical asymptote where the denominator hits zero and the curve cannot cross", true, "Setting x − 2 = 0 causes division by zero, creating a forbidden boundary."],
+      ["The slope of the tangent line at the origin", false, "A tangent line touches the curve at a point; x = 2 never touches the curve."],
+      ["The total accumulated area under the curve", false, "Accumulated area is shown as a shaded region between bounds, not an asymptote."],
+      ["A local minimum turning point", false, "1/(x − 2) + 1 has no turning point; x = 2 is an excluded domain value."]
+    ],
+    "e": "A vertical asymptote marks an input value excluded from the domain (here x = 2) that the graph approaches without ever touching."
+  },
+  {
+    "id": "q2",
+    "see": "c1-1",
+    "exam": true,
+    "src": "Graphs 1.1",
+    "q": "Which visual part shows the <b>instantaneous rate of change</b> of a curve at one point?",
+    "o": [
+      ["The dashed tangent line and its rise/run triangle", true, "The tangent line matches the curve's exact slope at the contact point."],
+      ["The hatched shaded region below the x-axis", false, "Shading shows accumulated area (integral), not instantaneous slope."],
+      ["The horizontal asymptote line", false, "Horizontal asymptotes show long-run end behavior as x grows very large."],
+      ["The grid tick spacing on the y-axis", false, "Grid ticks only set the measurement scale."]
+    ],
+    "e": "The tangent line grazes the curve at one point and its rise/run ratio measures the derivative f'(x₀)."
+  },
+  {
+    "id": "q3",
+    "see": "c1-2",
+    "exam": true,
+    "src": "Model Curves 1.2",
+    "q": "In the bias-variance curve, what happens when model complexity moves into the <b>Overfitting</b> zone?",
+    "o": [
+      ["Training error stays near zero while validation error climbs back up", true, "An over-complex model memorizes training noise and performs poorly on new data."],
+      ["Both training and validation errors drop to zero together", false, "Validation error rises on unseen data once the model starts fitting random noise."],
+      ["Training error rises sharply because the model is too simple", false, "High training error from an overly simple model is underfitting, not overfitting."],
+      ["The validation curve becomes a vertical asymptote", false, "Validation error curves upward smoothly rather than jumping to infinity."]
+    ],
+    "e": "Overfitting happens when extra complexity chases training noise instead of the true pattern, hurting validation accuracy."
+  },
+  {
+    "id": "q4",
+    "see": "c1-2",
+    "exam": true,
+    "src": "Tables 1.2",
+    "q": "Why does a comparison table include a <b>Differences</b> filter button?",
+    "o": [
+      ["To dim rows where all columns share the same value so trade-offs stand out", true, "Dimming identical rows lets you focus immediately on where models actually differ."],
+      ["To delete columns that have negative numbers", false, "Column filtering highlights one column; Differences dims rows with matching values."],
+      ["To sort bars from smallest to largest", false, "Bar sorting is unrelated to comparison table row filtering."],
+      ["To hide all headers on mobile screens", false, "Mobile comparison tables keep sticky headers visible while scrolling."]
+    ],
+    "e": "The Differences toggle keeps identical rows quiet and accents rows where the compared options diverge."
+  },
+  {
+    "id": "q5",
+    "see": "c2-1",
+    "exam": true,
+    "src": "Architecture 2.1",
+    "q": "In the request pipeline diagram and flowchart, what happens immediately when the <b>Cache Hit?</b> decision evaluates to <b>No</b>?",
+    "o": [
+      ["The request queries the Database and then stores the result in Cache", true, "A cache miss falls back to the persistent database before returning the response."],
+      ["The request immediately rejects the user with an Auth Error", false, "Auth checks occur before the cache lookup; a cache miss is normal, not an auth error."],
+      ["The client skips the API Gateway", false, "All requests enter through the API Gateway first."],
+      ["The response is discarded without reaching the client", false, "The database supplies the missing data so the client still receives a response."]
+    ],
+    "e": "Cache misses route to the database (slower path), whereas cache hits return straight from fast memory."
+  },
+  {
+    "id": "q6",
+    "see": "c2-1",
+    "exam": true,
+    "src": "Flowcharts 2.1",
+    "q": "In a semantic flowchart, why does a <b>decision</b> node use a diamond indicator and amber role color?",
+    "o": [
+      ["To show a branching condition that routes execution down different paths", true, "Amber + diamond consistently marks parameter tests and branch conditions."],
+      ["To show a terminal error state that aborts the system", false, "Terminal error states use the rose error badge, not amber decision."],
+      ["To indicate raw user input arriving from outside", false, "Inputs use the blue variable/input role."],
+      ["To mark a final verified output", false, "Final outputs use the green result role."]
+    ],
+    "e": "Distinct shapes and colors separate inputs (blue), processes (violet), decisions (amber), outputs (green), and errors (rose)."
+  },
+  {
+    "id": "q7",
+    "see": "c2-2",
+    "exam": true,
+    "src": "Feedback Loops 2.2",
+    "q": "What distinguishes a <b>cycle</b> diagram from a linear <b>flow</b>?",
+    "o": [
+      ["The final stage feeds back into the first stage to repeat iteratively", true, "Training epochs, feedback controllers, and biological cycles loop continuously."],
+      ["A cycle can only have two nodes", false, "Cycles commonly have 3 to 6 stages arranged around a central goal."],
+      ["A cycle never uses arrows between stages", false, "Directed arcs show the exact clockwise order around the loop."],
+      ["A cycle cannot be stepped through one stage at a time", false, "Every Kit.cycle visual supports step-by-step playback and clickable stages."]
+    ],
+    "e": "Cycles model closed loops where outputs from one pass become inputs to the next iteration."
+  },
+  {
+    "id": "q8",
+    "see": "c2-2",
+    "exam": true,
+    "src": "Timelines 2.2",
+    "q": "What does a <b>time-scaled</b> timeline reveal that an evenly spaced timeline hides?",
+    "o": [
+      ["How long the real gaps were between breakthroughs", true, "Proportional spacing shows clusters of rapid progress versus quiet decades."],
+      ["Which branch of a tree gets pruned", false, "Branch pruning belongs to search trees, not chronological timelines."],
+      ["The exact derivative at each year", false, "Timelines order discrete events rather than plotting continuous derivatives."],
+      ["The database latency of an API request", false, "Latency belongs to system architecture and bar metrics."]
+    ],
+    "e": "Setting scale: \"time\" spaces events proportionally to their numeric dates so clusters and gaps are visible."
+  },
+  {
+    "id": "q9",
+    "see": "c3-1",
+    "exam": true,
+    "src": "Decision Trees 3.1",
+    "q": "Why does ID3 place <b>Outlook</b> at the root of the Play Tennis decision tree?",
+    "o": [
+      ["It produces the highest Information Gain (0.25 bits), reducing entropy the most", true, "ID3 greedily picks whichever attribute splits the data cleanest at the root."],
+      ["It has the fewest alphabetical letters", false, "Attribute names have no effect on entropy calculations."],
+      ["It guarantees 0% accuracy on Overcast days", false, "Overcast gives 100% pure Play = Yes (0 entropy), not 0% accuracy."],
+      ["It avoids creating any leaf nodes", false, "Pure subsets like Overcast immediately become leaf nodes."]
+    ],
+    "e": "ID3 compares Information Gain across candidate features and chooses the largest entropy drop for the root split."
+  },
+  {
+    "id": "q10",
+    "see": "c3-1",
+    "exam": true,
+    "src": "Decision Trees 3.1",
+    "q": "When every training example down a tree branch belongs to the same class (entropy = 0), what does the node become?",
+    "o": [
+      ["A green leaf node outputting that class", true, "Zero entropy means no further splits are needed—the branch terminates in a leaf."],
+      ["Another root node that restarts the dataset", false, "Each tree has only one root at the top."],
+      ["A pruned rose node that must be deleted", false, "Pure leaves are kept as final answers, not pruned."],
+      ["A vertical asymptote", false, "Asymptotes are graph boundaries, not tree nodes."]
+    ],
+    "e": "Zero entropy means pure agreement, so the tree stops splitting and emits a final leaf prediction."
+  },
+  {
+    "id": "q11",
+    "see": "c3-2",
+    "exam": true,
+    "src": "Alpha-Beta 3.2",
+    "q": "In a Minimax tree with Alpha-Beta pruning, why can a MIN node stop checking remaining children once its score drops to or below <span class=\"m\">\\alpha</span>?",
+    "o": [
+      ["The parent MAX player already has a better option <span class=\"m\">\\alpha</span> and will never choose this branch", true, "Because MAX takes the maximum, a MIN branch that can already force <= alpha is irrelevant."],
+      ["The MIN node wants to maximize its score above beta", false, "MIN minimizes the score; MAX maximizes."],
+      ["Alpha-Beta pruning randomly drops half the leaves to guess faster", false, "Alpha-Beta pruning is exact—it never changes the optimal Minimax value."],
+      ["The root node only allows one child", false, "Root nodes can have many moves; pruning only skips provably suboptimal subtrees."]
+    ],
+    "e": "Alpha-Beta pruning skips branches that cannot influence the parent's choice, giving the exact same answer faster."
+  },
+  {
+    "id": "q12",
+    "see": "c3-2",
+    "exam": true,
+    "src": "Search Comparison 3.2",
+    "q": "Comparing BFS, DFS, Dijkstra, A*, and Alpha-Beta, which algorithm uses a heuristic <span class=\"m\">h(n)</span> to stay both optimal and focused?",
+    "o": [
+      ["A* Search (with an admissible heuristic)", true, "A* combines path cost g(n) with admissible heuristic h(n) to prune pointless detours."],
+      ["Breadth-First Search (BFS)", false, "BFS expands uniformly layer by layer without a heuristic or edge weights."],
+      ["Depth-First Search (DFS)", false, "DFS dives down one path without checking path cost optimality."],
+      ["Alpha-Beta Pruning", false, "Alpha-Beta solves two-player adversarial game trees, not weighted shortest paths."]
+    ],
+    "e": "A* guides shortest-path search toward the goal using f(n) = g(n) + h(n) while guaranteeing optimality when h is admissible."
+  }
+]

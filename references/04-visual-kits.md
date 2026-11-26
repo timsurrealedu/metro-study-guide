@@ -34,12 +34,21 @@ real-size text, never a shrunken laptop drawing:
 | particles | box 50 % as tall as wide | same |
 | derive, annotate | HTML: wraps like text | same |
 | diagram | your SVG, scaled to the width | scaled; keep it ≤ 480 units wide for phones (see below) |
+| tree | tidy top-down Bezier tree | indented vertical hierarchy tree with edge pills |
+
+## Semantic Continuity & Anatomy Bar (v1.5)
+
+Across `graph`, `diagram`, `flow`, `cycle`, `timeline`, `bars`, and `tree`, items can set:
+- `role`: `"v"` (input/variable), `"c"` (coef/decision/param), `"f"` (function/process/rule), `"g"` (group/region), `"r"` (result/output/leaf), `"k"` (asymptote/error/prune), `"a"` (vector/aux). Matches `.eq`, `<span class="m">`, `Kit.derive`, `.t-chip`, and `[data-role]` table cells in the same `.sec`.
+- `use`: plain-English explanation of what this part is and does, shown live in the `.k-use` inspector bar on hover/tap.
+- `legend`: auto-generated `.k-legend` key (or pass an array of `{ role?, feat?, swatch?, label, use? }`; `legend: false` disables).
 
 ## Choosing a kit
 
 | You want to show… | Kit | Typical subjects |
 |---|---|---|
 | A process with stages; cause → effect; a method | `flow` | Chemistry methods, law-making, causes of a war, writing process, scientific method |
+| A branching hierarchy, decision, or search tree | `tree` | ID3 decision trees, Minimax/Alpha-Beta, syntax parse trees, taxonomy, recursion |
 | A loop that repeats | `cycle` | Water, carbon, nitrogen cycles; business cycle; Krebs; liturgical year |
 | Events in time | `timeline` | History, history of science, a novel's plot, a person's life |
 | A relationship between two quantities | `graph` | Maths functions, physics motion, rates, supply and demand, population |
@@ -182,11 +191,13 @@ Kit.graph("k-floor", {
 | `hlines[]` | `{y, label?, dash?, color?, at?, below?}`: a horizontal line. Label on the right (`at: "left"`), above the line (`below: true` to put it under). |
 | `dots[]` | `{x, y?, fn?, open?, label?, color?}`: an endpoint dot. `open: true` draws a hollow circle (endpoint **not** included); otherwise filled (included). Without `y`, the dot sits on curve `fn`. Colour = that curve's colour. |
 | `shade` | One area or a list: `{fn?, fn2?, from, to, label?, color?, lx?, ly?}`. Fills between curve `fn` (default 0) and curve `fn2`, or the x-axis if `fn2` is left out, from x = `from` to x = `to`. First area uses the line colour, later ones `--c2…`. Use a second colour for parts below the axis (negative integral). The label sits in the middle (`lx`, `ly` move it). |
-| `tangents[]` | `{fn?, x, y?, m?, len?, triangle?, dx?, color?, label?}`: tangent line at `x` (`{x}`, `{y}`, `{m}` supported in `label`), with optional rise/run guide `triangle: true`. |
-| `riemann[]` | `{fn?, from, to, n, mode?, color?, label?}`: Riemann rectangles (`mode`: `"left"`, `"right"`, `"mid"`). `n` may be a function of `p`; `{n}` and `{sum}` work in `label` and `readout(p, info)`. |
-| `vectors[]` | `{from: [x1,y1], to: [x2,y2], color?, label?, dash?}`: vector arrow (endpoints may be functions of `p`). |
+| `zones[]` | `{x1?, x2?, y1?, y2?, label?, role?, color?, use?}`: translucent background region behind curves. |
+| `tangents[]` | `{fn?, x, y?, m?, len?, triangle?, dx?, role?, color?, label?, use?}`: tangent line at `x` (`{x}`, `{y}`, `{m}` supported in `label`), with optional rise/run guide `triangle: true`. |
+| `riemann[]` | `{fn?, from, to, n, mode?, role?, color?, label?, use?}`: Riemann rectangles (`mode`: `"left"`, `"right"`, `"mid"`) with sample-point dots. `n` may be a function of `p`; `{n}` and `{sum}` work in `label` and `readout(p, info)`. |
+| `vectors[]` | `{from: [x1,y1], to: [x2,y2], role?, color?, label?, dash?, use?}`: vector arrow with matching colored arrowhead (endpoints may be functions of `p`). |
+| `probe` | Set `false` to disable the interactive hover curve probe on standalone graphs. |
 | `drawOn` | Set `false` to disable stroke draw-on animation when a curve first appears. |
-| `steps[].vlines`, `hlines`, `dots`, `shade`, `tangents`, `riemann`, `vectors` | Replace the top-level value while that step is shown (`[]` hides them). Leave out to keep the top-level value. |
+| `steps[].zones`, `vlines`, `hlines`, `dots`, `shade`, `tangents`, `riemann`, `vectors` | Replace the top-level value while that step is shown (`[]` hides them). Leave out to keep the top-level value. |
 
 Shading is drawn under the axes and curves; dots and labels on top. Everything follows
 light and dark mode (`.k-vl`, `.k-dot`, `.k-dot.open`, `.k-shade`).
@@ -309,8 +320,36 @@ Kit.diagram("k-fbd", {
 | `data-only="a,b"` | Shown only on those steps |
 
 Use the SVG classes from [05](05-custom-visuals.md) (`f-pc`, `s-pc`, `tb`, `ts`, …) so
-colours follow the theme. For phones, keep the drawing about 480 units wide or add
+colours follow the theme. Add `parts: { id: { label, role?, use?, swatch? } }` to wire interactive click-to-focus and the `.k-use` purpose bar. For phones, keep the drawing about 480 units wide or add
 `class="viz narrow"` for tall drawings: text in SVG drawings scales with the drawing.
+
+## Kit.tree — hierarchical & decision trees
+
+```js
+Kit.tree("k-id3", {
+  alt: "Decision tree splitting weather data.",
+  root: {
+    id: "root", t: "Outlook?", kind: "root", role: "c",
+    use: "Root picks the attribute with highest Information Gain.",
+    children: [
+      { id: "sunny", edge: "Sunny", t: "Humidity?", kind: "decision", role: "c", children: [...] },
+      { id: "over", edge: "Overcast", edgeRole: "r", t: "Play = Yes", kind: "leaf", role: "r" }
+    ]
+  },
+  steps: [
+    { t: "Choose root", d: "…", on: ["root"], reveal: ["root"] },
+    { t: "Branch on Overcast", d: "…", on: ["over"], reveal: ["root", "sunny", "over"] }
+  ]
+});
+```
+
+| Field | Meaning |
+|---|---|
+| `root` | Nested `{ id?, t, sub?, tag?, kind?, role?, edge?, edgeRole?, use?, children? }`. `kind`: `"root"`, `"decision"`, `"branch"`, `"leaf"`, `"pruned"`. |
+| `orientation` | `"auto"` (top-down wide, indented narrow), `"top"`, or `"left"`. |
+| `showPath` | Highlights the active node's path from root (`true` by default). |
+| `steps[].reveal` | Node IDs (plus ancestors) revealed so far, or `"all"`. |
+| `steps[].on`, `visit`, `prune` | Active nodes, visited nodes, and subtrees marked as pruned with an animated crimson slash. |
 
 ---
 

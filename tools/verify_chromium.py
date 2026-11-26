@@ -24,8 +24,8 @@ LAYOUT_JS = r"""(function(phone) {
   });
   document.querySelectorAll(".viz-stage svg").forEach(svg => {
     const f = svg.getBoundingClientRect(), id = svg.closest(".viz")?.id || "?";
-    const strokes = [...svg.querySelectorAll("line,path")].filter(s => !s.closest(".hide,[style*='display: none'],defs") && !s.matches(".k-grid,.k-axis,.k-mark,.k-curve,.k-tan,.k-shade,.k-vl,.k-edge,.k-lead")).map(s => s.getBoundingClientRect()).filter(r => r.width || r.height);
-    const rects = [...svg.querySelectorAll("rect")].filter(b => !b.closest(".hide,[style*='display: none'],defs") && !b.matches(".k-box,.k-riem,.k-bar")).map(b => b.getBoundingClientRect()).filter(r => r.width > 12 && r.height > 12);
+    const strokes = [...svg.querySelectorAll("line,path")].filter(s => !s.closest(".hide,[style*='display: none'],defs") && !s.matches(".k-grid,.k-axis,.k-mark,.k-curve,.k-tan,.k-shade,.k-vl,.k-edge,.k-lead,.k-tree-edge,.k-axis-arr,.k-prog-line,.k-vec,.k-tan-tri,.k-slash,.k-curve-halo,.k-probe-line")).map(s => s.getBoundingClientRect()).filter(r => r.width || r.height);
+    const rects = [...svg.querySelectorAll("rect")].filter(b => !b.closest(".hide,[style*='display: none'],defs") && !b.matches(".k-box,.k-riem,.k-bar,.k-zone")).map(b => b.getBoundingClientRect()).filter(r => r.width > 12 && r.height > 12);
     svg.querySelectorAll("text").forEach(t => {
       if (t.closest(".hide,[style*='display: none'],defs")) return;
       const r = t.getBoundingClientRect();

@@ -1,17 +1,18 @@
 /* =====================================================================
-   METRO ENGINE v1.3 · VISUAL KIT
+   METRO ENGINE v1.5 · VISUAL KIT
    ---------------------------------------------------------------------
    1) V  — small drawing helpers for hand-drawn (custom) visuals.
    2) Kit — ready-made step visuals you configure with data instead of
             drawing by hand. Every kit gets the standard player
             (Start over · Back · Play · Next), step captions, the light /
-            dark theme, the line colour, and the Animations switch.
+            dark theme, the line colour, semantic role continuity, and
+            the Animations switch.
 
-   Responsive kits (flow, cycle, timeline, graph, bars, particles) redraw
-   to the real width of their box, so text stays the same size on a
-   phone as on a laptop. They switch to a stacked layout on narrow boxes.
-   The diagram kit scales a drawing you supply. derive and annotate are
-   HTML, so they wrap like normal text.
+   Responsive kits (flow, cycle, timeline, graph, bars, particles, tree)
+   redraw to the real width of their box, so text stays the same size on
+   a phone as on a laptop. They switch to a stacked/indented layout on
+   narrow boxes. The diagram kit scales a drawing you supply. derive and
+   annotate are HTML, so they wrap like normal text.
 
    Use in visuals.js:   Kit.flow("v-id", { …options… });
    Full reference:      docs/04-visual-kits.md
@@ -21,7 +22,7 @@ const E=window.Engine, $=E.$, $$=E.$$, h=E.h;
 
 /* ---------------------------------------------------------------- V */
 const V=window.V={};
-V.svg=id=>$("#"+id+" .viz-stage svg")||$("#"+id);
+V.svg=id=>$("#"+id+" .viz-stage > svg")||$("#"+id);
 V.put=(svg,html)=>svg.insertAdjacentHTML("beforeend",html);
 V.clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 V.lerp=(a,b,t)=>a+(b-a)*t;
@@ -37,11 +38,78 @@ V.ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 
 /* @kit-start (build.py drops everything below when visuals.js never calls Kit.) */
 /* ---------------------------------------------------------------- shared */
-const Kit=window.Kit={version:"1.4"};
-const PAL=i=>`var(--c${(i%4)+1})`;
-const CW=(fs)=>fs*.53;                                   // average character width in px
+const Kit=window.Kit={version:"1.5"};
+const PAL=i=>`var(--c${(i%6)+1})`;
+const CW=(fs)=>fs*.55;                                   // average character width in px
 const fit=(t,w,fs)=>V.wrap(t,Math.max(6,Math.floor(w/CW(fs))));
 const tlines=(x,y,lines,cls,lh,anchor="start")=>`<text x="${x}" y="${y}" class="${cls}" text-anchor="${anchor}">${lines.map((l,i)=>`<tspan x="${x}" dy="${i?lh:0}">${l}</tspan>`).join("")}</text>`;
+const escAttr=s=>String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const escHtml=s=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const roleKey=r=>{const k=E.ROLE_MAP&&E.ROLE_MAP[String(r||"").trim().toLowerCase()];return k&&k!=="s"?k:""};
+const roleCol=(r,def)=>{const k=roleKey(r);return k?`var(--m-${k})`:def};
+const roleAttr=r=>{const k=roleKey(r);return k?` data-role="${k}" style="--rc:var(--m-${k})"`:""};
+const branchRole=txt=>{const s=String(txt||"").trim();if(/^(yes|true|pass|ok|valid|allow|accept|hit|match|ya|benar)\b/i.test(s))return "r";if(/^(no|false|fail|error|reject|block|deny|prune|cut|miss|tidak|salah)\b/i.test(s))return "k";return ""};
+function pillSvg(x,y,txt,o={}){
+  const s=String(txt||"").trim();if(!s)return "";
+  const W=o.W||640,H=o.H||360,fs=o.fs||12,pw=Math.max(o.minW||32,Math.ceil(s.length*fs*.66)+22),ph=fs+14;
+  const minX=o.minX??4,maxX=o.maxX??(W-4),minY=o.minY??4,maxY=o.maxY??(H-4);
+  const px=V.clamp(x-pw/2,minX,Math.max(minX,maxX-pw)),py=V.clamp(y-ph/2,minY,Math.max(minY,maxY-ph));
+  const rk=roleKey(o.role),st=o.color?`--rc:${o.color};`:rk?`--rc:var(--m-${rk});`:"";
+  const cls=o.cls||"k-pill",tcls=o.tcls||"k-pill-t";
+  return `<g${o.feat?` class="k-feat" data-feat="${escAttr(o.feat)}"`:""}${rk?` data-role="${rk}"`:""}${o.use?` data-use="${escAttr(o.use)}" data-uname="${escAttr(o.uname||s)}"`:""}${st?` style="${st}"`:""}><rect class="${cls}${o.on?" on":""}" x="${px.toFixed(1)}" y="${py.toFixed(1)}" width="${pw}" height="${ph}" rx="${(ph/2).toFixed(1)}"/><text class="${tcls}" x="${(px+pw/2).toFixed(1)}" y="${(py+ph/2+fs*.35).toFixed(1)}" text-anchor="middle">${escHtml(s)}</text></g>`;
+}
+function swatchSvg(kind="dot"){
+  if(kind==="line")return `<svg class="ic" viewBox="0 0 14 10" aria-hidden="true"><line x1="1" y1="5" x2="13" y2="5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+  if(kind==="dash")return `<svg class="ic" viewBox="0 0 14 10" aria-hidden="true"><line x1="1" y1="5" x2="13" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="3 2.5" stroke-linecap="round"/></svg>`;
+  if(kind==="area")return `<svg class="ic" viewBox="0 0 14 10" aria-hidden="true"><rect x="1" y="1.5" width="12" height="7" rx="2" fill="currentColor" fill-opacity=".28" stroke="currentColor" stroke-width="1.3"/></svg>`;
+  if(kind==="vec")return `<svg class="ic" viewBox="0 0 14 10" aria-hidden="true"><path d="M1 5h9M7.5 2l3.5 3-3.5 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  if(kind==="open")return `<svg class="ic" viewBox="0 0 14 10" aria-hidden="true"><circle cx="7" cy="5" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
+  if(kind==="dia")return `<svg class="ic" viewBox="0 0 14 10" aria-hidden="true"><polygon points="7,1 11,5 7,9 3,5" fill="currentColor"/></svg>`;
+  if(kind==="box")return `<svg class="ic" viewBox="0 0 14 10" aria-hidden="true"><rect x="1.5" y="1.5" width="11" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>`;
+  if(kind==="cut")return `<svg class="ic" viewBox="0 0 14 10" aria-hidden="true"><path d="M2 8L12 2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>`;
+  return `<svg class="ic" viewBox="0 0 14 10" aria-hidden="true"><circle cx="7" cy="5" r="3.5" fill="currentColor"/></svg>`;
+}
+function mountAnatomy(S,o={}){
+  const leg=h("div",{class:"k-legend",role:"group","aria-label":"Visual key"});
+  const useBox=h("div",{class:"k-use","aria-live":"polite"});
+  let items=[],defUse=o.defaultUse||E.t("tap_inspect");
+  const showUse=(title,text,color)=>{
+    if(!useBox.parentNode)return;
+    const st=color?` style="--rc:${color}"`:"";
+    useBox.innerHTML=title?`<b${st}>${escHtml(title)}</b><span>${escHtml(text||"")}</span>`:`<span>${escHtml(text||defUse)}</span>`;
+  };
+  function setItems(list){
+    items=(list||[]).filter(Boolean);
+    if(!items.length){leg.hidden=true;leg.innerHTML="";return}
+    leg.hidden=false;
+    leg.innerHTML=items.map(it=>{
+      const rk=roleKey(it.role),c=it.color||(rk?`var(--m-${rk})`:"var(--pc)");
+      return `<button type="button" class="k-leg-item" style="--rc:${c}"${rk?` data-role="${rk}"`:""}${it.feat?` data-feat="${escAttr(it.feat)}"`:""}${it.use?` data-use="${escAttr(it.use)}"`:""} aria-pressed="false"><span class="k-sw-ic">${swatchSvg(it.swatch||"dot")}</span><span>${escHtml(it.label)}</span></button>`;
+    }).join("");
+    if(!useBox.innerHTML)showUse(null,defUse);
+  }
+  function wire(svg){
+    if(!svg||svg._anWired)return;svg._anWired=true;
+    const pick=el=>{
+      if(!el)return;
+      const title=el.dataset.uname||el.dataset.part||el.textContent.trim().split("\n")[0].slice(0,28);
+      const u=el.dataset.use||"";
+      const rk=roleKey(el.dataset.role),c=rk?`var(--m-${rk})`:el.style.getPropertyValue("--rc")||"var(--pc)";
+      if(u)showUse(title,u,c);
+    };
+    svg.addEventListener("pointerover",e=>{const el=e.target.closest("[data-use]");if(el)pick(el)});
+    svg.addEventListener("pointerleave",()=>{const sc=S.stage.closest(".sec")||S.stage.closest(".viz");if(!sc?.dataset.pinRole&&!sc?.dataset.pinFeat)showUse(null,defUse)});
+    svg.addEventListener("focusin",e=>{const el=e.target.closest("[data-use]");if(el)pick(el)});
+    leg.addEventListener("pointerover",e=>{const b=e.target.closest(".k-leg-item");if(b&&b.dataset.use)showUse(b.textContent.trim(),b.dataset.use,b.style.getPropertyValue("--rc"))});
+    leg.addEventListener("click",e=>{const b=e.target.closest(".k-leg-item");if(b&&b.dataset.use)showUse(b.textContent.trim(),b.dataset.use,b.style.getPropertyValue("--rc"))});
+  }
+  const hasUse=!!(o.showUse);
+  S.stage.prepend(leg);
+  if(hasUse||o.legend)S.stage.append(useBox);
+  leg.hidden=true;
+  if(!hasUse&&!o.legend)useBox.hidden=true;
+  return {leg,useBox,setItems,showUse,wire,ensureUse(){if(useBox.hidden){useBox.hidden=false;if(!useBox.parentNode)S.stage.append(useBox);showUse(null,defUse)}}};
+}
 let uid=0;
 function setup(id,kind){
   const viz=document.getElementById(id);
@@ -50,16 +118,16 @@ function setup(id,kind){
   let stage=$(".viz-stage",viz);if(!stage){stage=h("div",{class:"viz-stage"});viz.prepend(stage)}
   return {viz,stage,uid:"k"+(++uid)};
 }
-function svgIn(S,alt,cls=""){let svg=$("svg",S.stage);if(!svg){S.stage.innerHTML=`<svg class="${cls}" role="img" aria-label="${(alt||"").replace(/"/g,"&quot;")}"></svg>`;svg=$("svg",S.stage)}return svg}
+function svgIn(S,alt,cls=""){let svg=$(":scope > svg",S.stage);if(!svg){S.stage.insertAdjacentHTML("beforeend",`<svg class="${cls}" role="img" aria-label="${(alt||"").replace(/"/g,"&quot;")}"></svg>`);svg=$(":scope > svg",S.stage)}return svg}
 /* measure the box and redraw when it changes size (phone ↔ laptop, scroll ↔ explainer). */
 function responsive(S,layout,box){
-  const el=box||$("svg",S.stage)||S.stage;
+  const el=box||$(":scope > svg",S.stage)||S.stage;
   const width=()=>{const w=el.getBoundingClientRect().width;return w<60?0:Math.max(260,Math.min(1100,Math.round(w)))};
   let last=0;const run=()=>{const w=width();if(!w)return;if(Math.abs(w-last)>6){last=w;layout(w)}};
   new ResizeObserver(run).observe(box||S.stage);
   const w=width();layout(last=w||640);
 }
-const markers=(u)=>`<defs><marker id="${u}-on" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head on"/></marker><marker id="${u}-off" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head"/></marker></defs>`;
+const markers=(u,col="")=>`<defs><marker id="${u}-on" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head on"${col?` style="fill:${col}"`:""}/></marker><marker id="${u}-off" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head"/></marker></defs>`;
 const stepsOr=(o,def)=>(o.steps&&o.steps.length?o.steps:def);
 function ctlRange(S,key,c,onInput){
   let ctl=$(".ctl",S.viz);if(!ctl){ctl=h("div",{class:"ctl"});S.viz.appendChild(ctl)}
@@ -80,15 +148,48 @@ Kit.diagram=(id,o)=>{
   const svg=svgIn(S,o.alt);
   if(o.vb)svg.setAttribute("viewBox",o.vb);
   if(o.svg)V.put(svg,o.svg);
+  const partsMeta=o.parts||{};
   const parts=$$("[data-part]",svg),labels=$$("[data-label]",svg),builds=$$("[data-step]",svg),onlys=$$("[data-only]",svg);
   labels.forEach(l=>l.classList.add("fade"));
   const steps=stepsOr(o,[{t:"Overview",d:""}]);
-  return E.stepper(S.viz,steps,(i)=>{const s=steps[i],f=s.focus;
-    parts.forEach(p=>p.classList.toggle("k-faint",!!f&&!f.includes(p.dataset.part)));
+  const hasMeta=!!(Object.keys(partsMeta).length||o.legend);
+  const an=hasMeta?mountAnatomy(S,{showUse:true,legend:o.legend}):null;
+  parts.forEach(p=>{
+    const key=p.dataset.part,m=partsMeta[key];
+    if(m){
+      const rk=roleKey(m.role);
+      if(rk){p.dataset.role=rk;p.style.setProperty("--rc",`var(--m-${rk})`)}
+      if(m.use){p.dataset.use=m.use;p.dataset.uname=m.label||key}
+    }
+    if(steps.some(s=>s.focus&&s.focus.includes(key))||(m&&m.use)){
+      p.classList.add("clickable");p.setAttribute("tabindex","0");p.setAttribute("role","button");
+      if(m&&m.label)p.setAttribute("aria-label",m.label);
+    }
+  });
+  if(an){
+    const list=o.legend||Object.entries(partsMeta).map(([k,m])=>({feat:k,role:m.role,label:m.label||k,use:m.use,color:m.color,swatch:m.swatch||"box"}));
+    an.setItems(list);an.wire(svg);
+  }
+  const player=E.stepper(S.viz,steps,(i)=>{const s=steps[i],f=s.focus;
+    parts.forEach(p=>{
+      const hit=!f||f.includes(p.dataset.part);
+      p.classList.toggle("k-faint",!!f&&!hit);
+      p.classList.toggle("k-active",!!f&&hit);
+    });
     const L=s.labels||f||[];labels.forEach(l=>l.classList.toggle("hide",!L.includes(l.dataset.label)));
-    builds.forEach(b=>b.classList.toggle("hide",i<+b.dataset.step));
-    onlys.forEach(b=>b.classList.toggle("hide",!b.dataset.only.split(",").map(Number).includes(i)));
+    builds.forEach(b=>{const vis=i>=+b.dataset.step,was=b.classList.contains("hide");b.classList.toggle("hide",!vis);if(vis&&was&&E.motionOn())b.classList.add("k-pop")});
+    onlys.forEach(b=>{const vis=b.dataset.only.split(",").map(Number).includes(i),was=b.classList.contains("hide");b.classList.toggle("hide",!vis);if(vis&&was&&E.motionOn())b.classList.add("k-pop")});
+    if(an&&f&&f.length){const pk=f[f.length-1];if(partsMeta[pk]?.use)an.showUse(partsMeta[pk].label||pk,partsMeta[pk].use,roleCol(partsMeta[pk].role,"var(--pc)"))}
     if(o.on)o.on(i,svg,s);},{ms:o.ms});
+  const jumpPart=el=>{
+    const key=el.dataset.part;if(!key)return;
+    const si=steps.findIndex(s=>s.focus&&s.focus.includes(key));
+    if(si>=0){player.stop();player.show(si)}
+    if(an&&partsMeta[key]?.use)an.showUse(partsMeta[key].label||key,partsMeta[key].use,roleCol(partsMeta[key].role,"var(--pc)"));
+  };
+  svg.addEventListener("click",e=>{const p=e.target.closest("[data-part].clickable");if(p)jumpPart(p)});
+  svg.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches("[data-part].clickable")){e.preventDefault();jumpPart(e.target)}});
+  return player;
 };
 
 /* =================================================================
@@ -98,51 +199,78 @@ Kit.flow=(id,o)=>{
   const S=setup(id,"flow");if(!S)return;
   const svg=svgIn(S,o.alt),N=o.nodes,n=N.length;
   const idx=k=>typeof k==="number"?k:N.findIndex(x=>x.id===k);
-  const edges=(o.edges||N.slice(1).map((_,i)=>[i,i+1])).map(e=>[idx(e[0]),idx(e[1]),e[2]||""]);
-  const steps=stepsOr(o,N.map((nd,i)=>({t:nd.t,d:nd.d||"",on:[i]})));
-  let cur=0;
+  const edges=(o.edges||N.slice(1).map((_,i)=>[i,i+1])).map(e=>[idx(e[0]),idx(e[1]),e[2]||"",e[3]||branchRole(e[2])]);
+  const steps=stepsOr(o,N.map((nd,i)=>({t:nd.t,d:nd.d||nd.use||"",on:[i]})));
+  const hasMeta=!!(o.legend||N.some(nd=>nd.role||nd.kind||nd.use));
+  const an=hasMeta?mountAnatomy(S,{showUse:N.some(nd=>nd.use),legend:o.legend}):null;
+  if(an){
+    const roleNames={v:"Input / Data",c:"Decision / Param",f:"Process / Rule",g:"Group / Stage",r:"Output / Success",k:"Error / Reject",a:"Aux / Accent"};
+    const list=o.legend||[...new Map(N.filter(nd=>nd.role).map(nd=>[roleKey(nd.role),{role:roleKey(nd.role),label:roleNames[roleKey(nd.role)]||nd.role,swatch:nd.kind==="decision"?"dia":"box",use:nd.use||""}])).values()];
+    an.setItems(list);an.wire(svg);
+  }
+  const kindGlyph={start:"●",input:"▶",process:"⚙",decision:"◆",output:"✓",error:"✕",end:"■"};
+  let cur=0,player=null;
   function layout(W){
-    /* a simple chain (each box leads to the next) may stack in one column on phones;
-       a branching flow keeps at least two columns so its arrows can go round the boxes */
     const chain=edges.every(([a,b])=>b===a+1);
-    const minNodeW=Math.min(250,Math.max(190,...N.map(nd=>{const first=(nd.t||"").replace(/^(\d+\.)\s+/,"$1\u00A0").split(" ")[0];return Math.ceil(first.length*CW(15))+34})));
+    const minNodeW=Math.min(250,Math.max(190,...N.map(nd=>{const first=(nd.t||"").replace(/^(\d+\.)\s+/,"$1\u00A0").split(" ")[0];return Math.ceil(first.length*CW(15))+38})));
     let cols=Math.max(1,Math.min(o.cols||4,n,Math.floor((W+36)/(minNodeW+28))));
     if(chain&&W<540)cols=1;else if(!chain&&n>1)cols=Math.max(2,cols);
-    const labW=Math.max(0,...edges.map(e=>e[2]?e[2].length*7+22:0));
-    const gap=cols>1?Math.max(labW,Math.min(64,Math.max(40,(W-cols*150)/(cols-1)*.35))):0;
+    const labW=Math.max(0,...edges.map(e=>e[2]?e[2].length*8+32:0));
+    const gap=cols>1?Math.max(labW,Math.min(68,Math.max(44,(W-cols*150)/(cols-1)*.38))):0;
     const bw=Math.min(o.boxWidth||240,(W-8-(cols-1)*gap)/cols);
     const ox=(W-(cols*bw+(cols-1)*gap))/2;
-    const wr=N.map(nd=>({t:fit(nd.t,bw-24,15),s:nd.sub?fit(nd.sub,bw-24,13):[]}));
-    const hh=wr.map((w,i)=>16+w.t.length*19+(w.s.length?3+w.s.length*17:0)+(N[i].tag?30:0)+14);
+    const wr=N.map(nd=>({t:fit(nd.t,bw-34,15),s:nd.sub?fit(nd.sub,bw-34,13):[]}));
+    const hh=wr.map((w,i)=>16+(N[i].kind?15:0)+w.t.length*19+(w.s.length?3+w.s.length*17:0)+(N[i].tag?32:0)+14);
     const rows=Math.ceil(n/cols),rowH=[];for(let r=0;r<rows;r++)rowH[r]=Math.max(...hh.slice(r*cols,r*cols+cols));
-    const vg=cols===1?40:56;let y=10;const P=[];
+    const vg=cols===1?42:58;let y=10;const P=[];
     for(let r=0;r<rows;r++){for(let c=0;c<cols;c++){const i=r*cols+c;if(i>=n)break;P[i]={x:ox+c*(bw+gap),y,w:bw,h:rowH[r],r,c}}y+=rowH[r]+vg}
-    const H=y-vg+12;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
-    let s=markers(S.uid);
-    edges.forEach(([a,b,lab],k)=>{const A=P[a],B=P[b];if(!A||!B)return;let d;
+    const sameRowSkip=edges.some(([a,b])=>P[a]&&P[b]&&P[a].r===P[b].r&&Math.abs(P[a].c-P[b].c)>1&&P[a].r===rows-1);
+    const H=y-vg+(sameRowSkip?42:12);svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+    const edgeCols=[...new Set(edges.map(e=>roleKey(e[3])).filter(Boolean))];
+    let s=markers(S.uid)+edgeCols.map(rk=>`<defs><marker id="${S.uid}-on-${rk}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head on" style="fill:var(--m-${rk})"/></marker></defs>`).join("");
+    let edgePills="";
+    edges.forEach(([a,b,lab,er],k)=>{const A=P[a],B=P[b];if(!A||!B)return;let d,mx,my;
       const down=B.r>A.r,ax=A.x+A.w/2,bx=B.x+B.w/2,ay=down?A.y+A.h:A.y,by=down?B.y-4:B.y+B.h+4;
-      if(A.r===B.r&&B.c>A.c)d=`M${A.x+A.w},${A.y+A.h/2} H${B.x-4}`;
-      else if(A.r===B.r)d=`M${A.x},${A.y+A.h/2} H${B.x+B.w+4}`;
-      else if(Math.abs(B.r-A.r)===1){d=Math.abs(ax-bx)<1?`M${ax},${ay} V${by}`:`M${ax},${ay} V${down?A.y+A.h+vg/2:A.y-vg/2} H${bx} V${by}`}
-      else{/* skips a row: run down the gap between columns so the arrow never crosses a box */
+      if(A.r===B.r&&B.c===A.c+1){d=`M${A.x+A.w},${A.y+A.h/2} H${B.x-4}`;mx=(A.x+A.w+B.x)/2;my=A.y+A.h/2}
+      else if(A.r===B.r&&B.c===A.c-1){d=`M${A.x},${A.y+A.h/2} H${B.x+B.w+4}`;mx=(A.x+B.x+B.w)/2;my=A.y+A.h/2}
+      else if(A.r===B.r){const ym=A.y+A.h+vg/2;d=`M${ax},${A.y+A.h} V${ym} H${bx} V${B.y+B.h+4}`;mx=(ax+bx)/2;my=ym}
+      else if(Math.abs(B.r-A.r)===1){
+        if(Math.abs(ax-bx)<1){d=`M${ax},${ay} V${by}`;mx=ax;my=(ay+by)/2}
+        else{const ym=down?A.y+A.h+vg/2:A.y-vg/2;d=`M${ax},${ay} V${ym} H${bx} V${by}`;mx=(ax+bx)/2;my=ym}
+      } else {
         const cx=A.c<cols-1?A.x+A.w+gap/2:A.x-gap/2,y1=down?A.y+A.h+vg/2:A.y-vg/2,y2=down?B.y-vg/2:B.y+B.h+vg/2;
-        d=`M${ax},${ay} V${y1} H${cx} V${y2} H${bx} V${by}`}
-      s+=`<path class="k-edge" data-e="${k}" d="${d}"/>`;
-      if(lab){const mx=A.r===B.r?(A.x+A.w+B.x)/2:A.x+A.w/2+8,my=A.r===B.r?A.y+A.h/2-9:A.y+A.h+(cols===1||A.c===B.c?vg/2+4:vg/2-6);s+=`<text class="k-s k-elab" data-e="${k}" x="${mx}" y="${my}" text-anchor="${A.r===B.r?"middle":"start"}">${lab}</text>`}});
-    N.forEach((nd,i)=>{const p=P[i],w=wr[i];let t=`<g class="k-n" data-i="${i}"><rect class="k-node" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="14"/>`;
-      t+=tlines(p.x+12,p.y+28,w.t,"k-t",19);
-      if(w.s.length)t+=tlines(p.x+12,p.y+28+w.t.length*19+2,w.s,"k-s",17);
-      if(nd.tag)t+=`<g class="k-tag"><rect x="${p.x+12}" y="${p.y+p.h-40}" width="${Math.min(p.w-24,nd.tag.length*8+22)}" height="24" rx="12"/><text class="k-c" x="${p.x+23}" y="${p.y+p.h-23.5}">${nd.tag}</text></g>`;
+        d=`M${ax},${ay} V${y1} H${cx} V${y2} H${bx} V${by}`;mx=cx;my=(y1+y2)/2;
+      }
+      const erk=roleKey(er);
+      s+=`<path class="k-edge" data-e="${k}"${erk?` data-er="${erk}" style="--rc:var(--m-${erk})"`:""} d="${d}"/>`;
+      if(lab)edgePills+=pillSvg(mx,my,lab,{W,H,fs:11.5,cls:"k-epill",tcls:"k-epill-t",role:erk,minW:30});
+    });
+    N.forEach((nd,i)=>{const p=P[i],w=wr[i],rk=roleKey(nd.role),rc=nd.color||(rk?`var(--m-${rk})`:"var(--pc)");
+      const rx=nd.kind==="start"||nd.kind==="end"?20:14,kOff=nd.kind?15:0;
+      const gId=S.uid+"-nc"+i;
+      let t=`<g class="k-n clickable" data-i="${i}" tabindex="0" role="button" aria-label="${escAttr(nd.t)}"${rk?` data-role="${rk}"`:""}${nd.use?` data-use="${escAttr(nd.use)}" data-uname="${escAttr(nd.t)}"`:""} style="--rc:${rc}">`;
+      t+=`<clipPath id="${gId}"><rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="${rx}"/></clipPath>`;
+      t+=`<rect class="k-node" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="${rx}"/>`;
+      t+=`<rect class="k-accent" x="${p.x}" y="${p.y}" width="5.5" height="${p.h}" clip-path="url(#${gId})"/>`;
+      if(nd.kind)t+=`<text class="k-kind" x="${p.x+15}" y="${p.y+21}">${kindGlyph[nd.kind]||"•"} ${escHtml(nd.kind.toUpperCase())}</text>`;
+      t+=tlines(p.x+15,p.y+27+kOff,w.t,"k-t",19);
+      if(w.s.length)t+=tlines(p.x+15,p.y+27+kOff+w.t.length*19+2,w.s,"k-s",17);
+      if(nd.tag){const tw=Math.min(p.w-28,Math.ceil(nd.tag.length*8)+22);t+=`<g class="k-tag"><rect x="${p.x+15}" y="${p.y+p.h-38}" width="${tw}" height="24" rx="12"/><text class="k-c" x="${p.x+26}" y="${p.y+p.h-21.5}">${escHtml(nd.tag)}</text></g>`;}
       s+=t+"</g>"});
-    svg.innerHTML=s;render(cur);
+    s+=edgePills;svg.innerHTML=s;render(cur);
   }
   function render(i){cur=i;const s=steps[i]||{},on=(s.on||[i]).map(idx),reach=Math.max(...on,s.upTo!=null?idx(s.upTo):-1);
     $$(".k-n",svg).forEach(g=>{const k=+g.dataset.i;g.classList.toggle("on",on.includes(k));g.classList.toggle("done",k<=reach&&!on.includes(k));g.classList.toggle("todo",k>reach)});
-    edges.forEach(([a,b],k)=>{const lit=a<=reach&&b<=reach,into=on.includes(b)&&a<=reach;
-      $$(`[data-e="${k}"]`,svg).forEach(e=>{e.classList.toggle("done",lit);e.classList.toggle("todo",!lit);e.classList.toggle("flowline",into&&e.tagName==="path");if(e.tagName==="path")e.setAttribute("marker-end",`url(#${S.uid}-${lit?"on":"off"})`)})});
+    edges.forEach(([a,b,,er],k)=>{const lit=a<=reach&&b<=reach,into=on.includes(b)&&a<=reach,erk=roleKey(er);
+      $$(`[data-e="${k}"]`,svg).forEach(e=>{e.classList.toggle("done",lit);e.classList.toggle("todo",!lit);e.classList.toggle("flowline",into&&e.tagName==="path");if(e.tagName==="path")e.setAttribute("marker-end",`url(#${S.uid}-${lit?(erk?"on-"+erk:"on"):"off"})`)})});
+    if(an&&on.length===1&&N[on[0]]?.use)an.showUse(N[on[0]].t,N[on[0]].use,roleCol(N[on[0]].role,"var(--pc)"));
     if(o.on)o.on(i,svg,s);}
+  const jumpNode=g=>{const k=+g.dataset.i,si=steps.findIndex(s=>(s.on||[]).map(idx).includes(k));if(si>=0&&player){player.stop();player.show(si)}if(an&&N[k]?.use)an.showUse(N[k].t,N[k].use,roleCol(N[k].role,"var(--pc)"))};
+  svg.addEventListener("click",e=>{const g=e.target.closest(".k-n");if(g)jumpNode(g)});
+  svg.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches(".k-n")){e.preventDefault();jumpNode(e.target)}});
   responsive(S,layout);
-  return E.stepper(S.viz,steps,i=>render(i),{ms:o.ms});
+  player=E.stepper(S.viz,steps,i=>render(i),{ms:o.ms});
+  return player;
 };
 
 /* =================================================================
@@ -151,37 +279,53 @@ Kit.flow=(id,o)=>{
 Kit.cycle=(id,o)=>{
   const S=setup(id,"cycle");if(!S)return;
   const svg=svgIn(S,o.alt),N=o.nodes,n=N.length;
-  const steps=stepsOr(o,N.map((nd,i)=>({t:nd.t,d:nd.d||"",on:[i]})));
-  let cur=0,P=[];
+  const steps=stepsOr(o,N.map((nd,i)=>({t:nd.t,d:nd.d||nd.use||"",on:[i]})));
+  const hasMeta=!!(o.legend||N.some(nd=>nd.role||nd.use));
+  const an=hasMeta?mountAnatomy(S,{showUse:N.some(nd=>nd.use),legend:o.legend}):null;
+  if(an){
+    const list=o.legend||[...new Map(N.filter(nd=>nd.role).map(nd=>[roleKey(nd.role),{role:roleKey(nd.role),label:nd.t,swatch:"ring",use:nd.use||""}])).values()];
+    an.setItems(list);an.wire(svg);
+  }
+  let cur=0,P=[],player=null;
   function layout(W){
     let s=markers(S.uid);
     if(W>=500){
-      const bw=Math.min(170,W*.27),H=Math.round(Math.min(460,Math.max(340,W*.66))),cx=W/2,cy=H/2,rx=Math.min(W/2-bw/2-10,260),ry=H/2-48;
-      P=N.map((nd,i)=>{const a=-Math.PI/2+2*Math.PI*i/n;const w=fit(nd.t,bw-20,14.5),sb=nd.sub?fit(nd.sub,bw-20,12.5):[];const hh=14+w.length*18+(sb.length?sb.length*16+4:0)+10;return {x:cx+rx*Math.cos(a),y:cy+ry*Math.sin(a),a,w,sb,hh}});
+      const bw=Math.min(176,W*.27),H=Math.round(Math.min(480,Math.max(350,W*.66))),cx=W/2,cy=H/2,rx=Math.min(W/2-bw/2-12,260),ry=H/2-50;
+      P=N.map((nd,i)=>{const a=-Math.PI/2+2*Math.PI*i/n;const w=fit(nd.t,bw-24,14.5),sb=nd.sub?fit(nd.sub,bw-24,12.5):[];const hh=14+w.length*18+(sb.length?sb.length*16+4:0)+10;return {x:cx+rx*Math.cos(a),y:cy+ry*Math.sin(a),a,w,sb,hh}});
       svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
-      for(let i=0;i<n;i++){const a1=P[i].a+.32,a2=P[i].a+2*Math.PI/n-.32;const x1=cx+rx*Math.cos(a1),y1=cy+ry*Math.sin(a1),x2=cx+rx*Math.cos(a2),y2=cy+ry*Math.sin(a2);
-        s+=`<path class="k-edge" data-e="${i}" d="M${x1.toFixed(1)},${y1.toFixed(1)} A${rx},${ry} 0 0 1 ${x2.toFixed(1)},${y2.toFixed(1)}"/>`}
-      if(o.center){const ct=fit(o.center.t,rx*1.1,17),cs=o.center.sub?fit(o.center.sub,rx*1.2,13):[];s+=tlines(cx,cy-((ct.length+cs.length)*18)/2+14,ct,"k-big",22,"middle")+(cs.length?tlines(cx,cy-((ct.length+cs.length)*18)/2+14+ct.length*22,cs,"k-s",17,"middle"):"")}
-      P.forEach((p,i)=>{const bx=p.x-bw/2,by=p.y-p.hh/2;s+=`<g class="k-n" data-i="${i}"><rect class="k-node" x="${bx}" y="${by}" width="${bw}" height="${p.hh}" rx="14"/>${tlines(p.x,by+26,p.w,"k-t",18,"middle")}${p.sb.length?tlines(p.x,by+26+p.w.length*18+2,p.sb,"k-s",16,"middle"):""}</g>`;p.cx=p.x;p.cy=by});
+      for(let i=0;i<n;i++){const a1=P[i].a+.32,a2=P[i].a+2*Math.PI/n-.32,am=(a1+a2)/2;const x1=cx+rx*Math.cos(a1),y1=cy+ry*Math.sin(a1),x2=cx+rx*Math.cos(a2),y2=cy+ry*Math.sin(a2);
+        const rc=roleCol(N[i].role,"var(--pc)");
+        s+=`<path class="k-edge" data-e="${i}" style="--rc:${rc}" d="M${x1.toFixed(1)},${y1.toFixed(1)} A${rx},${ry} 0 0 1 ${x2.toFixed(1)},${y2.toFixed(1)}"/>`;
+        const elab=o.edges&&o.edges[i];
+        if(elab)s+=pillSvg(cx+rx*Math.cos(am),cy+ry*Math.sin(am),elab,{W,H,fs:11,cls:"k-epill",tcls:"k-epill-t",role:N[i].role,minW:28});
+      }
+      if(o.center){const ct=fit(o.center.t,rx*1.05,17),cs=o.center.sub?fit(o.center.sub,rx*1.15,13):[];s+=tlines(cx,cy-((ct.length+cs.length)*18)/2+14,ct,"k-big",22,"middle")+(cs.length?tlines(cx,cy-((ct.length+cs.length)*18)/2+14+ct.length*22,cs,"k-s",17,"middle"):"")}
+      P.forEach((p,i)=>{const nd=N[i],bx=p.x-bw/2,by=p.y-p.hh/2,rk=roleKey(nd.role),rc=nd.color||(rk?`var(--m-${rk})`:"var(--pc)");
+        s+=`<g class="k-n clickable" data-i="${i}" tabindex="0" role="button" aria-label="${escAttr(nd.t)}"${rk?` data-role="${rk}"`:""}${nd.use?` data-use="${escAttr(nd.use)}" data-uname="${escAttr(nd.t)}"`:""} style="--rc:${rc}"><rect class="k-node" x="${bx}" y="${by}" width="${bw}" height="${p.hh}" rx="14"/><rect class="k-accent" x="${bx+16}" y="${by}" width="${bw-32}" height="4" rx="2"/>${tlines(p.x,by+27,p.w,"k-t",18,"middle")}${p.sb.length?tlines(p.x,by+27+p.w.length*18+2,p.sb,"k-s",16,"middle"):""}</g>`;p.cx=p.x;p.cy=by});
     } else {
-      /* narrow: a stacked list with a return arrow down the right side */
-      const bw=W-56,x0=8;let y=o.center?50:10;const R=[];
+      const bw=W-56,x0=8;let y=o.center?50:10;
       if(o.center)s+=tlines(x0,26,fit(o.center.t,W-16,16),"k-big",20)+(o.center.sub?`<text class="k-s" x="${x0}" y="44">${o.center.sub}</text>`:"");
-      P=N.map((nd,i)=>{const w=fit(nd.t,bw-24,14.5),sb=nd.sub?fit(nd.sub,bw-24,12.5):[];const hh=14+w.length*18+(sb.length?sb.length*16+4:0)+10;const p={x:x0,y,w,sb,hh};y+=hh+30;return p});
+      P=N.map((nd,i)=>{const w=fit(nd.t,bw-26,14.5),sb=nd.sub?fit(nd.sub,bw-26,12.5):[];const hh=14+w.length*18+(sb.length?sb.length*16+4:0)+10;const p={x:x0,y,w,sb,hh};y+=hh+32;return p});
       const H=y-18;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
-      for(let i=0;i<n;i++){const A=P[i],B=P[(i+1)%n];
-        if(i<n-1)s+=`<path class="k-edge" data-e="${i}" d="M${A.x+bw/2},${A.y+A.hh} V${B.y-4}"/>`;
-        else s+=`<path class="k-edge" data-e="${i}" d="M${A.x+bw},${A.y+A.hh/2} H${W-14} Q${W-4},${A.y+A.hh/2} ${W-4},${A.y+A.hh/2-10} V${B.y+B.hh/2+10} Q${W-4},${B.y+B.hh/2} ${W-14},${B.y+B.hh/2} H${A.x+bw+4}"/>`}
-      P.forEach((p,i)=>{s+=`<g class="k-n" data-i="${i}"><rect class="k-node" x="${p.x}" y="${p.y}" width="${bw}" height="${p.hh}" rx="14"/>${tlines(p.x+13,p.y+26,p.w,"k-t",18)}${p.sb.length?tlines(p.x+13,p.y+26+p.w.length*18+2,p.sb,"k-s",16):""}</g>`});
+      for(let i=0;i<n;i++){const A=P[i],B=P[(i+1)%n],rc=roleCol(N[i].role,"var(--pc)");
+        if(i<n-1){s+=`<path class="k-edge" data-e="${i}" style="--rc:${rc}" d="M${A.x+bw/2},${A.y+A.hh} V${B.y-4}"/>`;if(o.edges&&o.edges[i])s+=pillSvg(A.x+bw/2,A.y+A.hh+14,o.edges[i],{W,H,fs:11,cls:"k-epill",tcls:"k-epill-t",role:N[i].role,minW:28})}
+        else s+=`<path class="k-edge" data-e="${i}" style="--rc:${rc}" d="M${A.x+bw},${A.y+A.hh/2} H${W-14} Q${W-4},${A.y+A.hh/2} ${W-4},${A.y+A.hh/2-10} V${B.y+B.hh/2+10} Q${W-4},${B.y+B.hh/2} ${W-14},${B.y+B.hh/2} H${A.x+bw+4}"/>`}
+      P.forEach((p,i)=>{const nd=N[i],rk=roleKey(nd.role),rc=nd.color||(rk?`var(--m-${rk})`:"var(--pc)");
+        s+=`<g class="k-n clickable" data-i="${i}" tabindex="0" role="button" aria-label="${escAttr(nd.t)}"${rk?` data-role="${rk}"`:""}${nd.use?` data-use="${escAttr(nd.use)}" data-uname="${escAttr(nd.t)}"`:""} style="--rc:${rc}"><rect class="k-node" x="${p.x}" y="${p.y}" width="${bw}" height="${p.hh}" rx="14"/><rect class="k-accent" x="${p.x}" y="${p.y+6}" width="4.5" height="${p.hh-12}" rx="2"/>${tlines(p.x+14,p.y+26,p.w,"k-t",18)}${p.sb.length?tlines(p.x+14,p.y+26+p.w.length*18+2,p.sb,"k-s",16):""}</g>`});
     }
     svg.innerHTML=s;render(cur);
   }
   function render(i){cur=i;const s=steps[i]||{},on=s.on||[i],reach=Math.max(...on);
     $$(".k-n",svg).forEach(g=>{const k=+g.dataset.i;g.classList.toggle("on",on.includes(k));g.classList.toggle("done",!on.includes(k)&&(s.all||k<=reach));g.classList.toggle("todo",!s.all&&k>reach)});
     $$(".k-edge",svg).forEach(e=>{const k=+e.dataset.e,lit=s.all||k<reach||(k===n-1&&s.loop);e.classList.toggle("done",lit);e.classList.toggle("todo",!lit);e.classList.toggle("flowline",on.includes((k+1)%n)&&(k<reach||s.loop||s.all));e.setAttribute("marker-end",`url(#${S.uid}-${lit?"on":"off"})`)});
+    if(an&&on.length===1&&N[on[0]]?.use)an.showUse(N[on[0]].t,N[on[0]].use,roleCol(N[on[0]].role,"var(--pc)"));
     if(o.on)o.on(i,svg,s);}
+  const jumpStage=g=>{const k=+g.dataset.i,si=steps.findIndex(s=>(s.on||[s._k]).includes(k));if(si>=0&&player){player.stop();player.show(si)}if(an&&N[k]?.use)an.showUse(N[k].t,N[k].use,roleCol(N[k].role,"var(--pc)"))};
+  svg.addEventListener("click",e=>{const g=e.target.closest(".k-n");if(g)jumpStage(g)});
+  svg.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches(".k-n")){e.preventDefault();jumpStage(e.target)}});
   responsive(S,layout);
-  return E.stepper(S.viz,steps,i=>render(i),{ms:o.ms});
+  player=E.stepper(S.viz,steps,i=>render(i),{ms:o.ms});
+  return player;
 };
 
 /* =================================================================
@@ -190,140 +334,217 @@ Kit.cycle=(id,o)=>{
 Kit.timeline=(id,o)=>{
   const S=setup(id,"timeline");if(!S)return;
   const svg=svgIn(S,o.alt),Ev=o.events,n=Ev.length;
-  const steps=stepsOr(o,Ev.map((e,i)=>({t:`${e.date} · ${e.t}`,d:e.d||e.sub||"",on:[i]})));
-  let cur=0;
-  function layout(W){let s="";
-    if(W>=600&&n<=9){
+  const steps=stepsOr(o,Ev.map((e,i)=>({t:`${e.date} · ${e.t}`,d:e.d||e.sub||e.use||"",on:[i]})));
+  const hasMeta=!!(o.legend||Ev.some(e=>e.role||e.use));
+  const an=hasMeta?mountAnatomy(S,{showUse:Ev.some(e=>e.use),legend:o.legend}):null;
+  if(an){
+    const list=o.legend||[...new Map(Ev.filter(e=>e.role).map(e=>[roleKey(e.role),{role:roleKey(e.role),label:e.tag||e.date,swatch:"dot",use:e.use||""}])).values()];
+    an.setItems(list);an.wire(svg);
+  }
+  let cur=0,Xs=[],Ys=[],wide=true,player=null;
+  function layout(W){let s="";Xs=[];Ys=[];
+    if(W>=600&&n<=9){wide=true;
       const cw0=Math.min(170,(W-140)/Math.max(1,n-1)*1.8),pad=Math.max(60,cw0/2+8),span=W-2*pad;
       const nums=Ev.map(e=>parseFloat(String(e.date).replace(/[^\d.-]/g,"")));
       const timeScale=o.scale==="time"&&nums.every(v=>!isNaN(v));
       const mn=Math.min(...nums),mx=Math.max(...nums);
       const X=i=>pad+(timeScale&&mx>mn?(nums[i]-mn)/(mx-mn):(n>1?i/(n-1):.5))*span;
       const cw=Math.min(cw0,(span/Math.max(1,n-1))*1.9);
-      const cards=Ev.map((e,i)=>({w:fit(e.t,cw,14),sb:e.sub?fit(e.sub,cw,12.5):[]}));
+      const cards=Ev.map(e=>({w:fit(e.t,cw,14),sb:e.sub?fit(e.sub,cw,12.5):[]}));
       const up=cards.map(c=>16+c.w.length*18+c.sb.length*16);
       const top=Math.max(...up.filter((_,i)=>i%2===0),0)+34,bot=Math.max(...up.filter((_,i)=>i%2===1),0)+34;
       const ay=top+30,H=ay+bot+36;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
-      s+=`<line class="k-axis" x1="${pad-40}" y1="${ay}" x2="${W-pad+40}" y2="${ay}"/>`;
-      Ev.forEach((e,i)=>{const x=X(i),c=cards[i],isUp=i%2===0,hh=up[i];
-        const ty=isUp?ay-30-hh+16:ay+44;
-        s+=`<g class="k-ev" data-i="${i}"><line class="k-lead" x1="${x}" y1="${ay}" x2="${x}" y2="${isUp?ay-24:ay+24}"/><circle class="k-dot" cx="${x}" cy="${ay}" r="8"/>`
-         +`<text class="k-c" x="${x}" y="${isUp?ay+22:ay-14}" text-anchor="middle">${e.date}</text>`
+      s+=`<line class="k-axis" x1="${pad-40}" y1="${ay}" x2="${W-pad+40}" y2="${ay}"/><line class="k-prog-line" x1="${pad-40}" y1="${ay}" x2="${pad-40}" y2="${ay}"/>`;
+      Ev.forEach((e,i)=>{const x=X(i),c=cards[i],isUp=i%2===0,hh=up[i],rk=roleKey(e.role),rc=rk?`var(--m-${rk})`:"var(--pc)";
+        Xs[i]=x;Ys[i]=ay;const ty=isUp?ay-30-hh+16:ay+44;
+        s+=`<g class="k-ev clickable" data-i="${i}" tabindex="0" role="button" aria-label="${escAttr(e.date+" "+e.t)}"${rk?` data-role="${rk}"`:""}${e.use?` data-use="${escAttr(e.use)}" data-uname="${escAttr(e.date+" · "+e.t)}"`:""} style="--rc:${rc}"><line class="k-lead" x1="${x}" y1="${ay}" x2="${x}" y2="${isUp?ay-24:ay+24}"/><circle class="k-dot" cx="${x}" cy="${ay}" r="8"/>`
+         +`<text class="k-c" x="${x}" y="${isUp?ay+22:ay-14}" text-anchor="middle">${escHtml(e.date)}</text>`
          +tlines(x,ty,c.w,"k-t",18,"middle")+(c.sb.length?tlines(x,ty+c.w.length*18,c.sb,"k-s",16,"middle"):"")+`</g>`});
-    } else {
+    } else {wide=false;
       const ax=22;let y=20;const rows=Ev.map(e=>{const w=fit(e.t,W-ax-30,14.5),sb=e.sub?fit(e.sub,W-ax-30,12.5):[];const r={y,w,sb,hh:22+w.length*18+sb.length*16};y+=r.hh+18;return r});
       const H=y;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
-      s+=`<line class="k-axis" x1="${ax}" y1="10" x2="${ax}" y2="${H-10}"/>`;
-      Ev.forEach((e,i)=>{const r=rows[i];s+=`<g class="k-ev" data-i="${i}"><circle class="k-dot" cx="${ax}" cy="${r.y+6}" r="8"/><text class="k-c" x="${ax+20}" y="${r.y+10}">${e.date}</text>${tlines(ax+20,r.y+30,r.w,"k-t",18)}${r.sb.length?tlines(ax+20,r.y+30+r.w.length*18,r.sb,"k-s",16):""}</g>`});
+      s+=`<line class="k-axis" x1="${ax}" y1="10" x2="${ax}" y2="${H-10}"/><line class="k-prog-line" x1="${ax}" y1="10" x2="${ax}" y2="10"/>`;
+      Ev.forEach((e,i)=>{const r=rows[i],rk=roleKey(e.role),rc=rk?`var(--m-${rk})`:"var(--pc)";Xs[i]=ax;Ys[i]=r.y+6;
+        s+=`<g class="k-ev clickable" data-i="${i}" tabindex="0" role="button" aria-label="${escAttr(e.date+" "+e.t)}"${rk?` data-role="${rk}"`:""}${e.use?` data-use="${escAttr(e.use)}" data-uname="${escAttr(e.date+" · "+e.t)}"`:""} style="--rc:${rc}"><circle class="k-dot" cx="${ax}" cy="${r.y+6}" r="8"/><text class="k-c" x="${ax+20}" y="${r.y+10}">${escHtml(e.date)}</text>${tlines(ax+20,r.y+30,r.w,"k-t",18)}${r.sb.length?tlines(ax+20,r.y+30+r.w.length*18,r.sb,"k-s",16):""}</g>`});
     }
     svg.innerHTML=s;render(cur);
   }
   function render(i){cur=i;const s=steps[i]||{},on=s.on||[i],reach=Math.max(...on);
     $$(".k-ev",svg).forEach(g=>{const k=+g.dataset.i;g.classList.toggle("on",on.includes(k));g.classList.toggle("done",!on.includes(k)&&k<=reach);g.classList.toggle("todo",k>reach&&!s.all)});
+    const pl=$(".k-prog-line",svg),rk=Ev[reach]?roleKey(Ev[reach].role):"";
+    if(pl&&Xs.length){const idx=s.all?n-1:V.clamp(reach,0,n-1);pl.setAttribute(wide?"x2":"y2",wide?Xs[idx]:Ys[idx]);if(rk)pl.style.stroke=`var(--m-${rk})`;else pl.style.stroke=""}
+    if(an&&on.length===1&&Ev[on[0]]?.use)an.showUse(`${Ev[on[0]].date} · ${Ev[on[0]].t}`,Ev[on[0]].use,roleCol(Ev[on[0]].role,"var(--pc)"));
     if(o.on)o.on(i,svg,s);}
+  const jumpEv=g=>{const k=+g.dataset.i,si=steps.findIndex(s=>(s.on||[]).includes(k));if(si>=0&&player){player.stop();player.show(si)}if(an&&Ev[k]?.use)an.showUse(`${Ev[k].date} · ${Ev[k].t}`,Ev[k].use,roleCol(Ev[k].role,"var(--pc)"))};
+  svg.addEventListener("click",e=>{const g=e.target.closest(".k-ev");if(g)jumpEv(g)});
+  svg.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches(".k-ev")){e.preventDefault();jumpEv(e.target)}});
   responsive(S,layout);
-  return E.stepper(S.viz,steps,i=>render(i),{ms:o.ms});
+  player=E.stepper(S.viz,steps,i=>render(i),{ms:o.ms});
+  return player;
 };
 
 /* =================================================================
-   5. graph — functions, sliders, tangents, Riemann sums, vectors
+   5. graph — functions, zones, sliders, tangents, Riemann sums, vectors
    ================================================================= */
 function mountGraph(svg,S,o,pane){
   const X=o.x,Y=o.y,F=o.fns||[];
   const p={};Object.entries(o.params||{}).forEach(([k,c])=>p[k]=c.value);
-  const col=(fn,k)=>fn.color||(k?PAL(k-1):"var(--pc)");
+  const col=(fn,k)=>fn.color||roleCol(fn.role)||(k?PAL(k-1):"var(--pc)");
   const val=(v,d)=>v==null?d:(typeof v==="function"?v(p):v);
   const lab=(t,x,y)=>String(t).replace("{x}",num(x)).replace("{y}",num(y));
   const arr=v=>v==null?[]:(Array.isArray(v)?v:[v]);
   let W0=640,H0=360,leg=[],legH=0,stopT=()=>{},show=F.map((_,i)=>i),prevShow=[],justStepped=false,marks=[],setters={};
-  let ex={vlines:o.vlines||[],hlines:o.hlines||[],dots:o.dots||[],shade:o.shade||[],tangents:o.tangents||[],riemann:o.riemann||[],vectors:o.vectors||[]};
+  let ex={zones:o.zones||[],vlines:o.vlines||[],hlines:o.hlines||[],dots:o.dots||[],shade:o.shade||[],tangents:o.tangents||[],riemann:o.riemann||[],vectors:o.vectors||[]};
+  const standalone=!pane;
+  const wantAnatomy=standalone&&o.legend!==false&&(o.legend||F.some(f=>f.role||f.use)||ex.zones.length||ex.shade.length||ex.riemann.length||ex.tangents.length||ex.vectors.length||ex.vlines.length||ex.hlines.length||(o.steps||[]).some(s=>s.zones||s.shade||s.riemann||s.tangents||s.vectors||s.vlines||s.hlines));
+  const an=wantAnatomy?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:"Hover the curve or tap a legend chip to inspect each graph part."}):null;
+  function syncLegend(){
+    if(!an)return;
+    if(Array.isArray(o.legend)){an.setItems(o.legend);return}
+    const items=[];
+    F.forEach((fn,k)=>{if(fn.label)items.push({feat:`fn-${k}`,role:fn.role,color:col(fn,k),swatch:fn.dash?"dash":"line",label:fn.label,use:fn.use||`Curve ${fn.label}`})});
+    arr(ex.zones).forEach((z,j)=>{if(z.label)items.push({feat:`zone-${j}`,role:z.role,color:z.color||roleCol(z.role,PAL(j)),swatch:"area",label:z.label,use:z.use||`Region: ${z.label}`})});
+    arr(ex.shade).forEach((sh,j)=>{items.push({feat:`shade-${j}`,role:sh.role||"g",color:sh.color||roleCol(sh.role,"var(--m-g)"),swatch:"area",label:sh.label||"Shaded area",use:sh.use||"Area accumulated between curves or under the curve."})});
+    arr(ex.riemann).forEach((rm,j)=>{items.push({feat:`riem-${j}`,role:rm.role||"c",color:rm.color||roleCol(rm.role,"var(--m-c)"),swatch:"box",label:"Riemann boxes",use:rm.use||"Rectangles approximating the area under the curve."})});
+    arr(ex.tangents).forEach((tg,j)=>{items.push({feat:`tan-${j}`,role:tg.role||"c",color:tg.color||roleCol(tg.role,"var(--c4)"),swatch:"dash",label:"Tangent line",use:tg.use||"Straight line showing the instantaneous rate of change (slope)."})});
+    arr(ex.vlines).concat(arr(ex.hlines)).forEach((ln,j)=>{if(ln.label)items.push({feat:`line-${j}`,role:ln.role||(ln.asymptote?"k":""),color:ln.color||roleCol(ln.role||(ln.asymptote?"k":""),"var(--text-2)"),swatch:"dash",label:ln.asymptote?`Asymptote (${ln.label})`:ln.label,use:ln.use||(ln.asymptote?"Boundary line the curve approaches but never crosses.":"Reference threshold line.")})});
+    arr(ex.vectors).forEach((vc,j)=>{items.push({feat:`vec-${j}`,role:vc.role||"a",color:vc.color||roleCol(vc.role,"var(--c2)"),swatch:"vec",label:vc.label||"Vector",use:vc.use||"Direction and magnitude from start to tip."})});
+    if(marks.length)items.push({feat:"mark-0",role:marks[0].role||"r",color:marks[0].color||roleCol(marks[0].role,"var(--pc)"),swatch:"dot",label:"Marked point",use:marks[0].use||"Key coordinate with x and y guide projections."});
+    an.setItems(items);
+  }
   function layout(W){W0=W;
-    leg=[];let lx=0,ly=0;F.forEach((fn,k)=>{if(!fn.label)return;const w=26+fn.label.length*7.4+18;if(lx&&lx+w>W-60){lx=0;ly+=22}leg.push({k,x:lx,y:ly});lx+=w});
-    legH=leg.length?ly+26:0;H0=Math.round(V.clamp(W*(o.aspect||.5),190,330))+34+46+legH;draw()}
+    leg=[];let lx=0,ly=0;
+    if(!an){F.forEach((fn,k)=>{if(!fn.label)return;const w=26+fn.label.length*7.4+18;if(lx&&lx+w>W-60){lx=0;ly+=22}leg.push({k,x:lx,y:ly});lx+=w})}
+    legH=leg.length?ly+26:0;H0=Math.round(V.clamp(W*(o.aspect||.5),190,330))+36+46+legH;draw()}
   function pieces(fn){
     let a=val(fn.domain&&fn.domain[0],X.min),b=val(fn.domain&&fn.domain[1],X.max);a=Math.max(a,X.min);b=Math.min(b,X.max);if(!(b>a))return[];
     let br=fn.breaks==="int"?(()=>{const r=[];for(let k=Math.ceil(a);k<=b;k++)r.push(k);return r})():arr(val(fn.breaks,[]));
     const cuts=[a,...br.filter(x=>x>a&&x<b).sort((u,v)=>u-v),b],out=[];
     for(let i=0;i<cuts.length-1;i++)if(cuts[i+1]-cuts[i]>1e-9)out.push([cuts[i],cuts[i+1]]);return out}
   function fval(fn,x){let y;try{y=fn.f(x,p)}catch(e){y=NaN}return y}
+  let geom={L:52,R:16,T:36,B:46};
   function draw(){
-    const W=W0,H=H0,L=52,R=16,T=34,B=46+legH;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+    const W=W0,H=H0,L=52,R=16,T=36,B=46+legH;geom={L,R,T,B};svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
     const sx=x=>L+(x-X.min)/(X.max-X.min)*(W-L-R),sy=y=>H-B-(y-Y.min)/(Y.max-Y.min)*(H-T-B);
     const eps=(X.max-X.min)*1e-6;
     const clx=(x,lw,anchor)=>{if(anchor==="end")return V.clamp(x,L+lw+2,W-R);if(anchor==="middle")return V.clamp(x,L+lw/2+2,W-R-lw/2-2);return V.clamp(x,L+2,W-R-lw-2)};
     const cly=y=>V.clamp(y,T+13,H-B-6);
+    const vecs=arr(ex.vectors);
     let s=`<defs><clipPath id="${S.uid}-c"><rect x="${L}" y="${T-4}" width="${W-L-R}" height="${H-T-B+8}"/></clipPath>`
-      +`<marker id="${S.uid}-vec" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head on"/></marker></defs>`;
+      +`<pattern id="${S.uid}-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="currentColor" stroke-width="2" stroke-opacity=".35"/></pattern>`
+      +`<marker id="${S.uid}-vec" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head on"/></marker>`
+      +vecs.map((vc,j)=>{const c=vc.color||roleCol(vc.role,j?PAL(j):"var(--c2)");return `<marker id="${S.uid}-vec-${j}" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:${c}"/></marker>`}).join("")
+      +`</defs>`;
     const gx=X.step||nice(X.max-X.min,W<500?5:8),gy=Y.step||nice(Y.max-Y.min,6);
     for(let v=Math.ceil(X.min/gx)*gx;v<=X.max+1e-9;v+=gx)s+=`<line class="k-grid" x1="${sx(v)}" y1="${T}" x2="${sx(v)}" y2="${H-B}"/><text class="k-s" x="${sx(v)}" y="${H-B+18}" text-anchor="middle">${num(v)}</text>`;
     for(let v=Math.ceil(Y.min/gy)*gy;v<=Y.max+1e-9;v+=gy)s+=`<line class="k-grid" x1="${L}" y1="${sy(v)}" x2="${W-R}" y2="${sy(v)}"/><text class="k-s" x="${L-8}" y="${sy(v)+4}" text-anchor="end">${num(v)}</text>`;
     s+=`<g clip-path="url(#${S.uid}-c)">`;
+    arr(ex.zones).forEach((z,j)=>{
+      const x1=sx(val(z.x1,X.min)),x2=sx(val(z.x2,X.max)),y1=sy(val(z.y2,Y.max)),y2=sy(val(z.y1,Y.min));
+      const rw=Math.max(2,x2-x1),rh=Math.max(2,y2-y1),rk=roleKey(z.role),c=z.color||roleCol(z.role,PAL(j));
+      s+=`<g class="k-feat" data-feat="zone-${j}"${rk?` data-role="${rk}"`:""}${z.use?` data-use="${escAttr(z.use)}" data-uname="${escAttr(z.label||"Zone")}"`:""}><rect class="k-zone" x="${x1.toFixed(1)}" y="${y1.toFixed(1)}" width="${rw.toFixed(1)}" height="${rh.toFixed(1)}" style="fill:${c};stroke:${c}"/></g>`;
+    });
     arr(ex.shade).forEach((sh,j)=>{const f1=F[sh.fn||0],f2=sh.fn2!=null?F[sh.fn2]:null;if(!f1)return;
       const a=val(sh.from,X.min),b=val(sh.to,X.max);if(!(b>a))return;const N=Math.max(60,Math.round((sx(b)-sx(a))/3));let top="",bot=[],cy=0,cn=0;
       for(let i=0;i<=N;i++){const x=a+(b-a)*i/N,y1=fval(f1,x),y2=f2?fval(f2,x):0;if(!isFinite(y1)||!isFinite(y2))continue;
         const Y1=V.clamp(sy(y1),-2000,4000),Y2=V.clamp(sy(y2),-2000,4000);top+=(top?"L":"M")+sx(x).toFixed(1)+","+Y1.toFixed(1);bot.unshift(sx(x).toFixed(1)+","+Y2.toFixed(1));cy+=(Y1+Y2)/2;cn++}
-      if(!cn)return;const c=sh.color||(j?PAL(j):"var(--pc)");
-      s+=`<path class="k-shade" d="${top}L${bot.join("L")}Z" style="fill:${c};stroke:${c}"/>`;
-      if(sh.label){const mx=val(sh.lx,(a+b)/2),ly=sh.ly!=null?sy(val(sh.ly)):cy/cn;s+=`<text class="k-t k-halo" x="${clx(sx(mx),sh.label.length*7.8,"middle")}" y="${cly(ly+5)}" text-anchor="middle">${sh.label}</text>`}});
+      if(!cn)return;const rk=roleKey(sh.role||"g"),c=sh.color||roleCol(sh.role,j?PAL(j):"var(--pc)");
+      const d=`${top}L${bot.join("L")}Z`;
+      s+=`<g class="k-feat${justStepped&&E.motionOn()?" k-anim-in":""}" data-feat="shade-${j}"${rk?` data-role="${rk}"`:""}${sh.use?` data-use="${escAttr(sh.use)}" data-uname="${escAttr(sh.label||"Area")}"`:""}><path class="k-shade" d="${d}" style="fill:${c};stroke:${c}"/>${sh.pattern==="hatch"?`<path class="k-shade" d="${d}" style="fill:url(#${S.uid}-hatch);stroke:none;color:${c};pointer-events:none"/>`:""}</g>`});
     let riemSum=null,riemN=0;
     arr(ex.riemann).forEach((rm,j)=>{const f1=F[rm.fn||0];if(!f1)return;
       const a=val(rm.from,X.min),b=val(rm.to,X.max),n=Math.max(1,Math.min(80,Math.round(val(rm.n,6)))),mode=rm.mode||"left";
-      if(!(b>a))return;const dx=(b-a)/n,c=rm.color||(j?PAL(j):"var(--pc)");let sum=0;
+      if(!(b>a))return;const dx=(b-a)/n,rk=roleKey(rm.role||"c"),c=rm.color||roleCol(rm.role,j?PAL(j):"var(--pc)");let sum=0,inner="";
       for(let k=0;k<n;k++){const x0=a+k*dx,xk=mode==="right"?x0+dx:mode==="mid"?x0+dx/2:x0,yk=fval(f1,xk);if(!isFinite(yk))continue;
         sum+=yk*dx;const yTop=sy(Math.max(0,yk)),yBot=sy(Math.min(0,yk)),rx0=sx(x0),rw=Math.max(1.5,sx(x0+dx)-rx0);
-        s+=`<rect class="k-riem" x="${rx0.toFixed(1)}" y="${V.clamp(yTop,-2000,4000).toFixed(1)}" width="${rw.toFixed(1)}" height="${Math.max(1,Math.abs(yBot-yTop)).toFixed(1)}" style="fill:${c};stroke:${c}"/>`}
-      riemSum=sum;riemN=n;
-      if(rm.label){const txt=String(rm.label).replace("{n}",n).replace("{sum}",num(sum));
-        s+=`<text class="k-t k-halo" x="${clx(sx((a+b)/2),txt.length*7.8,"middle")}" y="${cly(T+16)}" text-anchor="middle" style="fill:${c}">${txt}</text>`}});
+        inner+=`<rect class="k-riem" x="${rx0.toFixed(1)}" y="${V.clamp(yTop,-2000,4000).toFixed(1)}" width="${rw.toFixed(1)}" height="${Math.max(1,Math.abs(yBot-yTop)).toFixed(1)}" style="fill:${c};stroke:${c}"/>`;
+        if(n<=24)inner+=`<circle class="k-riem-pt" cx="${sx(xk).toFixed(1)}" cy="${V.clamp(sy(yk),-2000,4000).toFixed(1)}" r="3.2" style="fill:${c}"/>`;}
+      s+=`<g class="k-feat" data-feat="riem-${j}"${rk?` data-role="${rk}"`:""}${rm.use?` data-use="${escAttr(rm.use)}" data-uname="Riemann sum"`:""}>${inner}</g>`;
+      riemSum=sum;riemN=n});
     s+=`</g>`;
-    if(X.min<=0&&X.max>=0)s+=`<line class="k-axis" x1="${sx(0)}" y1="${T}" x2="${sx(0)}" y2="${H-B}"/>`;
-    if(Y.min<=0&&Y.max>=0)s+=`<line class="k-axis" x1="${L}" y1="${sy(0)}" x2="${W-R}" y2="${sy(0)}"/>`;
+    if(X.min<=0&&X.max>=0){const x0=sx(0);s+=`<line class="k-axis" x1="${x0}" y1="${T}" x2="${x0}" y2="${H-B}"/><polygon class="k-axis-arr" points="${x0},${T-6} ${x0-4},${T+2} ${x0+4},${T+2}"/>`}
+    if(Y.min<=0&&Y.max>=0){const y0=sy(0);s+=`<line class="k-axis" x1="${L}" y1="${y0}" x2="${W-R}" y2="${y0}"/><polygon class="k-axis-arr" points="${W-R+6},${y0} ${W-R-2},${y0-4} ${W-R-2},${y0+4}"/>`}
     s+=`<text class="k-s k-axl" x="${W-R}" y="${H-B+38}" text-anchor="end">${X.label||"x"}</text><text class="k-s k-axl" x="6" y="18">${Y.label||"y"}</text>`;
-    arr(ex.vlines).forEach(v=>{const x=val(v.x);if(!isFinite(x)||x<X.min||x>X.max)return;const c=v.color||"var(--text-2)";
-      s+=`<line class="k-vl" x1="${sx(x)}" y1="${T-4}" x2="${sx(x)}" y2="${H-B}" style="stroke:${c};${v.dash===false?"":"stroke-dasharray:7 6"}"/>`;
-      if(v.label){const t=lab(v.label,x,0),lw=t.length*8.2,side=v.side||(sx(x)+8+lw<=W-R?"right":"left"),right=side==="right";s+=`<text class="k-t k-halo" x="${clx(right?sx(x)+8:sx(x)-8,lw,right?"start":"end")}" y="${v.at==="bottom"?H-B-10:T+12}" text-anchor="${right?"start":"end"}" style="fill:${c}">${t}</text>`}});
-    arr(ex.hlines).forEach(v=>{const y=val(v.y);if(!isFinite(y)||y<Y.min||y>Y.max)return;const c=v.color||"var(--text-2)";
-      s+=`<line class="k-vl" x1="${L}" y1="${sy(y)}" x2="${W-R}" y2="${sy(y)}" style="stroke:${c};${v.dash===false?"":"stroke-dasharray:7 6"}"/>`;
-      if(v.label){const t=lab(v.label,0,y),lw=t.length*8.2,ty=(v.below||sy(y)-8<T+10)?sy(y)+20:sy(y)-8,at=v.at||"right";s+=`<text class="k-t k-halo" x="${clx(at==="left"?L+6:W-R-4,lw,at==="left"?"start":"end")}" y="${cly(ty)}" text-anchor="${at==="left"?"start":"end"}" style="fill:${c}">${t}</text>`}});
+    const pb={W,H,fs:11.5,minX:L+2,maxX:W-R-2,minY:T+2,maxY:H-B-2};
+    arr(ex.zones).forEach((z,j)=>{if(!z.label)return;const x1=sx(val(z.x1,X.min)),x2=sx(val(z.x2,X.max)),y1=sy(val(z.y2,Y.max));
+      s+=pillSvg((x1+x2)/2,Math.max(T+16,y1+18),z.label,{...pb,role:z.role,color:z.color||roleCol(z.role,PAL(j)),feat:`zone-${j}`,use:z.use})});
+    arr(ex.vlines).forEach((v,j)=>{const x=val(v.x);if(!isFinite(x)||x<X.min||x>X.max)return;const rk=roleKey(v.role||(v.asymptote?"k":"")),c=v.color||roleCol(rk,"var(--text-2)");
+      s+=`<g class="k-feat" data-feat="line-${j}"${rk?` data-role="${rk}"`:""}${v.use?` data-use="${escAttr(v.use)}" data-uname="${escAttr(v.label||"Vertical line")}"`:""}><line class="k-vl" x1="${sx(x)}" y1="${T-4}" x2="${sx(x)}" y2="${H-B}" style="stroke:${c};${v.dash===false?"":"stroke-dasharray:7 6"}"/>`;
+      if(v.label){const t=lab(v.label,x,0),py=v.at==="bottom"?H-B-18:T+14;s+=pillSvg(sx(x),py,t,{...pb,role:rk,color:c})}
+      s+=`</g>`});
+    arr(ex.hlines).forEach((v,j)=>{const y=val(v.y);if(!isFinite(y)||y<Y.min||y>Y.max)return;const rk=roleKey(v.role||(v.asymptote?"k":"")),c=v.color||roleCol(rk,"var(--text-2)");
+      s+=`<g class="k-feat" data-feat="line-${arr(ex.vlines).length+j}"${rk?` data-role="${rk}"`:""}${v.use?` data-use="${escAttr(v.use)}" data-uname="${escAttr(v.label||"Horizontal line")}"`:""}><line class="k-vl" x1="${L}" y1="${sy(y)}" x2="${W-R}" y2="${sy(y)}" style="stroke:${c};${v.dash===false?"":"stroke-dasharray:7 6"}"/>`;
+      if(v.label){const t=lab(v.label,0,y),px=v.at==="left"?L+54:W-R-54,py=(v.below||sy(y)-14<T+14)?sy(y)+18:sy(y)-16;s+=pillSvg(px,py,t,{...pb,role:rk,color:c})}
+      s+=`</g>`});
     s+=`<g clip-path="url(#${S.uid}-c)">`;
     F.forEach((fn,k)=>{if(!show.includes(k))return;let d="";
       pieces(fn).forEach(([a,b])=>{let pen=false;const n=Math.max(40,Math.round(sx(b)-sx(a)));
         for(let j=0;j<=n;j++){let x=a+(b-a)*j/n;if(j===0)x=a+eps;if(j===n)x=b-eps;const y=fval(fn,x);
           if(!isFinite(y)||Math.abs(y)>1e6){pen=false;continue}const yy=V.clamp(sy(y),-2000,4000);d+=(pen?"L":"M")+sx(x).toFixed(1)+","+yy.toFixed(1);pen=true}});
-      const anim=justStepped&&o.drawOn!==false&&!prevShow.includes(k)&&!fn.dash&&E.motionOn();
-      s+=`<path class="k-curve${anim?" draw":""}"${anim?' pathLength="1"':""} d="${d}" style="stroke:${col(fn,k)};${fn.dash?"stroke-dasharray:7 6":""}"/>`});
+      const anim=justStepped&&o.drawOn!==false&&!prevShow.includes(k)&&!fn.dash&&E.motionOn(),rk=roleKey(fn.role),c=col(fn,k);
+      s+=`<g class="k-feat" data-feat="fn-${k}"${rk?` data-role="${rk}"`:""}${fn.use?` data-use="${escAttr(fn.use)}" data-uname="${escAttr(fn.label||"Curve")}"`:""}>`
+        +`<path class="k-curve-halo" d="${d}"/>`
+        +`<path class="k-curve${anim?" draw":""}"${anim?' pathLength="1"':""} d="${d}" style="stroke:${c};${fn.dash?"stroke-dasharray:7 6":""}"/></g>`});
     arr(ex.tangents).forEach((tg,j)=>{const fn=F[tg.fn||0];if(!fn)return;
       const x0=val(tg.x),y0=tg.y!=null?val(tg.y):fval(fn,x0),dx=(X.max-X.min)*1e-4;
       const m=tg.m!=null?val(tg.m):(fval(fn,x0+dx)-fval(fn,x0-dx))/(2*dx);
       if(!isFinite(x0)||!isFinite(y0)||!isFinite(m))return;
-      const half=val(tg.len,(X.max-X.min)*.24),c=tg.color||"var(--c4)";
+      const half=val(tg.len,(X.max-X.min)*.24),rk=roleKey(tg.role||"c"),c=tg.color||roleCol(tg.role,"var(--c4)");
+      s+=`<g class="k-feat" data-feat="tan-${j}"${rk?` data-role="${rk}"`:""}${tg.use?` data-use="${escAttr(tg.use)}" data-uname="Tangent line"`:""}>`;
+      if(tg.triangle){const r=val(tg.dx,half*.65);s+=`<path class="k-tan-tri" d="M${sx(x0).toFixed(1)},${sy(y0).toFixed(1)} H${sx(x0+r).toFixed(1)} V${sy(y0+m*r).toFixed(1)} Z" style="fill:${c};stroke:${c}"/>`}
       s+=`<line class="k-tan" x1="${sx(x0-half).toFixed(1)}" y1="${sy(y0-m*half).toFixed(1)}" x2="${sx(x0+half).toFixed(1)}" y2="${sy(y0+m*half).toFixed(1)}" style="stroke:${c}"/>`;
-      if(tg.triangle){const r=val(tg.dx,half*.65);s+=`<path class="k-mark" d="M${sx(x0).toFixed(1)},${sy(y0).toFixed(1)} H${sx(x0+r).toFixed(1)} V${sy(y0+m*r).toFixed(1)}" style="fill:none;stroke:${c}"/>`}
-      s+=`<circle class="k-pt on" cx="${sx(x0)}" cy="${sy(y0)}" r="6" style="fill:${c}"/>`;
-      if(tg.label){const txt=lab(tg.label,x0,y0).replace("{m}",num(m)),lw=txt.length*7.8,tx=sx(x0)+12+lw>W-R?sx(x0)-12-lw:sx(x0)+12;
-        s+=`<text class="k-t k-halo" x="${clx(tx,lw,"start")}" y="${cly(sy(y0)-12)}" style="fill:${c}">${txt}</text>`}});
-    arr(ex.vectors).forEach((vc,j)=>{
-      const f=val(vc.from),t=val(vc.to);if(!f||!t)return;const c=vc.color||(j?PAL(j):"var(--c2)");
-      s+=`<line class="k-vec" x1="${sx(f[0]).toFixed(1)}" y1="${sy(f[1]).toFixed(1)}" x2="${sx(t[0]).toFixed(1)}" y2="${sy(t[1]).toFixed(1)}" style="stroke:${c};${vc.dash?"stroke-dasharray:6 5":""}" marker-end="url(#${S.uid}-vec)"/>`;
-      if(vc.label){const mx=(sx(f[0])+sx(t[0]))/2,my=(sy(f[1])+sy(t[1]))/2-8;s+=`<text class="k-t k-halo" x="${clx(mx,vc.label.length*7.6,"middle")}" y="${cly(my)}" text-anchor="middle" style="fill:${c}">${vc.label}</text>`}});
+      s+=`<circle class="k-pulse-ring" cx="${sx(x0)}" cy="${sy(y0)}" r="9" style="stroke:${c}"/><circle class="k-pt on" cx="${sx(x0)}" cy="${sy(y0)}" r="5.5" style="fill:${c}"/></g>`;
+      if(tg.label){const txt=lab(tg.label,x0,y0).replace("{m}",num(m));s+=pillSvg(sx(x0),sy(y0)-24,txt,{...pb,role:rk,color:c})}});
+    vecs.forEach((vc,j)=>{
+      const f=val(vc.from),t=val(vc.to);if(!f||!t)return;const rk=roleKey(vc.role||"a"),c=vc.color||roleCol(vc.role,j?PAL(j):"var(--c2)");
+      s+=`<g class="k-feat" data-feat="vec-${j}"${rk?` data-role="${rk}"`:""}${vc.use?` data-use="${escAttr(vc.use)}" data-uname="${escAttr(vc.label||"Vector")}"`:""}><line class="k-vec" x1="${sx(f[0]).toFixed(1)}" y1="${sy(f[1]).toFixed(1)}" x2="${sx(t[0]).toFixed(1)}" y2="${sy(t[1]).toFixed(1)}" style="stroke:${c};${vc.dash?"stroke-dasharray:6 5":""}" marker-end="url(#${S.uid}-vec-${j})"/></g>`;
+      if(vc.label){const mx=(sx(f[0])+sx(t[0]))/2,my=(sy(f[1])+sy(t[1]))/2-18;s+=pillSvg(mx,my,vc.label,{...pb,role:rk,color:c})}});
     (o.points||[]).forEach(pt=>{s+=`<circle class="k-pt" cx="${sx(pt[0])}" cy="${sy(pt[1])}" r="5.5"/>`+(pt[2]?`<text class="k-s k-halo" x="${clx(sx(pt[0])+9,pt[2].length*6.8,"start")}" y="${cly(sy(pt[1])-8)}">${pt[2]}</text>`:"")});
     s+=`</g>`;
+    arr(ex.shade).forEach((sh,j)=>{const f1=F[sh.fn||0];if(!f1||!sh.label)return;const a=val(sh.from,X.min),b=val(sh.to,X.max),mx=val(sh.lx,(a+b)/2),y1=fval(f1,mx),ly=sh.ly!=null?sy(val(sh.ly)):(isFinite(y1)?(sy(y1)+sy(0))/2:(T+H-B)/2);
+      s+=pillSvg(sx(mx),ly,sh.label,{...pb,fs:12,role:sh.role||"g",color:sh.color||roleCol(sh.role,j?PAL(j):"var(--pc)"),feat:`shade-${j}`})});
+    arr(ex.riemann).forEach((rm,j)=>{if(!rm.label)return;const a=val(rm.from,X.min),b=val(rm.to,X.max),c=rm.color||roleCol(rm.role,j?PAL(j):"var(--pc)");
+      const txt=String(rm.label).replace("{n}",riemN).replace("{sum}",num(riemSum??0));s+=pillSvg(sx((a+b)/2),T+18,txt,{...pb,fs:12,role:rm.role||"c",color:c,feat:`riem-${j}`})});
     arr(ex.dots).forEach(dt=>{const x=val(dt.x);let y=dt.y!=null?val(dt.y):(F[dt.fn||0]?fval(F[dt.fn||0],x):NaN);if(!isFinite(x)||!isFinite(y)||x<X.min-1e-9||x>X.max+1e-9||y<Y.min-1e-9||y>Y.max+1e-9)return;
-      const c=dt.color||col(F[dt.fn||0]||{},dt.fn||0),cw=6.8;
-      s+=`<circle class="k-dot${dt.open?" open":""}" cx="${sx(x)}" cy="${sy(y)}" r="6" style="stroke:${c};${dt.open?"":"fill:"+c}"/>`;
-      if(dt.label){const t=lab(dt.label,x,y),lw=t.length*cw,tx=sx(x)+12+lw>W-R?sx(x)-12-lw:sx(x)+12;s+=`<text class="k-s k-halo" x="${clx(tx,lw,"start")}" y="${cly(sy(y)-10)}">${t}</text>`}});
-    marks.forEach(m0=>{const fn=F[m0.fn||0];if(!fn)return;const m={...m0,x:typeof m0.x==="function"?m0.x(p):m0.x};let y;try{y=m.y!=null?(typeof m.y==="function"?m.y(p):m.y):fn.f(m.x,p)}catch(e){return}if(!isFinite(y)||!isFinite(m.x))return;
-      const t=(m.label!=null?m.label.replace("{x}",num(m.x)).replace("{y}",num(y)):`(${num(m.x)}, ${num(y)})`),lw=t.length*8.2,tx=sx(m.x)+12+lw>W-R?sx(m.x)-12-lw:sx(m.x)+12;
-      s+=`<line class="k-mark" x1="${sx(m.x)}" y1="${H-B}" x2="${sx(m.x)}" y2="${sy(y)}"/><line class="k-mark" x1="${L}" y1="${sy(y)}" x2="${sx(m.x)}" y2="${sy(y)}"/><circle class="k-pt on" cx="${sx(m.x)}" cy="${sy(y)}" r="7"/>`
-        +`<text class="k-t k-halo" x="${clx(tx,lw,"start")}" y="${cly(sy(y)-12)}">${t}</text>`});
+      const rk=roleKey(dt.role),c=dt.color||roleCol(dt.role,col(F[dt.fn||0]||{},dt.fn||0)),cw=6.8,px=sx(x),py=sy(y);
+      if(dt.shape==="diamond")s+=`<polygon class="k-dot" points="${px},${py-7} ${px+7},${py} ${px},${py+7} ${px-7},${py}" style="stroke:${c};fill:${dt.open?"var(--kbg)":c}"/>`;
+      else s+=`<circle class="k-dot${dt.open?" open":""}" cx="${px}" cy="${py}" r="6" style="stroke:${c};${dt.open?"":"fill:"+c}"/>`;
+      if(dt.label){const t=lab(dt.label,x,y),lw=t.length*cw,tx=px+12+lw>W-R?px-12-lw:px+12;s+=`<text class="k-s k-halo" x="${clx(tx,lw,"start")}" y="${cly(py-10)}">${t}</text>`}});
+    marks.forEach((m0,mi)=>{const fn=F[m0.fn||0];if(!fn)return;const m={...m0,x:typeof m0.x==="function"?m0.x(p):m0.x};let y;try{y=m.y!=null?(typeof m.y==="function"?m.y(p):m.y):fn.f(m.x,p)}catch(e){return}if(!isFinite(y)||!isFinite(m.x))return;
+      const rk=roleKey(m.role||"r"),c=m.color||roleCol(rk,"var(--pc)"),px=sx(m.x),py=sy(y);
+      const t=(m.label!=null?m.label.replace("{x}",num(m.x)).replace("{y}",num(y)):`(${num(m.x)}, ${num(y)})`);
+      s+=`<g class="k-feat" data-feat="mark-${mi}"${rk?` data-role="${rk}"`:""}${m.use?` data-use="${escAttr(m.use)}" data-uname="Marked point"`:""}><line class="k-mark" x1="${px}" y1="${H-B}" x2="${px}" y2="${py}"/><line class="k-mark" x1="${L}" y1="${py}" x2="${px}" y2="${py}"/><circle class="k-pulse-ring" cx="${px}" cy="${py}" r="10" style="stroke:${c}"/><circle class="k-pt on" cx="${px}" cy="${py}" r="6.5" style="fill:${c}"/></g>`
+        +pillSvg(px,py-24,t,{...pb,role:rk,color:c,feat:`mark-${mi}`})});
     leg.forEach(g=>{const fn=F[g.k],y=H-legH+12+g.y;s+=`<g class="k-leg${show.includes(g.k)?"":" off"}"><line x1="${L+g.x}" y1="${y-4}" x2="${L+g.x+20}" y2="${y-4}" style="stroke:${col(fn,g.k)};stroke-width:3.5;stroke-linecap:round;${fn.dash?"stroke-dasharray:5 4":""}"/><text class="k-s" x="${L+g.x+26}" y="${y}">${fn.label}</text></g>`});
     if(o.readout){const rt=String(o.readout(p,{riemannSum:riemSum,riemannN:riemN}));s+=`<text class="k-t k-halo" x="${W-R}" y="18" text-anchor="end">${rt}</text>`}
+    s+=`<g class="k-probe" hidden><line class="k-probe-line" x1="0" y1="${T}" x2="0" y2="${H-B}"/><circle class="k-probe-dot" cx="0" cy="0" r="4.5"/></g>`;
     svg.innerHTML=s;justStepped=false;
+    syncLegend();
+    if(an)an.wire(svg);
+  }
+  if(standalone&&o.probe!==false&&F.length){
+    const updateProbe=ev=>{
+      const r=svg.getBoundingClientRect();if(!r.width)return;
+      const vx=(ev.clientX-r.left)/r.width*W0,{L,R,T,B}=geom;
+      const pr=$(".k-probe",svg);if(!pr)return;
+      if(vx<L||vx>W0-R){pr.setAttribute("hidden","");return}
+      const x=X.min+(vx-L)/(W0-L-R)*(X.max-X.min),fnIdx=show[0]??0,fn=F[fnIdx];
+      if(!fn)return;const y=fval(fn,x);if(!isFinite(y)){pr.setAttribute("hidden","");return}
+      const py=H0-B-(y-Y.min)/(Y.max-Y.min)*(H0-T-B);
+      if(py<T-4||py>H0-B+4){pr.setAttribute("hidden","");return}
+      pr.removeAttribute("hidden");
+      const pl=$(".k-probe-line",pr),pd=$(".k-probe-dot",pr),c=col(fn,fnIdx);
+      pl.setAttribute("x1",vx.toFixed(1));pl.setAttribute("x2",vx.toFixed(1));
+      pd.setAttribute("cx",vx.toFixed(1));pd.setAttribute("cy",py.toFixed(1));pd.style.fill=c;
+      if(an){an.ensureUse();const vals=show.map(k=>{const yy=fval(F[k],x);const nm=String(F[k].label||"f").split("=")[0].replace(/\(.*\)$/,"").trim()||"f";return isFinite(yy)?`${nm}(${num(x)}) = ${num(yy)}`:""}).filter(Boolean).join(" · ");an.showUse("Live probe",vals,c)}
+    };
+    svg.addEventListener("pointermove",updateProbe);
+    svg.addEventListener("pointerleave",()=>{const pr=$(".k-probe",svg);if(pr)pr.setAttribute("hidden","");if(an&&!S.stage.closest(".sec,.viz")?.dataset.pinRole)an.showUse(null)});
   }
   Object.entries(o.params||{}).forEach(([k,c])=>{if(c.slider===false)return;setters[k]=ctlRange(S,k,c,v=>{p[k]=v;draw()})});
   responsive(S,layout,pane||svg);
   function apply(s){s=s||{};prevShow=[...show];show=s.show||F.map((_,k)=>k);marks=s.mark||[];justStepped=true;
-    ["vlines","hlines","dots","shade","tangents","riemann","vectors"].forEach(k=>ex[k]=s[k]!==undefined?s[k]:(o[k]||[]));
+    ["zones","vlines","hlines","dots","shade","tangents","riemann","vectors"].forEach(k=>ex[k]=s[k]!==undefined?s[k]:(o[k]||[]));
     stopT();const from={...p},to={...p,...(s.set||{})};
     stopT=V.tween(o.tween||700,t=>{const e=V.ease(t);Object.keys(to).forEach(k=>p[k]=from[k]+(to[k]-from[k])*e);draw()},()=>Object.keys(to).forEach(k=>setters[k]&&setters[k](to[k])));
   }
@@ -344,31 +565,46 @@ Kit.bars=(id,o)=>{
   const svg=svgIn(S,o.alt),B=o.bars,n=B.length;
   const steps=stepsOr(o,[{t:"Compare",d:""}]);
   const first=steps[0]&&steps[0].v;
-  let vals=B.map((b,k)=>first&&k in first?first[k]:(b.v??0)),W0=640,stopT=()=>{},hi=null;
-  const max=o.max||Math.max(...B.map(b=>b.v||0),...steps.flatMap(s=>(s.v||[]).filter(v=>v!=null)))*1.1||1;
+  let vals=B.map((b,k)=>first&&k in first?first[k]:(b.v??0)),prevVals=[...vals],W0=640,stopT=()=>{},hi=null;
+  const tgtV=o.target?o.target.v:0;
+  const max=o.max||Math.max(tgtV,...B.map(b=>b.v||0),...steps.flatMap(s=>(s.v||[]).filter(v=>v!=null)))*1.12||1;
   const fmt=v=>v==null?"?":(o.fmt?o.fmt(v):num(v))+(o.unit?" "+o.unit:"");
   const cls=i=>`k-b${hi&&!hi.includes(i)?" todo":""}${hi&&hi.includes(i)?" on":""}`;
+  const hasMeta=!!(o.legend||B.some(b=>b.role||b.use)||o.target);
+  const an=hasMeta?mountAnatomy(S,{showUse:B.some(b=>b.use),legend:o.legend}):null;
+  if(an){
+    const list=o.legend||B.filter(b=>b.role||b.use).map((b,i)=>({feat:`bar-${i}`,role:b.role,color:b.color||roleCol(b.role,PAL(i)),swatch:"box",label:b.t,use:b.use||""}));
+    an.setItems(list);an.wire(svg);
+  }
   function layout(W){W0=W;draw()}
   function draw(){const W=W0;let s="";
-    if(W>=520&&n<=8){const H=300,L=16,R=16,T=34,Bt=58,gap=Math.min(36,W*.04),bw=(W-L-R-gap*(n-1))/n,ph=H-T-Bt;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+    if(W>=520&&n<=8){const H=308,L=16,R=16,T=42,Bt=58,gap=Math.min(36,W*.04),bw=(W-L-R-gap*(n-1))/n,ph=H-T-Bt;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
       s+=`<line class="k-axis" x1="${L}" y1="${H-Bt}" x2="${W-R}" y2="${H-Bt}"/>`;
-      B.forEach((b,i)=>{const v=vals[i],x=L+i*(bw+gap),lab=fit(b.t,bw,13);
-        if(v==null){s+=`<g class="${cls(i)}"><rect class="k-q" x="${x}" y="${H-Bt-ph*.35}" width="${bw}" height="${ph*.35}" rx="8"/><text class="k-t" x="${x+bw/2}" y="${H-Bt-ph*.35/2+6}" text-anchor="middle">?</text>${tlines(x+bw/2,H-Bt+20,lab.slice(0,2),"k-s",15,"middle")}</g>`;return}
-        const bh=ph*V.clamp(v/max,0,1),y=H-Bt-bh;
-        s+=`<g class="${cls(i)}"><rect class="k-bar" x="${x}" y="${y}" width="${bw}" height="${Math.max(0,bh)}" rx="8" style="fill:${b.color||PAL(i)}"/>`
-          +`<text class="k-t" x="${x+bw/2}" y="${y-9}" text-anchor="middle">${fmt(v)}</text>${tlines(x+bw/2,H-Bt+20,lab.slice(0,2),"k-s",15,"middle")}</g>`});
-    } else {const L=Math.min(150,W*.38),R=74,rh=40,H=n*rh+16;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
-      B.forEach((b,i)=>{const v=vals[i],y=8+i*rh,lab=fit(b.t,L-12,13);
+      if(o.target){const ty=H-Bt-ph*V.clamp(o.target.v/max,0,1),tc=o.target.color||roleCol(o.target.role||"k","var(--m-k)");
+        s+=`<line class="k-vl" x1="${L}" y1="${ty}" x2="${W-R}" y2="${ty}" style="stroke:${tc};stroke-dasharray:6 5"/>`;
+        if(o.target.label)s+=pillSvg(W-R-56,ty-14,o.target.label,{W,H,fs:11,role:o.target.role||"k",color:tc})}
+      B.forEach((b,i)=>{const v=vals[i],x=L+i*(bw+gap),lab=fit(b.t,bw,13),rk=roleKey(b.role),c=b.color||roleCol(b.role,PAL(i));
+        if(v==null){s+=`<g class="${cls(i)}"${rk?` data-role="${rk}"`:""}${b.use?` data-use="${escAttr(b.use)}" data-uname="${escAttr(b.t)}"`:""}><rect class="k-q" x="${x}" y="${H-Bt-ph*.35}" width="${bw}" height="${ph*.35}" rx="8"/><text class="k-t" x="${x+bw/2}" y="${H-Bt-ph*.35/2+6}" text-anchor="middle">?</text>${tlines(x+bw/2,H-Bt+20,lab.slice(0,2),"k-s",15,"middle")}</g>`;return}
+        const bh=ph*V.clamp(v/max,0,1),y=H-Bt-bh,dv=prevVals[i]!=null&&v!=null?v-prevVals[i]:0;
+        const dTxt=hi&&hi.includes(i)&&Math.abs(dv)>0.01?` (${dv>0?"+":""}${num(dv)})`:"";
+        s+=`<g class="${cls(i)} k-feat" data-feat="bar-${i}"${rk?` data-role="${rk}"`:""}${b.use?` data-use="${escAttr(b.use)}" data-uname="${escAttr(b.t)}"`:""} style="--rc:${c}"><rect class="k-bar" x="${x}" y="${y}" width="${bw}" height="${Math.max(0,bh)}" rx="8" style="fill:${c}"/>`
+          +`<text class="k-t k-halo" x="${x+bw/2}" y="${Math.max(18,y-9)}" text-anchor="middle">${fmt(v)}${dTxt?`<tspan class="k-delta" style="fill:${dv>0?"var(--ok)":"var(--bad)"}">${dTxt}</tspan>`:""}</text>${tlines(x+bw/2,H-Bt+20,lab.slice(0,2),"k-s",15,"middle")}</g>`});
+    } else {const L=Math.min(150,W*.38),R=80,rh=42,H=n*rh+24;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+      if(o.target){const tx=L+(W-L-R)*V.clamp(o.target.v/max,0,1),tc=o.target.color||roleCol(o.target.role||"k","var(--m-k)");
+        s+=`<line class="k-vl" x1="${tx}" y1="4" x2="${tx}" y2="${H-14}" style="stroke:${tc};stroke-dasharray:6 5"/>`}
+      B.forEach((b,i)=>{const v=vals[i],y=8+i*rh,lab=fit(b.t,L-12,13),rk=roleKey(b.role),c=b.color||roleCol(b.role,PAL(i));
         const bw=v==null?(W-L-R)*.35:(W-L-R)*V.clamp(v/max,0,1);
-        s+=`<g class="${cls(i)}">${tlines(L-10,y+(lab.length>1?14:23),lab.slice(0,2),"k-s",14,"end")}`
+        s+=`<g class="${cls(i)} k-feat" data-feat="bar-${i}"${rk?` data-role="${rk}"`:""}${b.use?` data-use="${escAttr(b.use)}" data-uname="${escAttr(b.t)}"`:""} style="--rc:${c}">${tlines(L-10,y+(lab.length>1?14:23),lab.slice(0,2),"k-s",14,"end")}`
           +(v==null?`<rect class="k-q" x="${L}" y="${y+5}" width="${bw}" height="${rh-14}" rx="7"/><text class="k-t" x="${L+bw/2}" y="${y+25}" text-anchor="middle">?</text>`
-                   :`<rect class="k-bar" x="${L}" y="${y+5}" width="${Math.max(0,bw)}" height="${rh-14}" rx="7" style="fill:${b.color||PAL(i)}"/><text class="k-t" x="${L+bw+8}" y="${y+25}">${fmt(v)}</text>`)+`</g>`});
+                   :`<rect class="k-bar" x="${L}" y="${y+5}" width="${Math.max(0,bw)}" height="${rh-14}" rx="7" style="fill:${c}"/><text class="k-t k-halo" x="${L+bw+8}" y="${y+25}">${fmt(v)}</text>`)+`</g>`});
     }
-    svg.innerHTML=s;}
+    svg.innerHTML=s;if(an)an.wire(svg);}
   responsive(S,layout);
-  return E.stepper(S.viz,steps,(i)=>{const s=steps[i];hi=s.hi||null;stopT();const from=[...vals],to=s.v||vals;
+  return E.stepper(S.viz,steps,(i)=>{const s=steps[i];hi=s.hi||null;stopT();const from=[...vals],to=s.v||vals;prevVals=[...from];
     const tgt=from.map((v,k)=>k in to?to[k]:v);
-    stopT=V.tween(650,t=>{const e=V.ease(t);vals=tgt.map((v,k)=>v==null?null:(from[k]??0)+(v-(from[k]??0))*e);draw()});if(o.on)o.on(i,svg,s);},{ms:o.ms});
+    stopT=V.tween(650,t=>{const e=V.ease(t);vals=tgt.map((v,k)=>v==null?null:(from[k]??0)+(v-(from[k]??0))*e);draw()});
+    if(an&&hi&&hi.length===1&&B[hi[0]]?.use)an.showUse(B[hi[0]].t,B[hi[0]].use,roleCol(B[hi[0]].role,"var(--pc)"));
+    if(o.on)o.on(i,svg,s);},{ms:o.ms});
 };
 
 /* =================================================================
@@ -687,5 +923,166 @@ Kit.annotate=(id,o)=>{
   return E.stepper(S.viz,steps,(i)=>{const s=steps[i],hi=s.hi||[];seen.clear();steps.slice(0,i).forEach(x=>(x.hi||[]).forEach(k=>seen.add(k)));
     $$("mark",S.stage).forEach(m=>{const k=m.dataset.k;m.classList.toggle("on",hi.includes(k));m.classList.toggle("seen",!hi.includes(k)&&seen.has(k))});
     const first=$("mark.on",S.stage);if(first&&S.stage.scrollHeight>S.stage.clientHeight+4)first.scrollIntoView({block:"nearest"});if(o.on)o.on(i,S.stage,s);},{ms:o.ms||4500});
+};
+
+/* =================================================================
+   10. tree — hierarchical / decision / search / parse trees
+   ================================================================= */
+Kit.tree=(id,o)=>{
+  const S=setup(id,"tree");if(!S||!o.root)return;
+  const svg=svgIn(S,o.alt);
+  const nodes=[],byId=new Map();
+  function walk(nd,parent,depth){
+    const i=nodes.length,cid=nd.id!=null?String(nd.id):"n"+i,ch=nd.children||[];
+    const kind=nd.kind||(depth===0?"root":ch.length?"decision":"leaf");
+    const role=roleKey(nd.role)||(kind==="leaf"?"r":kind==="pruned"?"k":kind==="root"||kind==="decision"?"c":"");
+    const er=roleKey(nd.edgeRole)||branchRole(nd.edge);
+    const item={i,id:cid,parent,depth,t:nd.t||"",sub:nd.sub||"",tag:nd.tag||"",kind,role,color:nd.color||"",edge:nd.edge||"",edgeRole:er,use:nd.use||"",children:[]};
+    nodes.push(item);byId.set(cid,i);
+    if(parent>=0)nodes[parent].children.push(i);
+    ch.forEach(c=>walk(c,i,depth+1));
+  }
+  walk(o.root,-1,0);
+  nodes.forEach(nd=>{const anc=[];let p=nd.parent;while(p>=0){anc.unshift(p);p=nodes[p].parent}nd.ancestors=anc});
+  function subIds(i){const out=[i];nodes[i].children.forEach(c=>out.push(...subIds(c)));return out}
+  nodes.forEach(nd=>nd.subtree=subIds(nd.i));
+  const bfs=[],q=[0];while(q.length){const u=q.shift();bfs.push(u);nodes[u].children.forEach(c=>q.push(c))}
+  const steps=stepsOr(o,bfs.map((u,k)=>({t:nodes[u].t,d:nodes[u].use||nodes[u].sub||"",on:[nodes[u].id],reveal:bfs.slice(0,k+1).map(x=>nodes[x].id)})));
+  const idxOf=x=>typeof x==="number"?x:byId.get(String(x));
+  const kindLabel={root:"ROOT",decision:"DECISION",branch:"BRANCH",leaf:"LEAF",pruned:"PRUNED"};
+  const kindGlyph={root:"◎",decision:"◆",branch:"▸",leaf:"✓",pruned:"✕"};
+  const wantLeg=o.legend!==false;
+  const an=wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:"Hover or tap any node to trace its path from the root and see its role."}):null;
+  if(an){
+    const defLeg=[];const seenR=new Set();
+    const roleMapLabel={c:"Split / Decision",r:"Leaf / Target",k:"Pruned / Cut",v:"Input / Variable",f:"Rule / Process",g:"Subtree / Group",a:"Highlight"};
+    const roleSwatch={c:"dia",r:"dot",k:"cut",v:"box",f:"box",g:"area",a:"dot"};
+    nodes.forEach(nd=>{const rk=nd.role;if(rk&&!seenR.has(rk)){seenR.add(rk);defLeg.push({role:rk,label:roleMapLabel[rk]||rk,swatch:roleSwatch[rk]||"box",use:`Nodes highlighted with the ${roleMapLabel[rk]||rk} role.`})}});
+    an.setItems(Array.isArray(o.legend)?o.legend:defLeg);an.wire(svg);
+  }
+  let cur=0,prevRev=new Set(nodes.map(n=>n.i)),player=null;
+  function countLeaves(i){return nodes[i].children.length?nodes[i].children.reduce((s,c)=>s+countLeaves(c),0):1}
+  function layout(W){
+    const leafN=countLeaves(0);
+    const maxWord=Math.max(4,...nodes.map(nd=>Math.max(...String(nd.t).split(/\s+/).map(w=>w.length))));
+    const minBw=Math.max(96,Math.min(156,Math.ceil(maxWord*8.1)+30));
+    const gapX=leafN>4?10:16;
+    const rawBw=Math.floor((W-20-(leafN-1)*gapX)/Math.max(1,leafN));
+    const useWide=W>=540&&o.orientation!=="left"&&rawBw>=minBw;
+    const P=[];
+    let H=200;
+    if(useWide){
+      const bw=Math.min(o.boxWidth||186,rawBw),ox=(W-(leafN*bw+(leafN-1)*gapX))/2;
+      const wr=nodes.map(nd=>({t:fit(nd.t,bw-28,14),s:nd.sub?fit(nd.sub,bw-28,12):[]}));
+      const hh=wr.map((w,i)=>14+15+w.t.length*18+(w.s.length?3+w.s.length*15.5:0)+(nodes[i].tag?28:0)+12);
+      const maxD=Math.max(...nodes.map(nd=>nd.depth));
+      const rowH=[],hasEdge=[];
+      for(let d=0;d<=maxD;d++){rowH[d]=Math.max(...nodes.filter(n=>n.depth===d).map(n=>hh[n.i]));hasEdge[d]=nodes.some(n=>n.depth===d&&n.edge)}
+      const yAt=[];let y=12;for(let d=0;d<=maxD;d++){if(d>0)y+=rowH[d-1]+(hasEdge[d]?58:38);yAt[d]=y}
+      let lx=0;
+      const assignX=i=>{const nd=nodes[i];
+        if(!nd.children.length){const cx=ox+lx*(bw+gapX)+bw/2;lx++;P[i]={x:cx-bw/2,cx,y:yAt[nd.depth],w:bw,h:rowH[nd.depth],wr:wr[i]}}
+        else{nd.children.forEach(assignX);const cx=(P[nd.children[0]].cx+P[nd.children[nd.children.length-1]].cx)/2;P[i]={x:cx-bw/2,cx,y:yAt[nd.depth],w:bw,h:rowH[nd.depth],wr:wr[i]}}};
+      assignX(0);
+      H=yAt[maxD]+rowH[maxD]+14;
+    } else {
+      const indent=Math.min(20,Math.max(12,Math.floor(W*.045)));
+      const order=[];(function dfs(i){order.push(i);nodes[i].children.forEach(dfs)})(0);
+      let y=10;
+      order.forEach((i,k)=>{const nd=nodes[i],x=10+nd.depth*indent,bw=Math.max(150,W-x-10);
+        if(k>0)y+=nd.edge?32:14;
+        const w={t:fit(nd.t,bw-28,14),s:nd.sub?fit(nd.sub,bw-28,12):[]};
+        const h=14+15+w.t.length*18+(w.s.length?3+w.s.length*15.5:0)+(nd.tag?28:0)+12;
+        P[i]={x,cx:x+bw/2,y,w:bw,h,wr:w};y+=h;
+      });
+      H=y+12;
+    }
+    svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+    const edgeRoles=[...new Set(nodes.map(nd=>nd.edgeRole||nd.role).filter(Boolean))];
+    let s=markers(S.uid)+edgeRoles.map(rk=>`<defs><marker id="${S.uid}-on-${rk}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head on" style="fill:var(--m-${rk})"/></marker></defs>`).join("");
+    nodes.forEach(nd=>{
+      if(nd.parent<0)return;
+      const A=P[nd.parent],B=P[nd.i],erk=nd.edgeRole||nd.role,rc=nd.color||(erk?`var(--m-${erk})`:"var(--pc)");
+      let d,px,py;
+      if(useWide){
+        const x1=A.cx,y1=A.y+A.h,x2=B.cx,y2=B.y-4,ym=(y1+y2)/2,t=.62,mt=1-t;
+        d=`M${x1.toFixed(1)},${y1.toFixed(1)} C${x1.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${ym.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+        px=(mt**3+3*mt*mt*t)*x1+(3*mt*t*t+t**3)*x2;
+        py=mt**3*y1+3*mt*mt*t*ym+3*mt*t*t*ym+t**3*y2;
+      } else {
+        const sx=A.x+12,sy=A.y+A.h,ex=B.x-3,ey=B.y+B.h/2;
+        d=`M${sx.toFixed(1)},${sy.toFixed(1)} V${ey.toFixed(1)} H${ex.toFixed(1)}`;
+        const pw=nd.edge?Math.max(28,Math.ceil(nd.edge.length*11*.66)+22):0;
+        px=Math.max(B.x+pw/2+4,sx+pw/2+8);py=B.y-15;
+      }
+      s+=`<path class="k-tree-edge" data-c="${nd.i}"${erk?` data-er="${erk}"`:""} style="--rc:${rc}" pathLength="1" d="${d}"/>`;
+      if(nd.edge)s+=`<g class="k-edge-pill" data-c="${nd.i}">${pillSvg(px,py,nd.edge,{W,H,fs:11,cls:"k-epill",tcls:"k-epill-t",role:erk,minW:26})}</g>`;
+    });
+    nodes.forEach(nd=>{
+      const p=P[nd.i],w=p.wr,rk=nd.role,rc=nd.color||(rk?`var(--m-${rk})`:"var(--pc)");
+      const rx=nd.kind==="leaf"?18:13,gId=S.uid+"-tc"+nd.i;
+      let t=`<g class="k-tn clickable" data-i="${nd.i}" tabindex="0" role="button" aria-label="${escAttr(nd.t)}"${rk?` data-role="${rk}"`:""}${nd.use?` data-use="${escAttr(nd.use)}" data-uname="${escAttr(nd.t)}"`:""} style="--rc:${rc}">`;
+      t+=`<clipPath id="${gId}"><rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="${rx}"/></clipPath>`;
+      t+=`<rect class="k-node" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="${rx}"/>`;
+      t+=`<rect class="k-accent" x="${p.x}" y="${p.y}" width="5" height="${p.h}" clip-path="url(#${gId})"/>`;
+      t+=`<text class="k-kind" x="${p.x+14}" y="${p.y+20}">${kindGlyph[nd.kind]||"•"} ${kindLabel[nd.kind]||nd.kind.toUpperCase()}</text>`;
+      t+=tlines(p.x+14,p.y+36,w.t,"k-t",18);
+      if(w.s.length)t+=tlines(p.x+14,p.y+36+w.t.length*18+2,w.s,"k-s",15.5);
+      if(nd.tag){const tw=Math.min(p.w-26,Math.ceil(nd.tag.length*7.8)+22);t+=`<g class="k-tag"><rect x="${p.x+14}" y="${p.y+p.h-34}" width="${tw}" height="22" rx="11"/><text class="k-c" x="${p.x+24}" y="${p.y+p.h-18.5}">${escHtml(nd.tag)}</text></g>`}
+      t+=`<line class="k-slash hide" x1="${p.x+8}" y1="${p.y+p.h-8}" x2="${p.x+p.w-8}" y2="${p.y+8}"/>`;
+      s+=t+"</g>";
+    });
+    svg.innerHTML=s;render(cur);
+  }
+  function render(i){cur=i;const s=steps[i]||{};
+    const expandAnc=arr=>{const out=new Set();(arr||[]).forEach(x=>{const k=idxOf(x);if(k!=null&&k>=0){out.add(k);nodes[k].ancestors.forEach(a=>out.add(a))}});return out};
+    const rev=(s.reveal==="all"||s.reveal==null)?new Set(nodes.map(n=>n.i)):expandAnc(s.reveal);
+    const on=new Set((s.on||[]).map(idxOf).filter(k=>k!=null));
+    const pruned=new Set();(s.prune||[]).forEach(x=>{const k=idxOf(x);if(k!=null&&k>=0)nodes[k].subtree.forEach(u=>pruned.add(u))});
+    nodes.forEach(nd=>{if(nd.kind==="pruned")nd.subtree.forEach(u=>pruned.add(u))});
+    const path=s.path?expandAnc(s.path):(o.showPath!==false?expandAnc([...on]):new Set());
+    const visit=new Set((s.visit||[]).map(idxOf).filter(k=>k!=null));
+    $$(".k-tn",svg).forEach(g=>{const k=+g.dataset.i,vis=rev.has(k),isNew=vis&&!prevRev.has(k);
+      g.classList.toggle("hide",!vis);
+      g.classList.toggle("k-pop",isNew&&E.motionOn());
+      g.classList.toggle("on",on.has(k));
+      g.classList.toggle("pruned",pruned.has(k));
+      g.classList.toggle("path",path.has(k)&&!pruned.has(k));
+      g.classList.toggle("done",!on.has(k)&&!pruned.has(k)&&(visit.has(k)||path.has(k)));
+      g.classList.toggle("todo",vis&&!on.has(k)&&!visit.has(k)&&!path.has(k)&&!pruned.has(k));
+      const sl=$(".k-slash",g);if(sl)sl.classList.toggle("hide",!pruned.has(k));
+    });
+    $$(".k-tree-edge",svg).forEach(e=>{const k=+e.dataset.c,vis=rev.has(k),isNew=vis&&!prevRev.has(k),isPr=pruned.has(k),isPa=path.has(k)&&!isPr,isDn=isPa||visit.has(k),erk=e.dataset.er;
+      e.classList.toggle("hide",!vis);
+      e.classList.toggle("k-tree-draw",isNew&&E.motionOn());
+      e.classList.toggle("pruned",isPr);
+      e.classList.toggle("path",isPa);
+      e.classList.toggle("flowline",isPa);
+      e.classList.toggle("done",isDn&&!isPr);
+      e.classList.toggle("todo",vis&&!isDn&&!isPr);
+      e.setAttribute("marker-end",`url(#${S.uid}-${isDn&&!isPr?(erk?"on-"+erk:"on"):"off"})`);
+    });
+    $$(".k-edge-pill",svg).forEach(p=>{const k=+p.dataset.c,vis=rev.has(k);p.classList.toggle("hide",!vis);
+      const r=$(".k-epill",p);if(r)r.classList.toggle("on",path.has(k)&&!pruned.has(k))});
+    prevRev=rev;
+    if(an&&on.size===1){const u=[...on][0];if(nodes[u]?.use)an.showUse(nodes[u].t,nodes[u].use,roleCol(nodes[u].role,"var(--pc)"))}
+    if(o.on)o.on(i,svg,s);
+  }
+  const jumpTree=g=>{const k=+g.dataset.i,nd=nodes[k];if(!nd)return;
+    const si=steps.findIndex(s=>(s.on||[]).map(idxOf).includes(k));
+    if(si>=0&&player){player.stop();player.show(si)}
+    if(an&&nd.use)an.showUse(nd.t,nd.use,roleCol(nd.role,"var(--pc)"));
+  };
+  svg.addEventListener("pointerover",e=>{const g=e.target.closest(".k-tn");if(!g||svg.closest(".m-has-focus"))return;
+    const k=+g.dataset.i,nd=nodes[k];if(!nd)return;const anc=new Set([...nd.ancestors,k]);
+    $$(".k-tn",svg).forEach(n=>{const m=anc.has(+n.dataset.i);n.style.opacity=m?"1":".3"});
+    $$(".k-tree-edge",svg).forEach(ed=>{const m=anc.has(+ed.dataset.c);ed.style.opacity=m?"1":".2"});
+  });
+  svg.addEventListener("pointerleave",()=>{$$(".k-tn,.k-tree-edge",svg).forEach(n=>n.style.opacity="")});
+  svg.addEventListener("click",e=>{const g=e.target.closest(".k-tn");if(g)jumpTree(g)});
+  svg.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches(".k-tn")){e.preventDefault();jumpTree(e.target)}});
+  responsive(S,layout);
+  player=E.stepper(S.viz,steps,i=>render(i),{ms:o.ms});
+  return player;
 };
 })();

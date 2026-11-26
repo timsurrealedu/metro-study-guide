@@ -1,0 +1,259 @@
+<!-- Visual Systems Studio · Showcase guide for Metro Engine v1.5 -->
+
+<section class="part" data-part="1" data-title="Graphs &amp; Signals" data-kicker="Line 1"
+  data-eyebrow="Line 1 · Color-Coded Plots &amp; Curves"
+  data-lede="Read every curve, asymptote, tangent, and shaded zone with matching semantic colors that carry across the formula and table.">
+
+<article class="chapter" id="c1-1" data-n="1.1" data-short="Graph Anatomy" data-title="Anatomy of an Animated Graph" data-tag="Visual Grammar">
+  <p class="bigidea">Every mark on a graph plays a distinct job. Matching colors link the curve, tangent, area, and asymptote directly back to the formula and table.</p>
+
+  <div class="sec"><h3 data-eb="Continuity">Formula, graph, and role table in sync</h3>
+    <p>Hover or tap any colored badge in the formula, graph key, or table below. Every matching role lights up together across the whole section.</p>
+    <div class="eq">[[f(x)|f]] = \frac{1}{[[x - 2|k]]} + 1 \quad\text{with}\quad \int_{[[3|g]]}^{[[5|g]]} [[f(x)|f]]\dd{x}, \quad [[m = f'(3.5)|c]]
+      <div class="eq-legend" role="group" aria-label="Color key">
+        <button type="button" class="m-leg-item m-t-f" data-role="f" aria-pressed="false"><i></i><span>Function f(x)</span></button>
+        <button type="button" class="m-leg-item m-t-k" data-role="k" aria-pressed="false"><i></i><span>Asymptote x = 2</span></button>
+        <button type="button" class="m-leg-item m-t-c" data-role="c" aria-pressed="false"><i></i><span>Tangent slope</span></button>
+        <button type="button" class="m-leg-item m-t-g" data-role="g" aria-pressed="false"><i></i><span>Area &amp; domain zone</span></button>
+        <button type="button" class="m-leg-item m-t-r" data-role="r" aria-pressed="false"><i></i><span>Target point</span></button>
+      </div>
+    </div>
+
+    <p class="lead">Step through the graph layers, or move your pointer across the curve to read live coordinates.</p>
+    <div class="viz" id="g-anatomy"></div>
+
+    <p class="lead">Each color role explains what part of the graph you are looking at and what question it answers.</p>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Graph part<small>Visual cue</small></th><th>Role</th><th>What it does<small>Question it answers</small></th></tr></thead>
+      <tbody>
+        <tr data-role="f"><td>Solid curve<small>Violet stroke</small></td><td><span class="t-chip" data-role="f">Function</span></td><td>Maps every valid input <span class="m">x</span> to its output <span class="m">f(x)</span>.</td></tr>
+        <tr data-role="k"><td>Dashed boundary<small>Rose line</small></td><td><span class="t-chip" data-role="k">Asymptote</span></td><td>Marks <span class="m">x = 2</span> and <span class="m">y = 1</span> that the curve approaches but never touches.</td></tr>
+        <tr data-role="c"><td>Tangent + triangle<small>Amber dash</small></td><td><span class="t-chip" data-role="c">Slope</span></td><td>Shows instantaneous steepness <span class="m">f'(x)</span> via rise over run.</td></tr>
+        <tr data-role="g"><td>Hatched shade &amp; band<small>Teal region</small></td><td><span class="t-chip" data-role="g">Area / Zone</span></td><td>Highlights the valid interval and accumulated integral under the curve.</td></tr>
+        <tr data-role="r"><td>Pulsing target dot<small>Green pin</small></td><td><span class="t-chip" data-role="r">Value</span></td><td>Pins a specific coordinate <span class="m">(x, f(x))</span> with axis drop-guides.</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="callout eg"><b>Example</b><div>Think of a road trip speed chart: the curve is your speed at each minute, the dashed tangent shows how hard you accelerate right now, and the shaded teal area measures total kilometers driven.</div></div>
+  </div>
+
+  <div class="traps">
+    <div class="callout trap"><b>Connecting across an asymptote</b><div>Never draw a vertical line across <span class="m">x = 2</span> in <span class="m">\frac{1}{x-2} + 1</span>. The function jumps from <span class="m">-\infty</span> to <span class="m">+\infty</span> and is undefined at <span class="m">x = 2</span>.</div></div>
+    <div class="callout trap"><b>Confusing slope with height</b><div>A curve can sit high above the x-axis while its tangent slope is negative or zero. Height reads <span class="m">f(x)</span>; tangent slope reads <span class="m">f'(x)</span>.</div></div>
+  </div>
+</article>
+
+<article class="chapter" id="c1-2" data-n="1.2" data-short="Model Curves" data-title="Bias-Variance Curves &amp; Comparison Tables" data-tag="Trade-offs">
+  <p class="bigidea">Zones on a graph turn abstract trade-offs into clear regions, while smart comparison tables let you spotlight one option or filter to what actually differs.</p>
+
+  <div class="sec"><h3 data-eb="Zones &amp; Sliders">Bias-variance trade-off across complexity</h3>
+    <p>Too little complexity misses the pattern (underfitting). Too much complexity memorizes noise (overfitting). The sweet spot sits in the middle.</p>
+    <p class="lead">Step through the three complexity zones or drag the slider to watch training and validation errors separate.</p>
+    <div class="viz" id="g-bias"></div>
+  </div>
+
+  <div class="sec"><h3 data-eb="Delta Bars">Measuring error against a target threshold</h3>
+    <p>Bar charts become much clearer when a target ceiling line shows what counts as acceptable and step deltas show how much each change moved the score.</p>
+    <p class="lead">Compare validation error across four model depths against the 18% deployment threshold.</p>
+    <div class="viz" id="b-errors"></div>
+  </div>
+
+  <div class="sec"><h3 data-eb="Compare">Filtering a comparison table to differences</h3>
+    <p>Use the top bar or click any column header to spotlight one model family. Tap <b>Differences</b> to fade out rows where all three behave the same.</p>
+    <p class="lead">Compare Linear, Regularized Tree, and Deep Unpruned models across bias, variance, and deployment readiness.</p>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead>
+        <tr>
+          <th></th>
+          <th data-role="v">Linear Model<small>Low complexity</small></th>
+          <th data-role="r">Tuned Tree<small>Balanced fit</small></th>
+          <th data-role="k">Overfit Net<small>High complexity</small></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Uses training data<small>Input pipeline</small></td><td>Labeled pairs</td><td>Labeled pairs</td><td>Labeled pairs</td></tr>
+        <tr><td>Inference deterministic<small>Repeatability</small></td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td></tr>
+        <tr><td>Training error<small>Fit on seen data</small></td><td class="no">High (28%)</td><td class="yes">Low (9%)</td><td class="yes">Near zero (1%)</td></tr>
+        <tr><td>Validation accuracy<small>Unseen test score</small></td><td><span class="t-bar" data-p="72" data-role="v">72%</span></td><td><span class="t-bar" data-p="91" data-role="r">91%</span></td><td><span class="t-bar" data-p="68" data-role="k">68%</span></td></tr>
+        <tr><td>Main risk<small>Failure mode</small></td><td class="mid">Underfits curves</td><td class="yes">Balanced sweet spot</td><td class="no">Memorizes noise</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="traps">
+    <div class="callout trap"><b>Choosing a model by training score alone</b><div>A 99% training score often hides overfitting. Always judge generalization on unseen validation data.</div></div>
+  </div>
+</article>
+</section>
+
+<section class="part" data-part="2" data-title="Diagrams, Flows &amp; Cycles" data-kicker="Line 2"
+  data-eyebrow="Line 2 · Structure, Branching &amp; Loops"
+  data-lede="Separate inputs, decisions, processes, and error exits by shape and color, then inspect what every component does.">
+
+<article class="chapter" id="c2-1" data-n="2.1" data-short="Diagrams &amp; Flows" data-title="Architecture Diagrams &amp; Branching Flows" data-tag="Systems">
+  <p class="bigidea">A structure diagram shows where pieces live; a flowchart shows the order and branching rules that move data between them.</p>
+
+  <div class="sec"><h3 data-eb="Diagram">Interactive API architecture</h3>
+    <p>Hover or tap any block in the architecture diagram—or any badge above it—to spotlight that layer and read its exact job below.</p>
+    <p class="lead">Follow a request from the client through the gateway, fast cache, and persistent database.</p>
+    <div class="viz" id="d-arch"></div>
+    <dl class="terms">
+      <div><b>Cache hit</b><span class="d">Finding the requested answer already sitting in fast memory so the slower disk database stays untouched.</span></div>
+      <div><b>API gateway</b><span class="d">The front door that checks identity tokens and blocks bad traffic before internal services run.</span></div>
+    </dl>
+  </div>
+
+  <div class="sec"><h3 data-eb="Flowchart">Branching request pipeline</h3>
+    <p>Flow nodes use both shape badges (Input, Decision, Process, Output, Error) and color roles so branching paths never blur together.</p>
+    <p class="lead">Step through the request flow, or tap any box to jump to that decision stage.</p>
+    <div class="viz" id="f-request"></div>
+    <div class="callout eg"><b>Example</b><div>At an airport, security checks your boarding pass first (Auth Gate). Express-lane flyers pass straight through (Cache Hit), while special checks go to the main desk (Database) before boarding.</div></div>
+  </div>
+
+  <div class="traps">
+    <div class="callout trap"><b>Treating a cache miss like an error</b><div>A cache miss simply routes to the database to fetch fresh data. Only invalid credentials trigger an error exit.</div></div>
+  </div>
+</article>
+
+<article class="chapter" id="c2-2" data-n="2.2" data-short="Cycles &amp; Timelines" data-title="Feedback Cycles &amp; Progress Timelines" data-tag="Dynamics">
+  <p class="bigidea">Cycles show self-correcting loops that repeat until a goal is met; timelines track milestones along a filled progress track.</p>
+
+  <div class="sec"><h3 data-eb="Cycle">Closed-loop model training cycle</h3>
+    <p>Every training epoch repeats four distinct roles: feed a batch, score the loss, compute gradients, and update weights.</p>
+    <p class="lead">Watch the active arrow pulse around the loop, or click any stage pill to inspect its job.</p>
+    <div class="viz" id="cy-train"></div>
+  </div>
+
+  <div class="sec"><h3 data-eb="Timeline">Time-scaled milestones with progress fill</h3>
+    <p>Spacing events by year reveals when breakthroughs clustered together. The glowing axis bar fills smoothly up to the active milestone.</p>
+    <p class="lead">Step from 1957 to 2026 to see how neural networks, trees, and transformers evolved.</p>
+    <div class="viz" id="tl-ml"></div>
+  </div>
+
+  <div class="traps">
+    <div class="callout trap"><b>Forgetting the feedback arrow in a loop</b><div>Stopping after measuring loss without updating weights means the next pass repeats the exact same mistakes.</div></div>
+  </div>
+</article>
+</section>
+
+<section class="part" data-part="3" data-title="Trees &amp; Comparisons" data-kicker="Line 3"
+  data-eyebrow="Line 3 · Hierarchies, Pruning &amp; Multi-Way Tables"
+  data-lede="Grow decision trees branch by branch, trace root-to-leaf paths, animate Alpha-Beta cuts, and compare five algorithms side by side.">
+
+<article class="chapter" id="c3-1" data-n="3.1" data-short="Decision Trees" data-title="Decision Trees &amp; Information Gain" data-tag="Tree Kit">
+  <p class="bigidea">A decision tree splits messy data into clean groups, asking the most informative question at the root and ending at pure leaves.</p>
+
+  <div class="sec"><h3 data-eb="Interactive Tree">Growing the Play Tennis ID3 tree</h3>
+    <p>Root and decision splits appear in amber, branch conditions ride inside opaque pills on each curve, and pure leaf answers glow green.</p>
+    <p class="lead">Step through how the tree expands, or hover any node to trace its exact ancestry path from the root.</p>
+    <div class="viz" id="tr-id3"></div>
+  </div>
+
+  <div class="sec"><h3 data-eb="Math Continuity">Computing root entropy &amp; Information Gain</h3>
+    <p>Notice how the same color roles connect the formula below to the tree above: total data (<span class="m">[[S|v]]</span>), positive/negative splits (<span class="m">[[+|r]]</span>/<span class="m">[[-|k]]</span>), and gain (<span class="m">[[IG|c]]</span>).</p>
+    <p class="lead">Step through the Information Gain calculation that crowns <b>Outlook</b> as the root split.</p>
+    <div class="viz" id="kd-ig"></div>
+  </div>
+
+  <div class="sec"><h3 data-eb="Data Table">Summary by Outlook branch</h3>
+    <p class="lead">Inspect the three Outlook branches whose counts feed the entropy formula above.</p>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Outlook branch</th><th>Positive / Negative</th><th data-role="c">Entropy H</th><th>Resulting node</th></tr></thead>
+      <tbody>
+        <tr data-role="c"><td>Sunny (5 days)</td><td>2 Yes / 3 No</td><td>0.97 bits</td><td><span class="t-chip" data-role="c">Split on Humidity</span></td></tr>
+        <tr data-role="r"><td>Overcast (4 days)</td><td>4 Yes / 0 No</td><td class="yes">0.00 bits</td><td><span class="t-chip" data-role="r">Pure Leaf: Yes</span></td></tr>
+        <tr data-role="c"><td>Rain (5 days)</td><td>3 Yes / 2 No</td><td>0.97 bits</td><td><span class="t-chip" data-role="c">Split on Wind</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="traps">
+    <div class="callout trap"><b>Splitting on a zero-entropy branch</b><div>Once a branch reaches entropy 0 (like Overcast: 4 Yes, 0 No), stop immediately and emit a leaf node.</div></div>
+  </div>
+</article>
+
+<article class="chapter" id="c3-2" data-n="3.2" data-short="Pruning &amp; Search" data-title="Alpha-Beta Pruning &amp; 5-Way Comparison" data-tag="Game Trees">
+  <p class="bigidea">Alpha-Beta pruning skips branches that cannot beat a move already in hand, cutting search work without ever changing the optimal answer.</p>
+
+  <div class="sec"><h3 data-eb="Pruned Tree">Animating Alpha-Beta cutoffs</h3>
+    <p>MAX nodes (green) pick the highest child score; MIN nodes (amber) pick the lowest. Once MIN sees a score at or below <span class="m">\alpha</span>, remaining siblings are slashed in rose.</p>
+    <p class="lead">Watch the tree evaluate the left branch to set <span class="m">\alpha = 4</span>, then prune the right subtree on sight of <span class="m">2 \le 4</span>.</p>
+    <div class="viz" id="tr-ab"></div>
+  </div>
+
+  <div class="sec"><h3 data-eb="5-Way Compare">Comparing five core search strategies</h3>
+    <p>On laptops, 5-column comparison tables widen cleanly without sideways scrolling; on phones, they neatly pair 2×2 under sticky headers.</p>
+    <p class="lead">Use the column spotlight pills or tap <b>Differences</b> to isolate completeness, optimality, and memory cost.</p>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead>
+        <tr>
+          <th></th>
+          <th data-role="v">BFS<small>Queue</small></th>
+          <th data-role="c">DFS<small>Stack</small></th>
+          <th data-role="f">Dijkstra<small>Cost-first</small></th>
+          <th data-role="r">A* Search<small>Cost + heuristic</small></th>
+          <th data-role="k">Alpha-Beta<small>Game tree</small></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Uses graph / tree</td><td>Graph / Tree</td><td>Graph / Tree</td><td>Weighted Graph</td><td>Weighted Graph</td><td>Game Tree</td></tr>
+        <tr><td>Complete (finite)<small>Always finds a solution</small></td><td class="yes">Yes</td><td class="mid">With cycle check</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td></tr>
+        <tr><td>Optimal path<small>Best cost guaranteed</small></td><td class="mid">Unweighted only</td><td class="no">No</td><td class="yes">Yes</td><td class="yes">Admissible h</td><td class="yes">Optimal move</td></tr>
+        <tr><td>Pruning power<small>Skips wasted work</small></td><td><span class="t-bar" data-p="20" data-role="v">20%</span></td><td><span class="t-bar" data-p="30" data-role="c">30%</span></td><td><span class="t-bar" data-p="45" data-role="f">45%</span></td><td><span class="t-bar" data-p="85" data-role="r">85%</span></td><td><span class="t-bar" data-p="90" data-role="k">90%</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="traps">
+    <div class="callout trap"><b>Thinking Alpha-Beta pruning is an approximation</b><div>Alpha-Beta pruning never guesses. It only discards branches that can never change the final Minimax value.</div></div>
+  </div>
+</article>
+</section>
+
+<section class="part" data-part="R" data-title="Review &amp; Reference" data-kicker="Review"
+  data-eyebrow="Review · Visual Grammar Cheat Sheet"
+  data-lede="Master role colors, flashcards, practice exam, and interactive controls in one place.">
+
+<article class="chapter" id="r-cheat" data-n="R1" data-short="Cheat sheet" data-title="Unified Visual Color &amp; Shape Grammar" data-count="no">
+  <p class="bigidea">Every widget in Metro Engine v1.5 speaks one visual language: color tells you the role, shape tells you the structure, and hover tells you the purpose.</p>
+  <div class="sec"><h3 data-eb="Color Roles">Universal semantic role table</h3>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Role token</th><th>Color</th><th>In equations</th><th>In graphs, flows &amp; trees</th></tr></thead>
+      <tbody>
+        <tr data-role="v"><td><code>v</code> / <code>input</code></td><td><span class="t-chip" data-role="v">Blue</span></td><td>Unknown variable <span class="m">[[x|v]]</span></td><td>Raw input node, queue, or primary x-variable</td></tr>
+        <tr data-role="c"><td><code>c</code> / <code>decision</code></td><td><span class="t-chip" data-role="c">Amber</span></td><td>Coefficient or multiplier</td><td>Decision diamond, Riemann box, tangent slope, MIN node</td></tr>
+        <tr data-role="f"><td><code>f</code> / <code>process</code></td><td><span class="t-chip" data-role="f">Violet</span></td><td>Function or operator</td><td>Primary curve <span class="m">f(x)</span>, processing step, rule</td></tr>
+        <tr data-role="g"><td><code>g</code> / <code>region</code></td><td><span class="t-chip" data-role="g">Teal</span></td><td>Grouped expression <span class="m">[[u|g]]</span></td><td>Shaded integral area, complexity zone, subtree group</td></tr>
+        <tr data-role="r"><td><code>r</code> / <code>output</code></td><td><span class="t-chip" data-role="r">Green</span></td><td>Solved final value</td><td>Pure leaf, optimal path, Yes/Pass branch, MAX target</td></tr>
+        <tr data-role="k"><td><code>k</code> / <code>prune</code></td><td><span class="t-chip" data-role="k">Rose</span></td><td>Cancelled or subtracted term</td><td>Asymptote, error exit, No/Reject branch, pruned subtree</td></tr>
+        <tr data-role="a"><td><code>a</code> / <code>vec</code></td><td><span class="t-chip" data-role="a">Sky</span></td><td>Auxiliary highlight</td><td>Direction vector, auxiliary gateway or marker</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</article>
+
+<article class="chapter" id="r-cards" data-n="R2" data-short="Flashcards" data-title="Flashcards" data-count="no">
+  <p class="bigidea">Recall what each visual cue and color role means before flipping each card.</p>
+  <div class="flash"></div>
+</article>
+
+<article class="chapter" id="r-exam" data-n="R3" data-short="Practice exam" data-title="Practice Exam" data-count="no">
+  <p class="bigidea">Check your mastery across graphs, diagrams, flows, cycles, trees, and tables.</p>
+  <div class="quiz" data-set="exam"></div>
+</article>
+
+<article class="chapter" id="r-notes" data-n="R4" data-short="Study notes" data-title="Interactive Controls &amp; Accessibility" data-count="no">
+  <p class="bigidea">Every visual works smoothly by mouse, touch, and keyboard, and adapts automatically to phones and reduced motion.</p>
+  <div class="sec"><h3 data-eb="Controls">Four ways to explore every visual</h3>
+    <p class="lead">Try these interactions on any graph, diagram, tree, or table in the guide.</p>
+    <ol class="steps">
+      <li><b>Hover or tap legend chips</b>Isolate one semantic role across equations, plots, trees, and tables in the same section.</li>
+      <li><b>Inspect any node or part</b>Hover or tap nodes in a diagram, flowchart, or tree to read what that part does and jump straight to its step.</li>
+      <li><b>Filter comparison tables</b>Click any column header or pill to spotlight one option, or press <b>Differences</b> to fade matching rows.</li>
+      <li><b>Keyboard navigation</b>Focus any visual and use Left/Right arrows to step, Space to play/pause, or Enter on nodes to jump.</li>
+    </ol>
+  </div>
+</article>
+</section>
+
+<p class="foot">Visual Systems Studio · Metro Engine v1.5 Showcase. Progress and quiz answers stay in this browser.</p>

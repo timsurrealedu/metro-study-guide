@@ -1,0 +1,14 @@
+{
+  "id": "visual-systems-studio",
+  "title": "Visual Systems Studio",
+  "highlight": "Systems",
+  "eyebrow": "Metro Engine v1.5 · Graphs, Diagrams, Tables & Trees",
+  "lede": "Explore color-coded graphs, architecture diagrams, branching flows, trees, and smart comparison tables that link every role together.",
+  "terminus": "Exam",
+  "lines": {
+    "1": { "name": "Graphs & Signals", "color": "#1d5fd6" },
+    "2": { "name": "Diagrams, Flows & Cycles", "color": "#6d28d9" },
+    "3": { "name": "Trees & Comparisons", "color": "#0f766e" },
+    "R": { "name": "Review & Reference", "color": "#0b7285" }
+  }
+}
