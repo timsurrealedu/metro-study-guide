@@ -5,10 +5,10 @@
   data-lede="Read every curve, asymptote, tangent, and shaded zone with matching semantic colors that carry across the formula and table.">
 
 <article class="chapter" id="c1-1" data-n="1.1" data-short="Graph Anatomy" data-title="Anatomy of an Animated Graph" data-tag="Visual Grammar">
-  <p class="bigidea">Every mark on a graph plays a distinct job. Matching colors link the curve, tangent, area, and asymptote directly back to the formula and table.</p>
+  <p class="bigidea">Every mark on a graph plays a distinct job—<em>color tells you the role</em> across the formula, picture, and comparison table at once.</p>
 
   <div class="sec"><h3 data-eb="Continuity">Formula, graph, and role table in sync</h3>
-    <p>Hover or tap any colored badge in the formula, graph key, or table below. Every matching role lights up together across the whole section.</p>
+    <p>Hover or tap any colored badge below to link the <b data-role="f">function curve</b>, <b data-role="k">asymptote boundary</b>, <b data-role="c">tangent slope</b>, <b data-role="g">shaded integral</b>, and <b data-role="r">target point</b> across the entire section.</p>
     <div class="eq">[[f(x)|f]] = \frac{1}{[[x - 2|k]]} + 1 \quad\text{with}\quad \int_{[[3|g]]}^{[[5|g]]} [[f(x)|f]]\dd{x}, \quad [[m = f'(3.5)|c]]
       <div class="eq-legend" role="group" aria-label="Color key">
         <button type="button" class="m-leg-item m-t-f" data-role="f" aria-pressed="false"><i></i><span>Function f(x)</span></button>
@@ -19,10 +19,10 @@
       </div>
     </div>
 
-    <p class="lead">Step through the graph layers, or move your pointer across the curve to read live coordinates.</p>
+    <p class="lead">Step through each layer—<em>hover across the curve</em> anytime to read live coordinates.</p>
     <div class="viz" id="g-anatomy"></div>
 
-    <p class="lead">Each color role explains what part of the graph you are looking at and what question it answers.</p>
+    <p class="lead">Each color role answers one concrete question about what the mark measures.</p>
     <div class="tbl-wrap"><table class="tbl">
       <thead><tr><th>Graph part<small>Visual cue</small></th><th>Role</th><th>What it does<small>Question it answers</small></th></tr></thead>
       <tbody>
@@ -47,20 +47,20 @@
   <p class="bigidea">Zones on a graph turn abstract trade-offs into clear regions, while smart comparison tables let you spotlight one option or filter to what actually differs.</p>
 
   <div class="sec"><h3 data-eb="Zones &amp; Sliders">Bias-variance trade-off across complexity</h3>
-    <p>Too little complexity misses the pattern (underfitting). Too much complexity memorizes noise (overfitting). The sweet spot sits in the middle.</p>
-    <p class="lead">Step through the three complexity zones or drag the slider to watch training and validation errors separate.</p>
+    <p><b data-role="v">Low complexity</b> <em>underfits</em> real patterns, while <b data-role="k">excess complexity</b> <em>memorizes noise</em>. The <b data-role="r">balanced sweet spot</b> minimizes unseen test error.</p>
+    <p class="lead">Step through all three zones—or drag the complexity slider to watch training and validation errors split apart.</p>
     <div class="viz" id="g-bias"></div>
   </div>
 
   <div class="sec"><h3 data-eb="Delta Bars">Measuring error against a target threshold</h3>
-    <p>Bar charts become much clearer when a target ceiling line shows what counts as acceptable and step deltas show how much each change moved the score.</p>
-    <p class="lead">Compare validation error across four model depths against the 18% deployment threshold.</p>
+    <p>Adding a <b data-role="k">target ceiling</b> and <em>step deltas</em> makes it obvious which models pass and how much each change helped.</p>
+    <p class="lead">Compare validation error across four model depths against the <b>18% threshold</b>.</p>
     <div class="viz" id="b-errors"></div>
   </div>
 
   <div class="sec"><h3 data-eb="Compare">Filtering a comparison table to differences</h3>
-    <p>Use the top bar or click any column header to spotlight one model family. Tap <b>Differences</b> to fade out rows where all three behave the same.</p>
-    <p class="lead">Compare Linear, Regularized Tree, and Deep Unpruned models across bias, variance, and deployment readiness.</p>
+    <p>Tap any header or pill above the table to spotlight one <b data-role="v">Linear</b>, <b data-role="r">Tuned</b>, or <b data-role="k">Overfit</b> model, or press <b>Differences</b> to fade identical rows.</p>
+    <p class="lead">Compare model families side by side—focusing strictly on where accuracy and failure modes diverge.</p>
     <div class="tbl-wrap"><table class="tbl">
       <thead>
         <tr>
@@ -94,18 +94,18 @@
   <p class="bigidea">A structure diagram shows where pieces live; a flowchart shows the order and branching rules that move data between them.</p>
 
   <div class="sec"><h3 data-eb="Diagram">Interactive API architecture</h3>
-    <p>Hover or tap any block in the architecture diagram—or any badge above it—to spotlight that layer and read its exact job below.</p>
-    <p class="lead">Follow a request from the client through the gateway, fast cache, and persistent database.</p>
+    <p>Every block separates <em>inputs</em>, <b data-role="c">security rules</b>, <b data-role="r">fast cache hits</b>, and <b data-role="f">database writes</b>. Hover or tap any piece to read its exact job below.</p>
+    <p class="lead">Trace how an incoming request moves through the gateway, memory cache, and database.</p>
     <div class="viz" id="d-arch"></div>
     <dl class="terms">
-      <div><b>Cache hit</b><span class="d">Finding the requested answer already sitting in fast memory so the slower disk database stays untouched.</span></div>
-      <div><b>API gateway</b><span class="d">The front door that checks identity tokens and blocks bad traffic before internal services run.</span></div>
+      <div data-role="r"><b>Cache hit</b><span class="d">Serves an answer <em>straight from fast memory</em>, leaving the slower disk database completely untouched.</span></div>
+      <div data-role="c"><b>API gateway</b><span class="d">Acts as the <em>front-door checkpoint</em> that verifies tokens and blocks invalid traffic before services run.</span></div>
     </dl>
   </div>
 
   <div class="sec"><h3 data-eb="Flowchart">Branching request pipeline</h3>
-    <p>Flow nodes use both shape badges (Input, Decision, Process, Output, Error) and color roles so branching paths never blur together.</p>
-    <p class="lead">Step through the request flow, or tap any box to jump to that decision stage.</p>
+    <p>Role badges distinguish <b data-role="c">decisions</b>, <b data-role="f">processing steps</b>, <b data-role="r">valid exits</b>, and <b data-role="k">blocked errors</b> so branches never blur together.</p>
+    <p class="lead">Step through the request pipeline—or tap any box directly to jump to that stage.</p>
     <div class="viz" id="f-request"></div>
     <div class="callout eg"><b>Example</b><div>At an airport, security checks your boarding pass first (Auth Gate). Express-lane flyers pass straight through (Cache Hit), while special checks go to the main desk (Database) before boarding.</div></div>
   </div>
@@ -144,14 +144,14 @@
   <p class="bigidea">A decision tree splits messy data into clean groups, asking the most informative question at the root and ending at pure leaves.</p>
 
   <div class="sec"><h3 data-eb="Interactive Tree">Growing the Play Tennis ID3 tree</h3>
-    <p>Root and decision splits appear in amber, branch conditions ride inside opaque pills on each curve, and pure leaf answers glow green.</p>
-    <p class="lead">Step through how the tree expands, or hover any node to trace its exact ancestry path from the root.</p>
+    <p><b data-role="c">Decision splits</b> pick the sharpest question, branch pills carry conditions, and <b data-role="r">pure leaves</b> lock in the final prediction.</p>
+    <p class="lead">Step through how the tree expands—or hover any node to highlight its full root-to-node ancestry.</p>
     <div class="viz" id="tr-id3"></div>
   </div>
 
   <div class="sec"><h3 data-eb="Math Continuity">Computing root entropy &amp; Information Gain</h3>
-    <p>Notice how the same color roles connect the formula below to the tree above: total data (<span class="m">[[S|v]]</span>), positive/negative splits (<span class="m">[[+|r]]</span>/<span class="m">[[-|k]]</span>), and gain (<span class="m">[[IG|c]]</span>).</p>
-    <p class="lead">Step through the Information Gain calculation that crowns <b>Outlook</b> as the root split.</p>
+    <p>Matching role colors tie the math directly to the tree: <b data-role="v">dataset S</b>, <b data-role="r">Yes</b>/<b data-role="k">No</b> counts, and <b data-role="c">Information Gain</b>.</p>
+    <p class="lead">Step through the gain calculation that selects <em>Outlook</em> as the root split.</p>
     <div class="viz" id="kd-ig"></div>
   </div>
 
@@ -176,14 +176,14 @@
   <p class="bigidea">Alpha-Beta pruning skips branches that cannot beat a move already in hand, cutting search work without ever changing the optimal answer.</p>
 
   <div class="sec"><h3 data-eb="Pruned Tree">Animating Alpha-Beta cutoffs</h3>
-    <p>MAX nodes (green) pick the highest child score; MIN nodes (amber) pick the lowest. Once MIN sees a score at or below <span class="m">\alpha</span>, remaining siblings are slashed in rose.</p>
-    <p class="lead">Watch the tree evaluate the left branch to set <span class="m">\alpha = 4</span>, then prune the right subtree on sight of <span class="m">2 \le 4</span>.</p>
+    <p><b data-role="r">MAX</b> maximizes score, while <b data-role="c">MIN</b> minimizes it. Once MIN proves <span class="m">\le \alpha</span>, weaker siblings are <b data-role="k">slashed immediately</b>.</p>
+    <p class="lead">Watch the left branch establish <b>α = 4</b>, pruning the doomed right branch on sight of <b>2 ≤ 4</b>.</p>
     <div class="viz" id="tr-ab"></div>
   </div>
 
   <div class="sec"><h3 data-eb="5-Way Compare">Comparing five core search strategies</h3>
-    <p>On laptops, 5-column comparison tables widen cleanly without sideways scrolling; on phones, they neatly pair 2×2 under sticky headers.</p>
-    <p class="lead">Use the column spotlight pills or tap <b>Differences</b> to isolate completeness, optimality, and memory cost.</p>
+    <p>Spotlight <b data-role="v">BFS</b>, <b data-role="c">DFS</b>, <b data-role="f">Dijkstra</b>, <b data-role="r">A*</b>, or <b data-role="k">Alpha-Beta</b> cleanly at a glance—on phones, pairs stack <em>2 × 2</em> under sticky headers.</p>
+    <p class="lead">Click any column pill or press <b>Differences</b> to isolate completeness, optimality, and pruning power.</p>
     <div class="tbl-wrap"><table class="tbl">
       <thead>
         <tr>
@@ -210,23 +210,23 @@
 </article>
 
 <article class="chapter" id="c3-3" data-n="3.3" data-short="DAGs &amp; SDD Trees" data-title="Dependency Trees &amp; Expression DAGs" data-tag="Trees as DAGs">
-  <p class="bigidea">A parse tree shows grammar structure, while overlaid dependency arrows turn that tree into a directed acyclic graph showing the exact order values flow and combine.</p>
+  <p class="bigidea">A parse tree maps <em>grammar syntax</em>, while overlaid arrows turn it into a dependency DAG showing <em>the exact order values compute and flow</em>.</p>
 
   <dl class="terms">
-    <div><b>Synthesized attribute</b> (<code>.s</code> / <code>.val</code>)<span class="d">A value pushed upward from children or a token leaf to its parent, drawn with solid green bottom-up arrows.</span></div>
-    <div><b>Inherited attribute</b> (<code>.i</code>)<span class="d">Context passed from a parent or left sibling into a node before it finishes, drawn with dashed amber arrows so left-associative math stays accurate.</span></div>
-    <div><b>Expression DAG</b><span class="d">A tree folded so repeated subexpressions are computed once and linked by multiple parents, flagged with a double violet halo.</span></div>
+    <div data-role="r"><b>Synthesized attribute</b> (<code>.s</code> / <code>.val</code>)<span class="d">Value pushed <em>bottom-up</em> from children or a token leaf to its parent along solid green arrows.</span></div>
+    <div data-role="c"><b>Inherited attribute</b> (<code>.i</code>)<span class="d">Left or parent context passed <em>before recursion</em> along dashed amber arrows so left-associative ops work cleanly.</span></div>
+    <div data-role="f"><b>Expression DAG</b><span class="d">Repeated subexpressions are merged once behind a <em>double violet halo</em> and shared by multiple parent operators.</span></div>
   </dl>
 
   <div class="sec"><h3 data-eb="SDD Parse Tree">SDD dependency tree: <span class="m">[[7|v]] + ([[8 / 2|g]]) = [[11|r]]</span></h3>
-    <p>Syntax-directed definitions mix structure with execution order. Muting parse skeleton lines lets green synthesized arrows and amber inherited arrows pop clearly from leaf tokens up to <span class="m">[[A.val = 11|r]]</span>.</p>
-    <p class="lead">Step through the evaluation sequence below, or hover any nonterminal to isolate its exact attribute producers and consumers.</p>
+    <p>Muting grammar lines lets <b data-role="r">synthesized flow</b> and <b data-role="c">inherited context</b> pop cleanly from <b data-role="v">token leaves</b> up to <span class="m">[[A.val = 11|r]]</span>.</p>
+    <p class="lead">Use <b>Auto / Zoomed / Overview</b> to inspect each subtree step by step, then pull back to see all 15 dependencies.</p>
     <div class="viz" id="tr-sdd"></div>
   </div>
 
   <div class="sec"><h3 data-eb="Expression DAG">Sharing repeated work with <code>Kit.dag</code></h3>
-    <p>In <span class="m">[[a|v]] + [[a|v]] \cdot ([[b - c|f]]) + ([[b - c|f]]) \cdot [[d|v]]</span>, a naive syntax tree builds <span class="m">(b - c)</span> twice. Folding identical nodes creates a true multi-parent DAG with automatic topological numbering.</p>
-    <p class="lead">Trace how double-halo shared nodes reuse values across branches, and hover any node to highlight its entire upstream and downstream cone.</p>
+    <p>A plain syntax tree computes <span class="m">[[b - c|f]]</span> twice. Folding duplicates builds a multi-parent DAG with automatic <b data-role="r">topological order</b> and <b data-role="f">shared merge halos</b>.</p>
+    <p class="lead">Step through shared reuse—or hover any node to highlight its complete <em>upstream inputs</em> and <em>downstream dependents</em>.</p>
     <div class="viz" id="dag-expr"></div>
   </div>
 

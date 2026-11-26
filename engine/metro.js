@@ -1017,19 +1017,19 @@ function setMathFocus(scope,tok,on){
   scope.classList.add("m-has-focus");
   $$(sel,scope).forEach(e=>e.classList.add("m-focus"));
 }
-const FOCUS_SEL=".m-tok[data-tid],.m-tok[data-role],.m-leg-item[data-role],.k-leg-item[data-role],.k-leg-item[data-feat],.t-chip[data-role],.tbl [data-role],.k-feat[data-role],.k-n[data-role],.k-tn[data-role],[data-part][data-role]";
+const FOCUS_SEL=".m-tok[data-tid],.m-tok[data-role],b[data-role],em[data-role],.m-leg-item[data-role],.k-leg-item[data-role],.k-leg-item[data-feat],.t-chip[data-role],.terms>div[data-role],.tbl [data-role],.k-feat[data-role],.k-n[data-role],.k-tn[data-role],.k-dn[data-role],[data-part][data-role]";
 document.addEventListener("pointerenter",e=>{
   const t=e.target.closest&&e.target.closest(FOCUS_SEL);
-  if(!t)return;const sc=(t.dataset.tid?t.closest(".viz,.eq"):null)||t.closest(".sec")||t.closest(".viz,.eq")||main;if(!sc.dataset.pinRole&&!sc.dataset.pinFeat)setMathFocus(sc,t,true);
+  if(!t)return;const sc=(t.dataset.tid?t.closest(".viz,.eq"):null)||t.closest(".ex-card")||t.closest(".sec")||t.closest(".viz,.eq")||main;if(!sc.dataset.pinRole&&!sc.dataset.pinFeat)setMathFocus(sc,t,true);
 },true);
 document.addEventListener("pointerleave",e=>{
   const t=e.target.closest&&e.target.closest(FOCUS_SEL);
-  if(!t)return;const sc=(t.dataset.tid?t.closest(".viz,.eq"):null)||t.closest(".sec")||t.closest(".viz,.eq")||main;if(!sc.dataset.pinRole&&!sc.dataset.pinFeat)setMathFocus(sc,null,false);
+  if(!t)return;const sc=(t.dataset.tid?t.closest(".viz,.eq"):null)||t.closest(".ex-card")||t.closest(".sec")||t.closest(".viz,.eq")||main;if(!sc.dataset.pinRole&&!sc.dataset.pinFeat)setMathFocus(sc,null,false);
 },true);
 document.addEventListener("click",e=>{
-  const leg=e.target.closest&&e.target.closest(".m-leg-item[data-role],.k-leg-item[data-role],.k-leg-item[data-feat],.t-chip[data-role]");
+  const leg=e.target.closest&&e.target.closest(".m-leg-item[data-role],.k-leg-item[data-role],.k-leg-item[data-feat],.t-chip[data-role],b[data-role]");
   if(!leg)return;
-  const sc=leg.closest(".sec")||leg.closest(".viz,.eq")||main,role=leg.dataset.role||"",feat=leg.dataset.feat||"";
+  const sc=leg.closest(".ex-card")||leg.closest(".sec")||leg.closest(".viz,.eq")||main,role=leg.dataset.role||"",feat=leg.dataset.feat||"";
   const same=(role&&sc.dataset.pinRole===role)||(!role&&feat&&sc.dataset.pinFeat===feat);
   $$(".m-leg-item[aria-pressed],.k-leg-item[aria-pressed]",sc).forEach(b=>b.setAttribute("aria-pressed","false"));
   delete sc.dataset.pinRole;delete sc.dataset.pinFeat;

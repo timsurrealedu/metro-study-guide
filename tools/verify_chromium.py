@@ -17,7 +17,7 @@ LAYOUT_JS = r"""(function(phone) {
   document.querySelectorAll("main *").forEach(e => {
     if (e.closest("svg") && e.tagName !== "svg") return;
     const r = e.getBoundingClientRect();
-    if (!r.width || e.closest("[hidden],.tbl-wrap,.eq")) return;
+    if (!r.width || e.closest("[hidden],.eq") || (e.parentElement && e.parentElement.closest(".tbl-wrap"))) return;
     if (r.right > W + 1 || r.left < -1) {
       bad.push(`wider than screen: <${e.tagName.toLowerCase()} class="${e.getAttribute("class") || ""}"> (${Math.round(r.left)}..${Math.round(r.right)}px vs ${W}px)`);
     }
@@ -227,12 +227,26 @@ def main():
                         shot = cdp.call("Page.captureScreenshot", {"format": "png"})
                         with open(os.path.join(args.shots, "lap_light_explainer.png"), "wb") as f:
                             f.write(base64.b64decode(shot["data"]))
-                    viz_idxs = cdp.eval("(Explainer.screens||[]).map((s,i)=>s.nodes.some(n=>n.matches&&n.matches('.viz')||n.querySelector&&n.querySelector('.viz'))?i:-1).filter(i=>i>=0)") or []
+                    viz_idxs = cdp.eval("(Explainer.screens||[]).map((s,i)=>s.nodes.some(n=>n.matches&&n.matches('.viz,.tbl-wrap')||n.querySelector&&n.querySelector('.viz,.tbl-wrap'))?i:-1).filter(i=>i>=0)") or []
                     for vi in viz_idxs:
                         cdp.eval(f"Explainer.show({vi})")
                         time.sleep(0.25)
                         ex_bad = cdp.eval(r"""(() => {
-                          const bad = [];
+                          const bad = [], iw = window.innerWidth;
+                          const tx = document.querySelector('.ex-card.two .ex-text'), md = document.querySelector('.ex-card.two .ex-media');
+                          if (tx && md) {
+                            const tr = tx.getBoundingClientRect(), mr = md.getBoundingClientRect();
+                            if (tr.right > mr.left + 2 && tr.left < mr.right - 2 && tr.bottom > mr.top + 2 && tr.top < mr.bottom - 2) {
+                              bad.push(`explainer columns overlap (${Math.round(tr.right)} > ${Math.round(mr.left)})`);
+                            }
+                          }
+                          document.querySelectorAll('.ex-media .tbl-wrap, .ex-media .viz').forEach(el => {
+                            const r = el.getBoundingClientRect();
+                            if (!r.width || !r.height) return;
+                            if (r.left < -1 || r.right > iw + 1) {
+                              bad.push(`explainer overflows viewport: <${el.className}> (${Math.round(r.left)}..${Math.round(r.right)} vs ${iw})`);
+                            }
+                          });
                           document.querySelectorAll('.ex-media .kd-viz-pane, .ex-media .viz-stage svg').forEach(el => {
                             const r = el.getBoundingClientRect();
                             if (!r.width || !r.height) return;

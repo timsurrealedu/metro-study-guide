@@ -112,11 +112,12 @@ The full form, for reference (what the shorthands produce):
 
 ```html
 <dl class="terms">
-  <div><b>Activation energy</b><span class="id">energi aktivasi</span><span class="d">The minimum energy a collision needs.</span></div>
-  <div><b>Catalyst</b><span class="d">Speeds a reaction up; not used up.</span></div>
+  <div data-role="c"><b>Activation energy</b><span class="id">energi aktivasi</span><span class="d">The <em>minimum energy</em> a collision needs.</span></div>
+  <div data-role="r"><b>Catalyst</b><span class="d">Speeds a reaction up; not used up.</span></div>
 </dl>
 ```
-A grid of definitions. On phones each term folds: tap the term to read the meaning.
+A grid of definitions (`data-role` adds a semantic top accent stripe on desktop and a left stripe on phones). On phones each term folds: tap the term to read the meaning.
+- **Inline role emphasis in prose**: use `<b data-role="v|c|f|g|r|k|a">term</b>` (colored keyword highlight synced with matching legend pills, equations, and visuals) and `<em data-role="...">intuition</em>` (semantic italic emphasis).
 
 ### Steps
 

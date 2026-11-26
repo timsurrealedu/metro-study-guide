@@ -76,7 +76,7 @@ python3 tools/new.py guides/<semester>/<subject> "<Title>" --lines <n> --id <uni
 - **Be as detailed as possible without walls of text**: Cover 100% of every source—including small remarks, edge cases, exceptions, and background details—by breaking rich explanations into multiple short `<p>` blocks (under ~60 words each), `<ol class="steps">`, or `<details class="more">` fold-outs.
 - **Always define complex terms and give context**: Whenever a technical term, acronym, or jargon word appears:
   1. Explain the idea in plain, simple words *first*, then introduce `<b>exact term</b>` (plus `<span class="id">local term</span>` when helpful).
-  2. Add a clear, plain-English definition in `<dl class="terms">` along with **relevant context** (why it exists, where it fits in the big picture, and when you use it).
+  2. Add a clear, plain-English definition in `<dl class="terms">` (`<div data-role="..."><b>exact term</b><span class="d">…</span></div>`) along with **relevant context**, and highlight key concepts inline with `<b data-role="v|c|f|g|r|k|a">term</b>` + `<em>italic</em>` cues so prose stays scannable and visually linked.
   3. Pair abstract ideas with a concrete, real-world `<div class="callout eg"><b>Example</b><div>...</div></div>` (using everyday objects/situations—never metro analogies).
 - **Show every step of math & logic (`Kit.derive` Standard)**: Across every quantitative subject (Math, AI/ML, Physics, Chemistry, Stats, Cyber), author every `Kit.derive` with:
   1. `legend` + semantic color roles `[[expr|role|tid]]` (`v` var, `c` coef/weight, `f` fn, `g` group/inner, `r` result, `k` cancel, `s` untouched stay).

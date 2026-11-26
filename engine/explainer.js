@@ -168,6 +168,7 @@ function show(i,dir){
    3. shrink a little (never below a readable floor).
    4. otherwise split the screen into parts: Next shows the next part ("More"). */
 function wideNow(){const hasBody=[...txt.children].some(n=>n.tagName!=="H3"&&!n.classList.contains("ex-vpanel"));
+  if(med.querySelector(".cmp-wide"))return false;
   const v=med.querySelector(":scope>.viz");const panel=!!(v&&$(":scope>.player",v));
   return roomy()&&!!med.childNodes.length&&(hasBody||panel)}
 function arrange(wide){
