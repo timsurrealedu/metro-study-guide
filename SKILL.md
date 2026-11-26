@@ -133,4 +133,9 @@ Fix any sideways scrolling, clipped SVG text, small phone tap targets, or JS err
 - Never put metro analogies inside explanations or examples; the metro motif is strictly for navigation and layout.
 - Always tag every `Kit.derive` calculation with semantic color roles (`[[expr|role|tid]]`), `legend`, multi-frame `frames` (never one long static overflow line), `op`, and `how`/`tip` drawers (`check.py` warns if any are omitted).
 - Never put traps or quizzes directly inside stations as standalone blocks; always wrap traps in `<div class="traps">` so `build.py` moves them to the line checkpoint.
+- Always write `<dl class="terms">` with `<div data-role="..."><b>Term</b><span class="d">Definition</span></div>` cards, never bare `<dt>`/`<dd>` tags (`check.py` warns).
+- Use `<code>` for API/code identifiers (`Kit.dag`, CLI flags) and keep `<span class="m">` strictly for mathematical expressions.
+- Never combine `pathLength="1"` with `.flowline` or pixel `stroke-dasharray` (causes blinking/stretched dashes); use `--plen` real pixel lengths (`prepEdgeLengths`) and `markerUnits="userSpaceOnUse"` on all SVG `<marker>` elements so arrowheads stay flush and unscaled.
+- For dense parse-dependency trees (`Kit.tree` with `deps`) and layered DAGs (`Kit.dag`), keep the focus camera enabled (`zoom` defaults on) and end with an `overview: true` step so learners can inspect details zoomed in or switch to `Overview`.
+- Highlight key prose concepts with `<b data-role="v|c|f|g|r|k|a">` and `<em>` so prose stays scannable and cross-highlights with diagrams and tables on both desktop and mobile.
 - Use `references/02-file-structure.md`, `references/04-visual-kits.md`, and `references/05-custom-visuals.md` for exact JSON keys, `Kit.*` signatures, and `V.tween`/`E.stepper` APIs rather than guessing.

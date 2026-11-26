@@ -140,6 +140,13 @@ def main(folder):
     for dl in R.find(lambda n: n.tag == "dl" and "terms" in n.cls):
         if dl.find(lambda x: x.tag in ("dt", "dd")):
             warn(f"line {dl.line}: <dl class=\"terms\"> should contain <div><b>Term</b><span class=\"d\">Definition</span></div> cards, not <dt>/<dd> tags")
+    for tb in R.find(lambda n: n.tag == "table" and bool(n.cls & {"tbl", "cmp"})):
+        if not tb.up(lambda x: bool(x.cls & {"tbl-wrap", "cmp-wrap"})):
+            warn(f"line {tb.line}: <table> should be wrapped in <div class=\"tbl-wrap\"> (or .cmp-wrap) so phones do not scroll sideways")
+    for sp in R.find(lambda n: n.tag == "span" and "m" in n.cls):
+        txt = sp.alltext().strip()
+        if re.search(r"\b(?:Kit|Engine|console|window|document)\.[A-Za-z_]|https?://|`", txt):
+            warn(f"line {sp.line}: <span class=\"m\"> looks like code (\"{txt[:32]}\"); use <code> for code identifiers and <span class=\"m\"> only for math")
     for n in R.find(lambda n: bool(n.cls)):
         if n.up(lambda x: x.tag == "svg") or n.tag == "svg": continue
         for c in n.cls:
@@ -192,6 +199,14 @@ def main(folder):
                     warn(f"visuals.js: Kit.derive(\"{vid}\") has no how or tip explanations")
     for m in re.finditer(r"V\.svg\(\s*[\"'`]([\w-]+)[\"'`]\)", vis):
         if m.group(1) not in all_ids: err(f"visuals.js: V.svg(\"{m.group(1)}\") but there is no element with that id")
+    for m in re.finditer(r"<path\b[^>]*>", vis):
+        tag_s = m.group(0)
+        if re.search(r"\bpathLength\s*=", tag_s) and re.search(r"flowline|stroke-dasharray", tag_s):
+            warn("visuals.js: do not combine pathLength=\"1\" with .flowline or pixel stroke-dasharray (causes blinking/stretched dashes); use real pixel lengths (--plen)")
+    for m in re.finditer(r"<marker\b[^>]*>", vis):
+        tag_s = m.group(0)
+        if not re.search(r"markerUnits\s*=\s*[\"']userSpaceOnUse[\"']", tag_s):
+            warn("visuals.js: custom <marker> should set markerUnits=\"userSpaceOnUse\" so arrowheads never bloat or detach when stroke-width changes")
 
     # quiz
     sets_used = {q.attrs.get("data-set") for q in R.find(lambda n: "quiz" in n.cls)}

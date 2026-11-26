@@ -14,6 +14,9 @@ Real problems met while building Bio Metro and the engine, and their fixes.
 | Checkpoint missing entirely | The line already has a hand-written checkpoint, or `"checkpoints": false` | — |
 | Quiz says "No questions in the set" | `data-set` doesn't match any `see`/`sets` | Fix the id in quiz.json |
 | A trap shows inside the station | It isn't inside `<div class="traps">` | Wrap it; `check.py` warns |
+| `<dl class="terms">` renders colliding columns | Bare `<dt>`/`<dd>` tags were used instead of `<div><b>Term</b><span class="d">…</span></div>` cards | Always use `<div data-role="..."><b>Term</b><span class="d">…</span></div>` (`check.py` warns; CSS also provides a fallback) |
+| `<span class="m">Kit.dag</span>` formats like multiplied variables | Code identifier placed inside `.m` math container | Use `<code>Kit.dag</code>` for code/APIs and reserve `<span class="m">` for math (`check.py` warns) |
+| Wide comparison table overlaps Explainer text | Viewport breakout `translateX(-50%)` applied inside `.ex-media` | Breakout CSS is scoped to `#main`, `wideNow()` returns `false` on `.cmp-wide`, and `.ex-media .cmp-wrap` forces `100%` containment |
 | Explainer screens feel crowded | Long paragraphs after a visual; several callouts in a row | Lead → visual; split text; ≤ 2 callouts in a row |
 | Saved answers look wrong after editing questions | Answers are saved by question id and option position; editing a question's text reshuffles its options; default ids follow the order | Give stable `id`s; if you edit question text after people started, accept that those answers reset (or set `"fixed": true`) |
 
@@ -27,6 +30,9 @@ Real problems met while building Bio Metro and the engine, and their fixes.
 | Phone: sideways scrolling | Something wider than the screen (often a wide table without `.tbl-wrap`, a long word, a `pre`) | `shots.js` report names it; wrap tables in `.tbl-wrap` |
 | Animation keeps running when off screen | A ticker without a visibility check | `E.watch(svg)` and skip when `E.visible.get(svg) === false` |
 | Colours wrong in dark mode | Hard-coded hex in the SVG | Use classes (`f-pc`, `s-line`) or `var(--token)` |
+| Dashed edges blink violently or look solid | `pathLength="1"` combined with pixel `stroke-dasharray` or `.flowline` | Never pair `pathLength="1"` with `.flowline` or pixel dashes; use `prepEdgeLengths` (`--plen`) + `.k-inh-flow` (`check.py` & `verify_chromium.py` check) |
+| Arrowheads bloat or sit detached from nodes | Default `markerUnits="strokeWidth"` scaled the marker with stroke width | Set `markerUnits="userSpaceOnUse"` on all SVG `<marker>` elements and route endpoints flush (`refX="8.5"`, ±1.5 px gap) |
+| Edge pill overlaps a node box or order badge | Fixed midpoint placement collided with nearby boxes | Route tight siblings via vertical/corridor channels and place pills with `placeClearPill` (`verify_chromium.py` checks across all steps) |
 | Kit text small inside the explainer | — | Kits read the on-screen width, so explainer zoom doesn't shrink them; the card scrolls instead |
 | Derive line shows `\frac` literally | Single backslash in a JS string | Write `"\\frac{1}{2}"` |
 

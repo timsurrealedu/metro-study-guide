@@ -53,6 +53,21 @@ LAYOUT_JS = r"""(function(phone) {
       }
     });
   });
+  document.querySelectorAll("dl.terms").forEach(dl => {
+    if (dl.querySelector(":scope > dt, :scope > dd")) {
+      bad.push("dl.terms uses bare <dt>/<dd> instead of <div> cards");
+    }
+    const cards = [...dl.querySelectorAll(":scope > div")].map(d => d.getBoundingClientRect()).filter(r => r.width && r.height);
+    for (let i = 0; i < cards.length; i++) {
+      for (let j = i + 1; j < cards.length; j++) {
+        const a = cards[i], b = cards[j];
+        if (a.left + 2 < b.right && a.right - 2 > b.left && a.top + 2 < b.bottom && a.bottom - 2 > b.top) {
+          bad.push("dl.terms cards overlap");
+          i = cards.length; break;
+        }
+      }
+    }
+  });
   if (phone) {
     document.querySelectorAll("main button, main a.btn, main .opt").forEach(e => {
       const r = e.getBoundingClientRect();
@@ -67,13 +82,110 @@ LAYOUT_JS = r"""(function(phone) {
   return [...new Set(bad)].slice(0, 30);
 })"""
 
+STEPPED_VIZ_JS = r"""(async function() {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const vis = el => {
+    if (!el || el.closest(".hide,[hidden],[style*='display: none'],defs")) return false;
+    const cs = getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden" || parseFloat(cs.opacity) <= 0.2) return false;
+    const g = el.closest("g");
+    if (g && parseFloat(getComputedStyle(g).opacity) <= 0.2) return false;
+    return true;
+  };
+  const bad = [];
+  for (const viz of document.querySelectorAll(".viz")) {
+    const svg = viz.querySelector(".viz-stage > svg");
+    if (!svg) continue;
+    const id = viz.id || "?";
+    svg.querySelectorAll("marker").forEach(m => {
+      if (m.getAttribute("markerUnits") !== "userSpaceOnUse") {
+        bad.push(`marker without userSpaceOnUse in #${id}: #${m.id || "?"}`);
+      }
+    });
+    const resetBtn = viz.querySelector('.player [data-a="reset"]');
+    const nextBtn = viz.querySelector('.player [data-a="next"]');
+    if (resetBtn && !resetBtn.disabled) { resetBtn.click(); await sleep(40); }
+    const auditStep = label => {
+      const f = svg.getBoundingClientRect();
+      if (!f.width || !f.height) return;
+      svg.querySelectorAll("[pathLength]").forEach(el => {
+        if (!vis(el)) return;
+        const da = getComputedStyle(el).strokeDasharray;
+        if (da && da !== "none" && (el.matches(".flowline,.k-inh-flow") || da.split(/[,\s]+/).filter(Boolean).length > 1)) {
+          bad.push(`blinking dash hazard (pathLength + dasharray) in #${id} ${label}`);
+        }
+      });
+      const rects = [...svg.querySelectorAll("rect")]
+        .filter(b => vis(b) && !b.matches(".k-box,.k-riem,.k-bar,.k-zone,.k-dag-shared"))
+        .map(b => b.getBoundingClientRect()).filter(r => r.width > 12 && r.height > 12);
+      svg.querySelectorAll("text").forEach(t => {
+        if (!vis(t)) return;
+        const r = t.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        if (svg.dataset.camZoom === "1") {
+          if (r.right <= f.left || r.left >= f.right || r.bottom <= f.top || r.top >= f.bottom) return;
+          if (!t.closest(".on,.k-ord") && (r.left < f.left - 2 || r.right > f.right + 2 || r.top < f.top - 1 || r.bottom > f.bottom + 1)) return;
+        }
+        if (r.left < f.left - 2 || r.right > f.right + 2 || r.top < f.top - 1 || r.bottom > f.bottom + 1) {
+          bad.push(`stepped text sticks out of #${id} ${label}: "${t.textContent.trim().slice(0, 32)}"`);
+        }
+        const cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+        for (const rr of rects) {
+          if (cx >= rr.left && cx <= rr.right && cy >= rr.top && cy <= rr.bottom) {
+            if (r.left < rr.left + 3 || r.right > rr.right - 3 || r.top < rr.top + 2 || r.bottom > rr.bottom - 2) {
+              bad.push(`stepped text tight/overflows box in #${id} ${label}: "${t.textContent.trim().slice(0, 32)}"`);
+            }
+            break;
+          }
+        }
+      });
+      const pills = [...svg.querySelectorAll(".k-dep-pill rect, .k-dag-pill rect, .k-edge-pill rect, rect.k-epill")]
+        .filter(p => !p.closest(".k-tag") && vis(p))
+        .map(p => ({ el: p, r: p.getBoundingClientRect(), txt: (p.parentElement?.textContent || "").trim().slice(0, 24) }))
+        .filter(p => p.r.width > 4 && p.r.height > 4);
+      const targets = [...svg.querySelectorAll(".k-node, .k-ord circle")]
+        .filter(n => vis(n))
+        .map(n => ({ el: n, host: n.closest(".k-n,.k-tn,.k-dn"), r: n.getBoundingClientRect() }))
+        .filter(n => n.r.width > 4 && n.r.height > 4);
+      for (const p of pills) {
+        for (const t of targets) {
+          if (t.host && p.el.closest(".k-n,.k-tn,.k-dn") === t.host) continue;
+          if (p.r.left + 2 < t.r.right && p.r.right - 2 > t.r.left && p.r.top + 2 < t.r.bottom && p.r.bottom - 2 > t.r.top) {
+            bad.push(`pill overlaps node/badge in #${id} ${label}: "${p.txt}"`);
+            break;
+          }
+        }
+      }
+    };
+    auditStep("step 0");
+    let step = 0;
+    while (nextBtn && !nextBtn.disabled && step < 25) {
+      nextBtn.click();
+      await sleep(80);
+      step++;
+      auditStep("step " + step);
+    }
+    const allBtn = viz.querySelector('.k-cam-btn[data-cam="all"]');
+    const autoBtn = viz.querySelector('.k-cam-btn[data-cam="auto"]');
+    if (allBtn) {
+      allBtn.click();
+      await sleep(100);
+      if (svg.dataset.camZoom === "1") bad.push(`camera Overview failed to zoom out in #${id}`);
+      auditStep("overview");
+      if (autoBtn) { autoBtn.click(); await sleep(40); }
+    }
+    if (resetBtn && !resetBtn.disabled) { resetBtn.click(); await sleep(40); }
+  }
+  return [...new Set(bad)].slice(0, 30);
+})()"""
+
 class CDPClient:
     def __init__(self, ws_url):
         assert ws_url.startswith("ws://")
         rest = ws_url[5:]
         host_port, path = rest.split("/", 1)
         host, port = host_port.split(":")
-        self.sock = socket.create_connection((host, int(port)), timeout=15)
+        self.sock = socket.create_connection((host, int(port)), timeout=30)
         key = base64.b64encode(os.urandom(16)).decode()
         req = (
             f"GET /{path} HTTP/1.1\r\n"
@@ -157,10 +269,16 @@ class CDPClient:
     def close(self):
         self.sock.close()
 
+def free_port():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("html")
     ap.add_argument("--shots", default="")
+    ap.add_argument("--port", type=int, default=0)
     args = ap.parse_args()
     html_path = os.path.abspath(args.html)
     if not os.path.exists(html_path):
@@ -169,9 +287,9 @@ def main():
     if args.shots:
         os.makedirs(args.shots, exist_ok=True)
 
-    port = 9231
+    port = args.port or free_port()
     proc = subprocess.Popen(
-        ["chromium", "--headless", "--no-sandbox", "--disable-gpu", f"--remote-debugging-port={port}", "about:blank"],
+        ["chromium", "--headless=new", "--no-sandbox", "--disable-gpu", f"--remote-debugging-port={port}", "about:blank"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
     )
     try:
@@ -179,8 +297,9 @@ def main():
         for _ in range(30):
             try:
                 pages = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/json").read().decode())
-                if pages:
-                    ws_url = pages[0]["webSocketDebuggerUrl"]
+                page = next((p for p in pages if p.get("type") == "page" and not p.get("url", "").startswith("chrome-extension://")), None)
+                if page:
+                    ws_url = page["webSocketDebuggerUrl"]
                     break
             except Exception:
                 time.sleep(0.2)
@@ -214,6 +333,11 @@ def main():
                 for it in issues:
                     problems.append(f"{tag} {it}")
 
+                if (sz, theme) in (("lap", "dark"), ("ph", "light")):
+                    step_bad = cdp.eval(STEPPED_VIZ_JS) or []
+                    for it in step_bad:
+                        problems.append(f"{tag} {it}")
+
                 if args.shots and (sz, theme) in (("lap", "light"), ("ph", "light"), ("ph", "dark")):
                     shot = cdp.call("Page.captureScreenshot", {"format": "png"})
                     with open(os.path.join(args.shots, f"{sz}_{theme}_scroll.png"), "wb") as f:
@@ -240,18 +364,19 @@ def main():
                               bad.push(`explainer columns overlap (${Math.round(tr.right)} > ${Math.round(mr.left)})`);
                             }
                           }
-                          document.querySelectorAll('.ex-media .tbl-wrap, .ex-media .viz').forEach(el => {
+                          document.querySelectorAll('.ex-media .tbl-wrap, .ex-media .cmp-wrap, .ex-media .terms, .ex-media .viz').forEach(el => {
                             const r = el.getBoundingClientRect();
                             if (!r.width || !r.height) return;
                             if (r.left < -1 || r.right > iw + 1) {
                               bad.push(`explainer overflows viewport: <${el.className}> (${Math.round(r.left)}..${Math.round(r.right)} vs ${iw})`);
                             }
                           });
-                          document.querySelectorAll('.ex-media .kd-viz-pane, .ex-media .viz-stage svg').forEach(el => {
+                          document.querySelectorAll('.ex-media .kd-viz-pane, .ex-media .viz-stage > svg').forEach(el => {
                             const r = el.getBoundingClientRect();
                             if (!r.width || !r.height) return;
                             const vid = el.closest('.viz')?.id || '?';
                             for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+                              if (p.classList.contains('paged')) continue;
                               const ov = getComputedStyle(p).overflowY;
                               if (ov === 'hidden' || ov === 'auto' || ov === 'scroll') {
                                 const pr = p.getBoundingClientRect();

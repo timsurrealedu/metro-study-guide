@@ -27,7 +27,7 @@ V.put=(svg,html)=>svg.insertAdjacentHTML("beforeend",html);
 V.clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 V.lerp=(a,b,t)=>a+(b-a)*t;
 V.sm=(a,b,t)=>{const x=V.clamp((t-a)/(b-a),0,1);return x*x*(3-2*x)};
-V.arrow=(id,cls="f-arrow")=>`<defs><marker id="${id}" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="${cls}"/></marker></defs>`;
+V.arrow=(id,cls="f-arrow")=>`<defs><marker id="${id}" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M0,1 L9.5,5 L0,9 z" class="${cls}"/></marker></defs>`;
 V.show=(el,on)=>{if(!el)return;(el.length!=null?[...el]:[el]).forEach(e=>e.classList.toggle("hide",!on))};
 V.dim=(el,on)=>{if(!el)return;(el.length!=null?[...el]:[el]).forEach(e=>e.classList.toggle("dim",!!on))};
 V.lbl=(x,y,t,cls="",anchor="middle")=>`<text x="${x}" y="${y}" text-anchor="${anchor}" class="${cls}">${t}</text>`;
@@ -205,7 +205,7 @@ function responsive(S,layout,box){
   new ResizeObserver(run).observe(box||S.stage);
   const w=width();layout(last=w||640);
 }
-const markers=(u,col="")=>`<defs><marker id="${u}-on" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head on"${col?` style="fill:${col}"`:""}/></marker><marker id="${u}-off" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head"/></marker></defs>`;
+const markers=(u,col="")=>`<defs><marker id="${u}-on" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="9.5" markerHeight="9.5" orient="auto-start-reverse"><path d="M0,1 L9.5,5 L0,9 z" class="k-head on"${col?` style="fill:${col}"`:""}/></marker><marker id="${u}-off" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="9.5" markerHeight="9.5" orient="auto-start-reverse"><path d="M0,1 L9.5,5 L0,9 z" class="k-head"/></marker></defs>`;
 const edgeMarkers=(u,roles=[])=>`<defs>`+
   `<marker id="${u}-on" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,1 L9.5,5 L0,9 z" class="k-head on"/></marker>`+
   `<marker id="${u}-off" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0,1 L9.5,5 L0,9 z" class="k-head"/></marker>`+
@@ -310,13 +310,14 @@ Kit.flow=(id,o)=>{
     const sameRowSkip=edges.some(([a,b])=>P[a]&&P[b]&&P[a].r===P[b].r&&Math.abs(P[a].c-P[b].c)>1&&P[a].r===rows-1);
     const H=y-vg+(sameRowSkip?42:12);svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
     const edgeCols=[...new Set(edges.map(e=>roleKey(e[3])).filter(Boolean))];
-    let s=markers(S.uid)+edgeCols.map(rk=>`<defs><marker id="${S.uid}-on-${rk}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head on" style="fill:var(--m-${rk})"/></marker></defs>`).join("");
+    let s=edgeMarkers(S.uid,edgeCols);
+    const flowBoxes=P.map(p=>p?({x1:p.x-2,y1:p.y-2,x2:p.x+p.w+2,y2:p.y+p.h+2}):null).filter(Boolean),flowPlaced=[];
     let edgePills="";
     edges.forEach(([a,b,lab,er],k)=>{const A=P[a],B=P[b];if(!A||!B)return;let d,mx,my;
-      const down=B.r>A.r,ax=A.x+A.w/2,bx=B.x+B.w/2,ay=down?A.y+A.h:A.y,by=down?B.y-4:B.y+B.h+4;
-      if(A.r===B.r&&B.c===A.c+1){d=`M${A.x+A.w},${A.y+A.h/2} H${B.x-4}`;mx=(A.x+A.w+B.x)/2;my=A.y+A.h/2}
-      else if(A.r===B.r&&B.c===A.c-1){d=`M${A.x},${A.y+A.h/2} H${B.x+B.w+4}`;mx=(A.x+B.x+B.w)/2;my=A.y+A.h/2}
-      else if(A.r===B.r){const ym=A.y+A.h+vg/2;d=`M${ax},${A.y+A.h} V${ym} H${bx} V${B.y+B.h+4}`;mx=(ax+bx)/2;my=ym}
+      const down=B.r>A.r,ax=A.x+A.w/2,bx=B.x+B.w/2,ay=down?A.y+A.h:A.y,by=down?B.y-1.5:B.y+B.h+1.5;
+      if(A.r===B.r&&B.c===A.c+1){d=`M${A.x+A.w},${A.y+A.h/2} H${B.x-1.5}`;mx=(A.x+A.w+B.x)/2;my=A.y+A.h/2}
+      else if(A.r===B.r&&B.c===A.c-1){d=`M${A.x},${A.y+A.h/2} H${B.x+B.w+1.5}`;mx=(A.x+B.x+B.w)/2;my=A.y+A.h/2}
+      else if(A.r===B.r){const ym=A.y+A.h+vg/2;d=`M${ax},${A.y+A.h} V${ym} H${bx} V${B.y+B.h+1.5}`;mx=(ax+bx)/2;my=ym}
       else if(Math.abs(B.r-A.r)===1){
         if(Math.abs(ax-bx)<1){d=`M${ax},${ay} V${by}`;mx=ax;my=(ay+by)/2}
         else{const ym=down?A.y+A.h+vg/2:A.y-vg/2;d=`M${ax},${ay} V${ym} H${bx} V${by}`;mx=(ax+bx)/2;my=ym}
@@ -326,7 +327,7 @@ Kit.flow=(id,o)=>{
       }
       const erk=roleKey(er);
       s+=`<path class="k-edge" data-e="${k}"${erk?` data-er="${erk}" style="--rc:var(--m-${erk})"`:""} d="${d}"/>`;
-      if(lab)edgePills+=pillSvg(mx,my,lab,{W,H,fs:11.5,cls:"k-epill",tcls:"k-epill-t",role:erk,minW:30});
+      if(lab){const pl=placeClearPill(mx,my,lab,flowBoxes,flowPlaced,W,H,11.5,30);edgePills+=pillSvg(pl.x,pl.y,lab,{W,H,fs:11.5,cls:"k-epill",tcls:"k-epill-t",role:erk,minW:30})}
     });
     N.forEach((nd,i)=>{const p=P[i],w=wr[i],rk=roleKey(nd.role),rc=nd.color||(rk?`var(--m-${rk})`:"var(--pc)");
       const rx=nd.kind==="start"||nd.kind==="end"?20:14,kOff=nd.kind?15:0;
@@ -391,8 +392,8 @@ Kit.cycle=(id,o)=>{
       P=N.map((nd,i)=>{const w=fit(nd.t,bw-26,14.5),sb=nd.sub?fit(nd.sub,bw-26,12.5):[];const hh=14+w.length*18+(sb.length?sb.length*16+4:0)+10;const p={x:x0,y,w,sb,hh};y+=hh+32;return p});
       const H=y-18;svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
       for(let i=0;i<n;i++){const A=P[i],B=P[(i+1)%n],rc=roleCol(N[i].role,"var(--pc)");
-        if(i<n-1){s+=`<path class="k-edge" data-e="${i}" style="--rc:${rc}" d="M${A.x+bw/2},${A.y+A.hh} V${B.y-4}"/>`;if(o.edges&&o.edges[i])s+=pillSvg(A.x+bw/2,A.y+A.hh+14,o.edges[i],{W,H,fs:11,cls:"k-epill",tcls:"k-epill-t",role:N[i].role,minW:28})}
-        else s+=`<path class="k-edge" data-e="${i}" style="--rc:${rc}" d="M${A.x+bw},${A.y+A.hh/2} H${W-14} Q${W-4},${A.y+A.hh/2} ${W-4},${A.y+A.hh/2-10} V${B.y+B.hh/2+10} Q${W-4},${B.y+B.hh/2} ${W-14},${B.y+B.hh/2} H${A.x+bw+4}"/>`}
+        if(i<n-1){s+=`<path class="k-edge" data-e="${i}" style="--rc:${rc}" d="M${A.x+bw/2},${A.y+A.hh} V${B.y-1.5}"/>`;if(o.edges&&o.edges[i])s+=pillSvg(A.x+bw/2,A.y+A.hh+14,o.edges[i],{W,H,fs:11,cls:"k-epill",tcls:"k-epill-t",role:N[i].role,minW:28})}
+        else s+=`<path class="k-edge" data-e="${i}" style="--rc:${rc}" d="M${A.x+bw},${A.y+A.hh/2} H${W-14} Q${W-4},${A.y+A.hh/2} ${W-4},${A.y+A.hh/2-10} V${B.y+B.hh/2+10} Q${W-4},${B.y+B.hh/2} ${W-14},${B.y+B.hh/2} H${A.x+bw+1.5}"/>`}
       P.forEach((p,i)=>{const nd=N[i],rk=roleKey(nd.role),rc=nd.color||(rk?`var(--m-${rk})`:"var(--pc)");
         s+=`<g class="k-n clickable" data-i="${i}" tabindex="0" role="button" aria-label="${escAttr(nd.t)}"${rk?` data-role="${rk}"`:""}${nd.use?` data-use="${escAttr(nd.use)}" data-uname="${escAttr(nd.t)}"`:""} style="--rc:${rc}"><rect class="k-node" x="${p.x}" y="${p.y}" width="${bw}" height="${p.hh}" rx="14"/><rect class="k-accent" x="${p.x}" y="${p.y+6}" width="4.5" height="${p.hh-12}" rx="2"/>${tlines(p.x+14,p.y+26,p.w,"k-t",18)}${p.sb.length?tlines(p.x+14,p.y+26+p.w.length*18+2,p.sb,"k-s",16):""}</g>`});
     }
@@ -515,8 +516,8 @@ function mountGraph(svg,S,o,pane){
     const vecs=arr(ex.vectors);
     let s=`<defs><clipPath id="${S.uid}-c"><rect x="${L}" y="${T-4}" width="${W-L-R}" height="${H-T-B+8}"/></clipPath>`
       +`<pattern id="${S.uid}-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="currentColor" stroke-width="2" stroke-opacity=".35"/></pattern>`
-      +`<marker id="${S.uid}-vec" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="k-head on"/></marker>`
-      +vecs.map((vc,j)=>{const c=vc.color||roleCol(vc.role,j?PAL(j):"var(--c2)");return `<marker id="${S.uid}-vec-${j}" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:${c}"/></marker>`}).join("")
+      +`<marker id="${S.uid}-vec" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M0,1 L9.5,5 L0,9 z" class="k-head on"/></marker>`
+      +vecs.map((vc,j)=>{const c=vc.color||roleCol(vc.role,j?PAL(j):"var(--c2)");return `<marker id="${S.uid}-vec-${j}" viewBox="0 0 10 10" refX="8.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M0,1 L9.5,5 L0,9 z" style="fill:${c}"/></marker>`}).join("")
       +`</defs>`;
     const gx=X.step||nice(X.max-X.min,W<500?5:8),gy=Y.step||nice(Y.max-Y.min,6);
     for(let v=Math.ceil(X.min/gx)*gx;v<=X.max+1e-9;v+=gx)s+=`<line class="k-grid" x1="${sx(v)}" y1="${T}" x2="${sx(v)}" y2="${H-B}"/><text class="k-s" x="${sx(v)}" y="${H-B+18}" text-anchor="middle">${num(v)}</text>`;

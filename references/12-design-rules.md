@@ -35,8 +35,10 @@ are about how content is written. `check.py` enforces the ones it can.
 | **Every visual has Play and Next** (play through, or one step at a time) | Built in (the player) |
 | **Structure sections get visuals too** (parts of a seed, of a cell, of a text) | `Kit.diagram`, `Kit.annotate` |
 | Visuals fit phone screens: **no sideways scrolling** | Kits redraw; custom SVGs scale; `shots.js` and `verify_chromium.py` check |
-| **Strict SVG hygiene** | Keep all SVG text ≥ 3 px inside any enclosing pill/box and inside `viewBox` on all 4 sides; never let strokes/beams pierce labels (use opaque surfaces above connector stems) |
-| **Uncropped Explainer visuals** | Synced `.kd-viz-pane` visuals never scroll or fade-clip inside Explainer mode; only `.kd-steps-pane` scrolls when needed |
+| **Strict SVG hygiene** | Keep all SVG text ≥ 3 px inside any enclosing pill/box and inside `viewBox` on all 4 sides; never let strokes/beams pierce labels (use opaque surfaces above connector stems or `placeClearPill` for edge badges) |
+| **Uniform markers & crisp motion** | Always set `markerUnits="userSpaceOnUse"` with flush endpoints on `<marker>` arrowheads; never pair `pathLength="1"` with `.flowline` or pixel `stroke-dasharray` (use real `--plen` lengths instead) |
+| **Focus camera on dense trees/DAGs** | Dense parse-dependency trees (`Kit.tree` with `deps`) and `Kit.dag` default `zoom: true` (`Auto` / `Zoomed` / `Overview`) and end with `overview: true` so details stay readable before zooming out |
+| **Uncropped Explainer visuals** | Synced `.kd-viz-pane` visuals never scroll or fade-clip inside Explainer mode; only `.kd-steps-pane` scrolls when needed, and `.cmp-wide` stacks cleanly inside `.ex-media` without overflowing over `.ex-text` |
 | An Animations switch turns all motion off; reduced-motion devices start with it off | Built in |
 
 ## Content
@@ -45,7 +47,8 @@ are about how content is written. `check.py` enforces the ones it can.
 |---|---|
 | **Exhaustive source coverage** | Include every topic, sub-point, edge case, and detail from all NotebookLM / course sources—never skip "minor" parts |
 | **Kindergarten-teacher clarity** | Explain every idea in very basic, everyday words with short sentences; break detailed explanations into short paragraphs (`≤ ~60 words`), steps, and `<details class="more">` |
-| **Define every complex term + context** | Plain-English idea first, then `<b>term</b>` + `<span class="id">istilah</span>`, with a `<dl class="terms">` definition and *why/when* context |
+| **Define every complex term + context** | Plain-English idea first, then `<b>term</b>` + `<span class="id">istilah</span>`, inside `<dl class="terms"><div data-role="..."><b>term</b><span class="d">definition &amp; context</span></div></dl>` (never bare `<dt>`/`<dd>`) |
+| **Color-coded scannable prose** | Highlight key roles inline with `<b data-role="v|c|f|g|r|k|a">` and `<em>`; reserve `<span class="m">` strictly for math and use `<code>` for API/code identifiers |
 | **No text walls** (especially on phones) | Paragraphs ≤ ~60 words; terms/steps/cards fold on phones; `check.py` warns over 90 |
 | **Comparisons are tables** | Comparison table (empty first header cell) |
 | **Lead before every visual, table, list, or drill** | `p.lead`; `check.py` warns |
