@@ -137,6 +137,9 @@ def main(folder):
     for tr in R.find(lambda n: "callout" in n.cls and "trap" in n.cls):
         if not tr.up(lambda n: "checkpoint" in n.cls or "cp-body" in n.cls):
             warn(f"line {tr.line}: a trap callout outside the checkpoint. Put traps in <div class=\"traps\"> at the end of the station")
+    for dl in R.find(lambda n: n.tag == "dl" and "terms" in n.cls):
+        if dl.find(lambda x: x.tag in ("dt", "dd")):
+            warn(f"line {dl.line}: <dl class=\"terms\"> should contain <div><b>Term</b><span class=\"d\">Definition</span></div> cards, not <dt>/<dd> tags")
     for n in R.find(lambda n: bool(n.cls)):
         if n.up(lambda x: x.tag == "svg") or n.tag == "svg": continue
         for c in n.cls:

@@ -349,10 +349,11 @@ Kit.tree("k-id3", {
 | `attrs` | Optional array `[{ k, v?, pending?, role?, use?, at? }]` of live node attributes (e.g. `.val`, `.i`, `.s`) shown as stacked color-coded rows inside `compact` nodes. |
 | `deps` | Optional dependency DAG overlay `[{ id?, from, to, kind?: "syn"|"inh"|"merge", role?, label?, use?, curve? }]` supporting `"nodeId.attrKey"` endpoints, curved Bezier arrows, active-only pills, and quiet parse-tree skeleton lines. |
 | `compact` | Auto-enabled when `deps` is present or tree > 9 nodes; uses proportional leaf widths and compact nonterminal/terminal boxes. |
+| `zoom` | Auto-enabled on dense/dependency trees; adds **Auto / Zoomed / Overview** controls that zoom onto each active step and pull back on the final step (or `steps[].overview: true`). |
 | `orientation` | `"auto"` (top-down wide, indented narrow with right-gutter `deps` on phones), `"top"`, or `"left"`. |
 | `showPath` | Highlights the active node's path from root (`true` by default when `deps` is omitted). |
 | `steps[].reveal` | Node IDs (plus ancestors) revealed so far, or `"all"`. |
-| `steps[].on`, `visit`, `prune`, `deps`, `doneDeps`, `order`, `attrs` | Active/visited/pruned subtrees plus active/done dependency arrows, evaluation order watermark, and revealed attributes. |
+| `steps[].on`, `visit`, `prune`, `deps`, `doneDeps`, `order`, `attrs`, `overview` | Active/visited/pruned subtrees plus active/done dependency arrows, evaluation order watermark, revealed attributes, and full-view zoom-out trigger. |
 
 ## Kit.dag — directed acyclic graphs (Sugiyama layered DAG)
 
@@ -376,8 +377,8 @@ Kit.dag("k-expr-dag", {
 |---|---|
 | `nodes` | `[{ id, t, sub?, tag?, role?, layer?, order?, shared?, use? }]`. Nodes with > 1 parent (or `shared: true`) render with a double-halo `.k-dag-shared` ring. |
 | `edges` | `[{ id?, from, to, label?, role?, kind?, use? }]`. Uses longest-path topological ranking, 2-pass barycenter crossing reduction, and side-channel skip-layer routing. |
-| `rankDir`, `edgeLabels`, `showOrder` | Optional `"TB"` (default) / `"BT"` direction, `"all"` edge pills (default active-only), and topological `.k-ord` numbering (`true` by default). |
-| `steps` | Optional `{ t, d, on, visit, edges, reveal }`; defaults to wave-by-wave Kahn topological evaluation. |
+| `rankDir`, `edgeLabels`, `showOrder`, `zoom` | Optional `"TB"` (default) / `"BT"` direction, `"all"` edge pills (default active-only), topological `.k-ord` numbering (`true`), and camera **Auto / Zoomed / Overview** controls (`true` for ≥ 7 nodes or ≥ 4 layers). |
+| `steps` | Optional `{ t, d, on, visit, edges, reveal, overview }`; defaults to wave-by-wave Kahn topological evaluation. |
 
 ---
 

@@ -597,7 +597,8 @@ Kit.tree("tr-sdd", {
     { t: "2. Pass inherited 7 across B → C", d: "E → ε reflects i = 7 to B.val = 7, which seeds C.i = 7 along the dashed amber arrow.", on: ["E0", "B0", "C0"], deps: ["d2", "d3", "d4"], doneDeps: ["d1"], order: 2 },
     { t: "3. Divide inside parenthesis: 8 / 2 = 4", d: "Inner E carries dividend 8 rightward, divides by D.val = 2 to get E₁.i = 4, and sends 4 back up.", on: ["D2", "E1", "D3", "E2", "B2"], deps: ["d5", "d6", "d7"], doneDeps: ["d1", "d2", "d3", "d4"], order: 3 },
     { t: "4. Unwrap (8 / 2) = 4 to right addend B", d: "Synthesized result 4 propagates from C → A → D → E → B, completing the right operand.", on: ["C1", "A1", "D1", "E3", "B1"], deps: ["d8", "d9", "d10", "d11", "d12"], doneDeps: ["d1", "d2", "d3", "d4", "d5", "d6", "d7"], order: 4 },
-    { t: "5. Sum 7 + 4 = 11 up to root A", d: "Tail C₂ merges inherited 7 with B.val = 4 to get 11, then synthesizes 11 up to A.val.", on: ["C2", "C0", "A0"], deps: ["d13", "d14", "d15"], doneDeps: ["d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d10", "d11", "d12"], order: 5 }
+    { t: "5. Sum 7 + 4 = 11 up to root A", d: "Tail C₂ merges inherited 7 with B.val = 4 to get 11, then synthesizes 11 up to A.val.", on: ["C2", "C0", "A0"], deps: ["d13", "d14", "d15"], doneDeps: ["d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d10", "d11", "d12"], order: 5 },
+    { t: "6. Complete annotated parse tree: 7 + (8 / 2) = 11", d: "Zoomed out to show all 15 inherited (amber) and synthesized (green) edges linking every leaf to A.val = 11.", overview: true, on: ["A0"], doneDeps: ["d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d10", "d11", "d12", "d13", "d14", "d15"], order: 5 }
   ]
 });
 
@@ -630,6 +631,7 @@ Kit.dag("dag-expr", {
     { t: "1. Start at root sum +", d: "Top operator divides the expression into two main sub-terms anchored at addT.", on: ["addT"], reveal: ["addT", "addL", "mul2"], edges: ["e1", "e2"] },
     { t: "2. Expand left branch with skip-edge to a", d: "Left + points straight to input a and product mul1.", on: ["addL", "mul1"], reveal: ["addT", "addL", "mul2", "mul1", "a"], visit: ["addT"], edges: ["e3", "e4", "e5"] },
     { t: "3. Converge on double-halo shared (b - c)", d: "Both mul1 and mul2 point to the single shared minus node instead of cloning a subtree.", on: ["sub"], reveal: ["addT", "addL", "mul2", "mul1", "a", "sub"], visit: ["addT", "addL", "mul1"], edges: ["e6", "e7"] },
-    { t: "4. Anchor shared leaves a, b, c, d", d: "All variable leaves resolve cleanly with zero duplicate subtrees anywhere in memory.", on: ["a", "b", "c", "d"], reveal: "all", visit: ["addT", "addL", "mul1", "mul2", "sub"], edges: ["e8", "e9", "e10"] }
+    { t: "4. Anchor shared leaves a, b, c, d", d: "All variable leaves resolve cleanly with zero duplicate subtrees anywhere in memory.", on: ["a", "b", "c", "d"], reveal: "all", visit: ["addT", "addL", "mul1", "mul2", "sub"], edges: ["e8", "e9", "e10"] },
+    { t: "5. Complete expression DAG overview", d: "Zoomed out to view the entire 9-node DAG, skip-layer corridor edge to a, and shared double halos.", overview: true, reveal: "all", on: ["addT", "sub", "a"], visit: ["addL", "mul1", "mul2", "b", "c", "d"], edges: ["e1", "e2", "e3", "e6", "e7"] }
   ]
 });

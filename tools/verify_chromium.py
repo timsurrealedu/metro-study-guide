@@ -30,6 +30,7 @@ LAYOUT_JS = r"""(function(phone) {
       if (t.closest(".hide,[style*='display: none'],defs")) return;
       const r = t.getBoundingClientRect();
       if (!r.width || !r.height) return;
+      if (svg.dataset.camZoom === "1" && (r.right <= f.left || r.left >= f.right || r.bottom <= f.top || r.top >= f.bottom)) return;
       if (r.left < f.left - 2 || r.right > f.right + 2 || r.top < f.top - 1 || r.bottom > f.bottom + 1) {
         bad.push(`text sticks out of #${id}: "${t.textContent.trim().slice(0, 40)}"`);
       }

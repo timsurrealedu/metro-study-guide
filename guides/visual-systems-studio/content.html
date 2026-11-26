@@ -213,12 +213,9 @@
   <p class="bigidea">A parse tree shows grammar structure, while overlaid dependency arrows turn that tree into a directed acyclic graph showing the exact order values flow and combine.</p>
 
   <dl class="terms">
-    <dt><b>Synthesized attribute</b> (<code>.s</code> / <code>.val</code>)</dt>
-    <dd>A value pushed upward from children or a token leaf to its parent, drawn with solid green bottom-up arrows.</dd>
-    <dt><b>Inherited attribute</b> (<code>.i</code>)</dt>
-    <dd>Context passed from a parent or left sibling into a node before it finishes, drawn with dashed amber arrows so left-associative math stays accurate.</dd>
-    <dt><b>Expression DAG</b></dt>
-    <dd>A tree folded so repeated subexpressions are computed once and linked by multiple parents, flagged with a double violet halo.</dd>
+    <div><b>Synthesized attribute</b> (<code>.s</code> / <code>.val</code>)<span class="d">A value pushed upward from children or a token leaf to its parent, drawn with solid green bottom-up arrows.</span></div>
+    <div><b>Inherited attribute</b> (<code>.i</code>)<span class="d">Context passed from a parent or left sibling into a node before it finishes, drawn with dashed amber arrows so left-associative math stays accurate.</span></div>
+    <div><b>Expression DAG</b><span class="d">A tree folded so repeated subexpressions are computed once and linked by multiple parents, flagged with a double violet halo.</span></div>
   </dl>
 
   <div class="sec"><h3 data-eb="SDD Parse Tree">SDD dependency tree: <span class="m">[[7|v]] + ([[8 / 2|g]]) = [[11|r]]</span></h3>
@@ -227,7 +224,7 @@
     <div class="viz" id="tr-sdd"></div>
   </div>
 
-  <div class="sec"><h3 data-eb="Expression DAG">Sharing repeated work with <span class="m">Kit.dag</span></h3>
+  <div class="sec"><h3 data-eb="Expression DAG">Sharing repeated work with <code>Kit.dag</code></h3>
     <p>In <span class="m">[[a|v]] + [[a|v]] \cdot ([[b - c|f]]) + ([[b - c|f]]) \cdot [[d|v]]</span>, a naive syntax tree builds <span class="m">(b - c)</span> twice. Folding identical nodes creates a true multi-parent DAG with automatic topological numbering.</p>
     <p class="lead">Trace how double-halo shared nodes reuse values across branches, and hover any node to highlight its entire upstream and downstream cone.</p>
     <div class="viz" id="dag-expr"></div>
