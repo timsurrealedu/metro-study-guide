@@ -1060,15 +1060,19 @@ function setMathFocus(scope,tok,on){
   const tid=tok.dataset.tid,rawRole=tok.dataset.role,role=rawRole?(ROLE_MAP[rawRole.trim().toLowerCase()]||rawRole):"",feat=tok.dataset.feat;
   const sel=tid?`[data-tid="${tid}"]`:role?`[data-role="${role}"]`:feat?`[data-feat="${feat}"]`:"";
   if(!sel)return;
+  const hits=$$(sel,scope);
+  if(!hits.length)return;
   scope.classList.add("m-has-focus");
-  $$(sel,scope).forEach(e=>e.classList.add("m-focus"));
+  hits.forEach(e=>e.classList.add("m-focus"));
 }
-const FOCUS_SEL=".m-tok[data-tid],.m-tok[data-role],b[data-role],em[data-role],.m-leg-item[data-role],.k-leg-item[data-role],.k-leg-item[data-feat],.t-chip[data-role],.terms>div[data-role],.proof-tpl>li[data-role],.tbl [data-role],.k-feat[data-role],.k-n[data-role],.k-tn[data-role],.k-dn[data-role],[data-part][data-role]";
+const FOCUS_SEL=".m-tok[data-tid],.m-tok[data-role],b[data-role],em[data-role],.m-leg-item[data-role],.k-leg-item[data-role],.k-leg-item[data-feat],.t-chip[data-role],.terms>div[data-role],.proof-tpl>li[data-role],.k-feat[data-role],.k-n[data-role],.k-tn[data-role],.k-dn[data-role],[data-part][data-role]";
 document.addEventListener("pointerenter",e=>{
+  if(e.pointerType==="touch")return;
   const t=e.target.closest&&e.target.closest(FOCUS_SEL);
   if(!t)return;const sc=(t.dataset.tid?t.closest(".viz,.eq"):null)||t.closest(".ex-card")||t.closest(".sec")||t.closest(".viz,.eq")||main;if(!sc.dataset.pinRole&&!sc.dataset.pinFeat)setMathFocus(sc,t,true);
 },true);
 document.addEventListener("pointerleave",e=>{
+  if(e.pointerType==="touch")return;
   const t=e.target.closest&&e.target.closest(FOCUS_SEL);
   if(!t)return;const sc=(t.dataset.tid?t.closest(".viz,.eq"):null)||t.closest(".ex-card")||t.closest(".sec")||t.closest(".viz,.eq")||main;if(!sc.dataset.pinRole&&!sc.dataset.pinFeat)setMathFocus(sc,null,false);
 },true);

@@ -6,62 +6,62 @@ Kit.tree("tr-memo", {
   alt: "Recursion tree for fib(4) showing repeated calls collapsing into a linear Memoization DAG.",
   compact: true,
   root: {
-    id: "f4", t: "fib(4)", sub: "root call", kind: "root", role: "c",
-    use: "Top-level call spawns fib(3) and fib(2).",
+    id: "f4", t: "fib(4)", sub: "needs f(3)+f(2)", kind: "root", role: "c",
+    use: "Top-level call splits into fib(3) on the left and fib(2) on the right.",
     children: [
       {
-        id: "f3", t: "fib(3)", edge: "n−1", kind: "decision", role: "c",
-        use: "Evaluates fib(2) and fib(1).",
+        id: "f3", t: "fib(3)", sub: "f(2)+f(1)", edge: "n−1", kind: "decision", role: "c",
+        use: "Evaluates fib(2) first, then fib(1).",
         children: [
           {
-            id: "f2a", t: "fib(2)", edge: "n−1", kind: "decision", role: "v",
-            use: "First time fib(2) is computed.",
+            id: "f2a", t: "fib(2) = 1", sub: "1 + 0", tag: "first time", edge: "n−1", kind: "decision", role: "v",
+            use: "First time fib(2) is solved! A memoized version saves 1 right here.",
             children: [
-              { id: "f1a", t: "fib(1)=1", kind: "leaf", role: "r" },
-              { id: "f0a", t: "fib(0)=0", kind: "leaf", role: "r" }
+              { id: "f1a", t: "fib(1)=1", sub: "base", kind: "leaf", role: "r" },
+              { id: "f0a", t: "fib(0)=0", sub: "base", kind: "leaf", role: "r" }
             ]
           },
-          { id: "f1b", t: "fib(1)=1", edge: "n−2", kind: "leaf", role: "k", use: "Duplicate call to fib(1)!" }
+          { id: "f1b", t: "fib(1)=1", sub: "base repeat", edge: "n−2", kind: "leaf", role: "v", use: "Calls base case fib(1) directly." }
         ]
       },
       {
-        id: "f2b", t: "fib(2)", edge: "n−2", kind: "decision", role: "k",
-        use: "Duplicate subtree fib(2) repeated from scratch!",
+        id: "f2b", t: "fib(2) = 1", sub: "duplicate work!", tag: "REPEAT!", edge: "n−2", kind: "pruned", role: "k",
+        use: "Without a cache, fib(4) rebuilds the entire fib(2) subtree from scratch!",
         children: [
-          { id: "f1c", t: "fib(1)=1", kind: "leaf", role: "k", use: "Repeated fib(1) call." },
-          { id: "f0b", t: "fib(0)=0", kind: "leaf", role: "k", use: "Repeated fib(0) call." }
+          { id: "f1c", t: "fib(1)=1", sub: "wasted", kind: "pruned", role: "k", use: "Repeated fib(1) call." },
+          { id: "f0b", t: "fib(0)=0", sub: "wasted", kind: "pruned", role: "k", use: "Repeated fib(0) call." }
         ]
       }
     ]
   },
   steps: [
-    { t: "1. Expand fib(4) → fib(3) + fib(2)", d: "Recursion splits into two branches; fib(2) appears on the right.", on: ["f4", "f3", "f2b"], reveal: ["f4", "f3", "f2b"] },
-    { t: "2. Left branch computes fib(2) first", d: "Inside fib(3), we solve fib(2) = fib(1) + fib(0) = 1.", on: ["f2a", "f1a", "f0a"], reveal: ["f4", "f3", "f2b", "f2a", "f1a", "f0a", "f1b"] },
-    { t: "3. Right branch repeats fib(2) from scratch!", d: "Without caching, every red node is recomputed exponentially (O(2ⁿ)).", on: ["f2b", "f1c", "f0b"], reveal: "all", overview: true }
+    { t: "1. Root call fib(4) splits into fib(3) and fib(2)", d: "To find fib(4), recursion asks for fib(3) on the left and fib(2) on the right.", on: ["f4"], reveal: ["f4", "f3", "f2b"], hud: [{ label: "Calls", val: "1", role: "c" }, { label: "Repeats", val: "0", role: "r" }] },
+    { t: "2. Left branch solves fib(2) = 1 for the first time", d: "Inside fib(3), we solve fib(2) = fib(1) + fib(0) = 1. Next up: fib(3) finishes as 1 + 1 = 2.", on: ["f2a", "f1a", "f0a"], visit: ["f4", "f3", "f1b"], reveal: ["f4", "f3", "f2b", "f2a", "f1a", "f0a", "f1b"], hud: [{ label: "Calls", val: "6", role: "v" }, { label: "fib(2)", val: "solved 1st time", role: "v" }] },
+    { t: "3. Right branch wastes time repeating fib(2)!", d: "Without sticky-note caching, fib(4) solves the exact same fib(2) tree all over again (O(2ⁿ) growth).", on: ["f2b", "f1c", "f0b"], visit: ["f4", "f3", "f2a", "f1a", "f0a", "f1b"], reveal: "all", hud: [{ label: "Total Calls", val: "9 (O(2ⁿ))", role: "k" }, { label: "Wasted", val: "3 red nodes", role: "k" }], overview: true }
   ],
   memo: {
     treeLabel: "Recursion Tree O(2ⁿ)",
     dagLabel: "Memoization DAG O(n)",
     alt: "Collapsed Memoization DAG for fib(4) with shared cached nodes.",
     nodes: [
-      { id: "f4", t: "fib(4) = 3", role: "r", use: "Adds cached fib(3) + cached fib(2)." },
-      { id: "f3", t: "fib(3) = 2", role: "c", use: "Adds cached fib(2) + cached fib(1)." },
-      { id: "f2", t: "fib(2) = 1", shared: true, tag: "cached ×2", role: "f", use: "Computed once and reused by both fib(4) and fib(3)!" },
-      { id: "f1", t: "fib(1) = 1", shared: true, tag: "base", role: "v", use: "Base case reused twice." },
+      { id: "f4", t: "fib(4) = 3", sub: "2 + 1", role: "r", use: "Reads cached fib(3)=2 and cached fib(2)=1 in O(1)." },
+      { id: "f3", t: "fib(3) = 2", sub: "1 + 1", role: "c", use: "Reads cached fib(2)=1 and cached fib(1)=1 in O(1)." },
+      { id: "f2", t: "fib(2) = 1", shared: true, tag: "cached ×2", role: "f", use: "Solved once and saved! Both fib(4) and fib(3) point to this single box." },
+      { id: "f1", t: "fib(1) = 1", shared: true, tag: "base ×2", role: "v", use: "Base case 1, reused in O(1)." },
       { id: "f0", t: "fib(0) = 0", role: "v", use: "Base case 0." }
     ],
     edges: [
       { id: "e1", from: "f4", to: "f3" },
-      { id: "e2", from: "f4", to: "f2", label: "cache hit", role: "f" },
-      { id: "e3", from: "f3", to: "f2", label: "compute", role: "f" },
-      { id: "e4", from: "f3", to: "f1", label: "cache hit", role: "v" },
+      { id: "e2", from: "f4", to: "f2", label: "cache hit!", role: "f" },
+      { id: "e3", from: "f3", to: "f2", label: "saves 1", role: "f" },
+      { id: "e4", from: "f3", to: "f1", label: "cache hit!", role: "v" },
       { id: "e5", from: "f2", to: "f1" },
       { id: "e6", from: "f2", to: "f0" }
     ],
     steps: [
-      { t: "1. Base cases fib(0) & fib(1)", d: "Only n+1 unique states exist in total.", on: ["f0", "f1"], reveal: ["f0", "f1", "f2", "f3", "f4"] },
-      { t: "2. Compute & cache fib(2) once", d: "Shared double-halo node stores fib(2) = 1 for every caller.", on: ["f2"], visit: ["f0", "f1"], edges: ["e5", "e6"], reveal: "all" },
-      { t: "3. fib(3) & fib(4) reuse cached results", d: "All duplicate subtrees vanish—time drops from O(2ⁿ) to O(n).", on: ["f3", "f4"], visit: ["f0", "f1", "f2"], edges: ["e1", "e2", "e3", "e4"], reveal: "all", overview: true }
+      { t: "1. Only 5 unique boxes exist for n = 4", d: "Memoization shrinks 9 tree calls down to just n+1 = 5 states: fib(0)..fib(4).", on: ["f0", "f1"], reveal: ["f0", "f1", "f2", "f3", "f4"], hud: [{ label: "Unique States", val: "5 (n+1)", role: "v" }, { label: "Cache Hits", val: "0 yet", role: "c" }] },
+      { t: "2. Solve & save fib(2) = 1 on a sticky note", d: "The glowing double-outlined box computes fib(2) = 1 + 0 = 1 once for everyone.", on: ["f2"], visit: ["f0", "f1"], edges: ["e5", "e6"], reveal: "all", hud: [{ label: "Unique States", val: "5 (n+1)", role: "v" }, { label: "Saved", val: "fib(2) = 1", role: "f" }] },
+      { t: "3. fib(3) and fib(4) look up cached answers!", d: "Every duplicate branch turns into an instant O(1) cache-hit pointer—cutting O(2ⁿ) down to O(n)!", on: ["f3", "f4"], visit: ["f0", "f1", "f2"], edges: ["e1", "e2", "e3", "e4"], reveal: "all", hud: [{ label: "Total Work", val: "O(n) linear!", role: "r" }, { label: "Cache Hits", val: "2 instant lookups", role: "f" }], overview: true }
     ]
   }
 });
@@ -152,11 +152,11 @@ Kit.dp("dp-lcs", {
     [{ v: 0 }, { v: 1, dir: "^" }, { v: 2, dir: "\\" }]
   ],
   steps: [
-    { t: "Initialize row 0 and col 0 to 0", d: "An empty string shares 0 characters with any prefix.", upto: [0, 2], eq: "c[0, j] = 0,\\; c[i, 0] = 0" },
-    { t: "Match X[1]=A and Y[1]=A (↖)", d: "Characters match! Take diagonal 0 + 1 = 1 with arrow ↖.", on: [1, 1], from: [[0, 0]], upto: [1, 1], eq: "X[1]=Y[1]='A' \\implies c[1,1] = [[c[0,0]|v]] + 1 = [[1|r]]" },
-    { t: "Mismatch X[1]=A vs Y[2]=C (←)", d: "Copy max(↑ c[0,2]=0, ← c[1,1]=1) = 1.", on: [1, 2], from: [[0, 2], [1, 1]], upto: [1, 2], eq: "c[1,2] = \\max([[0|v]], [[1|v]]) = [[1|c]]" },
-    { t: "Row B: propagate 1 upward (↑)", d: "B matches neither A nor C, so row 2 inherits ↑ from row 1.", on: [2, 2], from: [[1, 2], [2, 1]], upto: [2, 2], eq: "c[2,2] = \\max([[1|v]], [[1|v]]) = [[1|c]]" },
-    { t: "Match X[3]=C and Y[2]=C (↖) → Traceback", d: "Diagonal ↖ adds 1 to c[2,1] = 1, giving LCS length 2 ('AC').", on: [3, 2], from: [[2, 1]], path: [[3, 2], [2, 1], [1, 1]], upto: [3, 2], eq: "LCS = [['AC'|r]],\\; |LCS| = [[2|r]]", hud: [{ label: "LCS", val: "AC (len 2)", role: "r" }] }
+    { t: "Row 0: 0 letters from X matches nothing (all 0)", d: "Compare empty prefix ε with Y: longest shared match is always 0.", upto: [0, 2], eq: "c[0, j] = 0,\\; c[i, 0] = 0" },
+    { t: "Match 'A' = 'A' → follow diagonal arrow ↖ (+1)", d: "Letters match! Blue arrow reads top-left corner c[0,0]=0 and adds 1 → store 1 with ↖.", on: [1, 1], from: [[0, 0]], upto: [1, 1], eq: "X[1]=Y[1]='A' \\implies c[1,1] = [[c[0,0]|v]] + 1 = [[1|r]]" },
+    { t: "Mismatch 'A' vs 'C' → copy taller neighbor (← wins)", d: "Letters differ! Arrows read top (0) and left (1); pick max(0, 1) = 1 and point ←.", on: [1, 2], from: [[0, 2], [1, 1]], upto: [1, 2], eq: "c[1,2] = \\max([[0|v]], [[1|v]]) = [[1|c]]" },
+    { t: "Row B: propagate score 1 downward (↑)", d: "'B' matches neither 'A' nor 'C', so both arrows tie at 1 → inherit ↑ from row above.", on: [2, 2], from: [[1, 2], [2, 1]], upto: [2, 2], eq: "c[2,2] = \\max([[1|v]], [[1|v]]) = [[1|c]]" },
+    { t: "Match 'C' = 'C' (↖) → follow green trail back!", d: "Diagonal arrow reads c[2,1]=1 and adds 1 = 2. Follow ↖ cells back: 'A' then 'C' = \"AC\"!", on: [3, 2], from: [[2, 1]], path: [[3, 2], [2, 1], [1, 1]], upto: [3, 2], eq: "LCS = [['AC'|r]],\\; |LCS| = [[2|r]]", hud: [{ label: "LCS", val: "AC (len 2)", role: "r" }] }
   ]
 });
 
@@ -175,10 +175,10 @@ Kit.dp("dp-knap", {
         [0, 0, 3, 4, 4]
       ],
       steps: [
-        { t: "Row 0: 0 items → all 0", d: "With 0 items, profit is 0 for every capacity.", upto: [0, 4], eq: "dp[0, c] = 0" },
-        { t: "Item 1 (w=2, v=3) at c = 2..4", d: "For c ≥ 2, taking item 1 gives 3 + dp[0, c−2] = 3.", on: [1, 2], from: [[0, 2], [0, 0]], upto: [1, 4], eq: "dp[1,2] = \\max(dp[0,2],\\, 3 + [[dp[0,0]|v]]) = [[3|c]]" },
-        { t: "Item 2 (w=3, v=4) at c = 3", d: "Taking item 2 beats skipping: max(3, 4 + dp[1,0]) = 4.", on: [2, 3], from: [[1, 3], [1, 0]], upto: [2, 3], eq: "dp[2,3] = \\max([[3|v]],\\, 4 + [[0|v]]) = [[4|c]]" },
-        { t: "Optimal dp[2, 4] = 4", d: "At c = 4, w₁+w₂ = 5 > 4 so we cannot pack both; max profit is 4.", on: [2, 4], from: [[1, 4], [1, 1]], path: [[2, 4], [2, 3]], upto: [2, 4], eq: "dp[2,4] = \\max([[3|v]],\\, 4 + [[0|v]]) = [[4|r]]", hud: [{ label: "Best", val: "4 (item 2)", role: "r" }] }
+        { t: "Row 0: 0 items in bag → value is 0", d: "With zero items allowed, every capacity c = 0..4 gives profit 0.", upto: [0, 4], eq: "dp[0, c] = 0" },
+        { t: "Item 1 (weight 2, value 3) at c = 2", d: "Blue arrows compare: Skip item 1 (above = 0) vs Take item 1 (3 + top-left 0) → Pick 3!", on: [1, 2], from: [[0, 2], [0, 0]], upto: [1, 4], eq: "dp[1,2] = \\max([[0|v]],\\, 3 + [[0|v]]) = [[3|c]]" },
+        { t: "Item 2 (weight 3, value 4) at c = 3", d: "Skip (above = 3) vs Take (4 + dp[1,0]=0) → 4 wins! So capacity 3 holds Item 2 alone.", on: [2, 3], from: [[1, 3], [1, 0]], upto: [2, 3], eq: "dp[2,3] = \\max([[3|v]],\\, 4 + [[0|v]]) = [[4|c]]" },
+        { t: "Final cell dp[2, 4] = 4", d: "With cap 4, adding Item 2 (w=3) leaves only 1 kg (dp[1,1]=0), so 4 + 0 = 4 beats skipping (3).", on: [2, 4], from: [[1, 4], [1, 1]], path: [[2, 4], [2, 3]], upto: [2, 4], eq: "dp[2,4] = \\max([[3|v]],\\, 4 + [[0|v]]) = [[4|r]]", hud: [{ label: "Best", val: "4 (item 2)", role: "r" }] }
       ]
     },
     {
@@ -519,27 +519,32 @@ Kit.tree("tr-queens", {
   compact: true,
   board: { kind: "queens", size: 4 },
   root: {
-    id: "r", t: "Row 0", kind: "root", role: "c",
+    id: "r", t: "Empty Board", sub: "Row 0 choice", kind: "root", role: "c",
+    use: "Start with 4 empty rows. We place one queen per row top-to-bottom.",
     children: [
       {
-        id: "q00", edge: "col 0", t: "Q(0,0)", kind: "decision", role: "c",
+        id: "q00", edge: "col 0", t: "Q at (0,0)", sub: "Row 0 = col 0", kind: "decision", role: "c",
+        use: "Place Queen #1 at top-left corner (0,0).",
         children: [
-          { id: "q10", edge: "c=0/1", edgeRole: "k", t: "Attacked", kind: "pruned", role: "k" },
+          { id: "q10", edge: "col 0/1", edgeRole: "k", t: "Blocked!", sub: "attacked by (0,0)", kind: "pruned", role: "k", use: "Same column or diagonal as (0,0) — cut immediately!" },
           {
-            id: "q12", edge: "col 2", t: "Q(1,2)", kind: "decision", role: "c",
+            id: "q12", edge: "col 2", t: "Q at (1,2)", sub: "Row 1 = col 2", kind: "decision", role: "c",
+            use: "Col 2 on Row 1 is safe (PROMISING), so place Queen #2 here.",
             children: [
-              { id: "dead", edge: "row 2", edgeRole: "k", t: "Dead End", sub: "all attacked", kind: "pruned", role: "k" }
+              { id: "dead", edge: "row 2", edgeRole: "k", t: "Dead End", sub: "all 4 cols hit!", kind: "pruned", role: "k", use: "Every column on Row 2 is attacked! Backtrack out of Q(0,0)." }
             ]
           }
         ]
       },
       {
-        id: "q01", edge: "col 1", edgeRole: "r", t: "Q(0,1)", kind: "decision", role: "r",
+        id: "q01", edge: "col 1", edgeRole: "r", t: "Q at (0,1)", sub: "backtrack here", kind: "decision", role: "r",
+        use: "Try moving Row 0 Queen right to col 1 — leaves plenty of safe squares.",
         children: [
           {
-            id: "q13", edge: "col 3", edgeRole: "r", t: "Q(1,3)", kind: "decision", role: "r",
+            id: "q13", edge: "col 3", edgeRole: "r", t: "Q at (1,3)", sub: "safe!", kind: "decision", role: "r",
+            use: "Place Queen #2 at (1,3); Rows 2 and 3 still have safe columns.",
             children: [
-              { id: "sol", edge: "c0, c2", edgeRole: "r", t: "Solved!", sub: "[1, 3, 0, 2]", kind: "leaf", role: "r" }
+              { id: "sol", edge: "c0, c2", edgeRole: "r", t: "Solved!", sub: "cols [1, 3, 0, 2]", kind: "leaf", role: "r", use: "Places (2,0) and (3,2) cleanly — all 4 queens safe!" }
             ]
           }
         ]
@@ -547,9 +552,10 @@ Kit.tree("tr-queens", {
     ]
   },
   steps: [
-    { t: "1. Try Q(0,0) → Q(1,2)", d: "Cols 0 and 1 on Row 1 are attacked, so PROMISING allows only col 2 (or 3).", on: ["q12"], reveal: ["r", "q00", "q10", "q12"], board: { title: "Try Q(0,0), Q(1,2)", queens: [[0, 0], [1, 2]] } },
-    { t: "2. Dead end at Row 2 → Prune & Backtrack", d: "Every square on Row 2 is attacked by (0,0) or (1,2). Prune and backtrack to Row 0!", on: ["dead"], prune: ["q10", "dead"], reveal: ["r", "q00", "q10", "q12", "dead"], board: { title: "Row 2 Blocked!", queens: [[0, 0], [1, 2]], bad: [2, 1] } },
-    { t: "3. Try Q(0,1) → Q(1,3) → Q(2,0) → Q(3,2)", d: "Placing Q(0,1) leaves clean squares all the way down to a valid 4-Queens solution!", on: ["sol"], prune: ["q10", "dead"], path: ["r", "q01", "q13", "sol"], reveal: "all", board: { title: "Valid Solution [1,3,0,2]", queens: [[0, 1], [1, 3], [2, 0], [3, 2]] }, overview: true }
+    { t: "1. Start empty, then try Q(0,0) on Row 0", d: "Putting a queen in top-left (0,0) immediately crosses out squares along its column, row, and diagonal.", on: ["q00"], reveal: ["r", "q00"], board: { title: "1 · Try Q(0,0)", queens: [[0, 0]] }, hud: [{ label: "Queens", val: "1 / 4", role: "c" }, { label: "Pruned", val: "0 subtrees", role: "v" }] },
+    { t: "2. Skip attacked cols 0–1 → place Q(1,2)", d: "On Row 1, cols 0 and 1 are pruned without descending. Only col 2 (PROMISING) opens a deeper branch.", on: ["q12"], visit: ["r", "q00"], prune: ["q10"], reveal: ["r", "q00", "q10", "q12"], board: { title: "2 · Safe Q(1,2)", queens: [[0, 0], [1, 2]] }, hud: [{ label: "Queens", val: "2 / 4", role: "c" }, { label: "Pruned", val: "col 0, col 1", role: "k" }] },
+    { t: "3. Dead end on Row 2 → PRUNE & Backtrack!", d: "Look at Row 2 on the board: every square has an ×! Backtracking quits Q(0,0) right now without trying Row 3.", on: ["dead"], prune: ["q10", "dead"], reveal: ["r", "q00", "q10", "q12", "dead"], board: { title: "3 · Row 2 Blocked!", queens: [[0, 0], [1, 2]], bad: [2, 1] }, hud: [{ label: "Action", val: "Backtrack to Row 0", role: "k" }, { label: "Saved", val: "skipped Row 3!", role: "r" }] },
+    { t: "4. Backtrack to Q(0,1) → Solved [1, 3, 0, 2]!", d: "Shifting Row 0 to col 1 opens safe spots (1,3) → (2,0) → (3,2) — all 4 queens stand peacefully!", on: ["sol"], prune: ["q10", "dead"], path: ["r", "q01", "q13", "sol"], reveal: "all", board: { title: "4 · Solved [1, 3, 0, 2]!", queens: [[0, 1], [1, 3], [2, 0], [3, 2]] }, hud: [{ label: "Queens", val: "4 / 4 ✓", role: "r" }, { label: "Cols", val: "[1, 3, 0, 2]", role: "r" }], overview: true }
   ]
 });
 
@@ -559,27 +565,31 @@ Kit.tree("tr-sudoku", {
   compact: true,
   board: { kind: "sudoku", size: 4 },
   root: {
-    id: "s0", t: "Init Grid", sub: "AC-3 ready", kind: "root", role: "c",
+    id: "s0", t: "Start Clues", sub: "all domains {1..4}", kind: "root", role: "c",
+    use: "Initial 4×4 board before constraint propagation runs.",
     children: [
-      { id: "s1", edge: "AC-3", edgeRole: "v", t: "Shrink (0,1)", sub: "{1,2,3,4}→{2}", kind: "decision", role: "v" },
-      { id: "s2", edge: "Branch", edgeRole: "r", t: "Assign (0,1)=2", sub: "Propagates box", kind: "leaf", role: "r" }
+      { id: "s1", edge: "scan neighbors", edgeRole: "v", t: "Cross Out 1,3,4", sub: "AC-3 shrinks (0,1)", kind: "decision", role: "v", use: "Row 0 has 1, box has 3, col 1 has 4 — none of those can fit in (0,1)." },
+      { id: "s2", edge: "only {2} left", edgeRole: "r", t: "Assign (0,1) = 2", sub: "forces (0,2) = 3!", kind: "leaf", role: "r", use: "Singleton domain {2} fills (0,1), which immediately forces (0,2) = 3!" }
     ]
   },
   steps: [
     {
-      t: "1. Initial 4×4 clues + full domains", d: "Cell (0,1) shares row 0 with 1, box with 3, and col 1 with 4.",
+      t: "1. Look at empty cell (0,1) in row 0, col 1", d: "Every blank cell starts with {1, 2, 3, 4}. Notice 1 is in Row 0, 3 is in its 2×2 box, and 4 is in Column 1.",
       on: ["s0"], reveal: ["s0"],
-      board: { title: "Before AC-3", cells: [{ v: 1, fixed: true }, [1, 2, 3, 4], [1, 2, 3, 4], 4, [1, 2, 3, 4], { v: 3, fixed: true }, [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4], { v: 4, fixed: true }, [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4], { v: 2, fixed: true }, [1, 2, 3, 4]] }
+      hud: [{ label: "Candidates", val: "{1, 2, 3, 4}", role: "v" }, { label: "Guesses", val: "0", role: "r" }],
+      board: { title: "1 · Clues + Full {1..4}", cells: [{ v: 1, fixed: true }, [1, 2, 3, 4], [1, 2, 3, 4], 4, [1, 2, 3, 4], { v: 3, fixed: true }, [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4], { v: 4, fixed: true }, [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4], { v: 2, fixed: true }, [1, 2, 3, 4]] }
     },
     {
-      t: "2. AC-3 removes 1, 3, 4 from (0,1)", d: "Arc consistency eliminates impossible digits in red, shrinking (0,1) to singleton {2}.",
-      on: ["s1"], reveal: ["s0", "s1"],
-      board: { title: "AC-3 Shrinks Domains", cells: [{ v: 1, fixed: true }, { d: [1, 2, 3, 4], elim: [1, 3, 4], role: "c" }, { d: [2, 3], role: "v" }, 4, [2, 4], { v: 3, fixed: true }, [1, 2, 4], [1, 2], [1, 2, 3], { v: 4, fixed: true }, [1, 3], [1, 2, 3], [2, 3], [1, 2], { v: 2, fixed: true }, [1, 3]] }
+      t: "2. AC-3 crosses out 1, 3, and 4 in red!", d: "Arc consistency deletes digits already taken by neighbors. Only {2} survives inside cell (0,1)!",
+      on: ["s1"], visit: ["s0"], reveal: ["s0", "s1"],
+      hud: [{ label: "Eliminated", val: "1, 3, 4 crossed out", role: "k" }, { label: "Survives", val: "{2} singleton", role: "r" }],
+      board: { title: "2 · AC-3 Strikes 1, 3, 4", cells: [{ v: 1, fixed: true }, { d: [1, 2, 3, 4], elim: [1, 3, 4], role: "c" }, { d: [2, 3], role: "v" }, 4, [2, 4], { v: 3, fixed: true }, [1, 2, 4], [1, 2], [1, 2, 3], { v: 4, fixed: true }, [1, 3], [1, 2, 3], [2, 3], [1, 2], { v: 2, fixed: true }, [1, 3]] }
     },
     {
-      t: "3. Forced (0,1) = 2 triggers cascade", d: "Assigning 2 forces (0,2) = 3 with zero guessing!",
+      t: "3. Cascade: (0,1) = 2 automatically forces (0,2) = 3!", d: "Plugging 2 into (0,1) crosses 2 off neighbor (0,2), leaving {3}. Two cells solved with ZERO guessing!",
       on: ["s2"], path: ["s0", "s2"], reveal: "all",
-      board: { title: "Forced Assignment!", cells: [{ v: 1, fixed: true }, { v: 2, role: "r" }, { v: 3, role: "r" }, 4, [2, 4], { v: 3, fixed: true }, [1, 4], [1, 2], [1, 2, 3], { v: 4, fixed: true }, [1], [1, 2, 3], [2, 3], [1], { v: 2, fixed: true }, [1, 3]] },
+      hud: [{ label: "Solved", val: "(0,1)=2 & (0,2)=3", role: "r" }, { label: "Guesses", val: "0 needed!", role: "r" }],
+      board: { title: "3 · Cascade Solves Two Cells!", cells: [{ v: 1, fixed: true }, { v: 2, role: "r" }, { v: 3, role: "r" }, 4, [2, 4], { v: 3, fixed: true }, [1, 4], [1, 2], [1, 2, 3], { v: 4, fixed: true }, [1], [1, 2, 3], [2, 3], [1], { v: 2, fixed: true }, [1, 3]] },
       overview: true
     }
   ]
@@ -590,27 +600,30 @@ Kit.tree("tr-bnb", {
   alt: "0/1 Knapsack Branch-and-Bound tree showing live fractional upper bounds and pruning.",
   compact: true,
   root: {
-    id: "n0", t: "Root (W=4)", attrs: [{ k: "v", v: "0", role: "v" }, { k: "ub", v: "110", role: "c" }], kind: "root", role: "c",
+    id: "n0", t: "Start (Cap W=4)", attrs: [{ k: "profit", v: "0", role: "v" }, { k: "max ub", v: "110", role: "c" }], kind: "root", role: "c",
+    use: "Items sorted by $/kg: #1 (2kg, $60), #2 (2kg, $50), #3 (2kg, $40). Best greedy ceiling = 60+50 = 110.",
     children: [
       {
-        id: "n1", edge: "+item 1 (w=2,v=60)", edgeRole: "r", t: "Take 1", attrs: [{ k: "W_rem", v: "2", role: "v" }, { k: "ub", v: "110", role: "r" }], kind: "decision", role: "r",
+        id: "n1", edge: "Take #1 (+$60)", edgeRole: "r", t: "Take Item 1", attrs: [{ k: "W_left", v: "2 kg", role: "v" }, { k: "max ub", v: "110", role: "r" }], kind: "decision", role: "r",
+        use: "2 kg full ($60), 2 kg left. Adding Item 2 gives upper bound $110.",
         children: [
-          { id: "n11", edge: "+item 2 (w=2,v=50)", edgeRole: "r", t: "Best = 110", attrs: [{ k: "W_rem", v: "0", role: "v" }, { k: "ub", v: "110", role: "r" }], kind: "leaf", role: "r" },
-          { id: "n10", edge: "skip 2", edgeRole: "k", t: "Skip 2", attrs: [{ k: "v", v: "60", role: "v" }, { k: "ub", v: "100 ≤ 110", role: "k" }], kind: "pruned", role: "k" }
+          { id: "n11", edge: "Take #2 (+$50)", edgeRole: "r", t: "New Best = $110", attrs: [{ k: "W_left", v: "0 kg", role: "v" }, { k: "profit", v: "110 ✓", role: "r" }], kind: "leaf", role: "r", use: "Valid integer solution! Raises best_so_far from 0 to 110." },
+          { id: "n10", edge: "Skip #2", edgeRole: "k", t: "Skip Item 2", attrs: [{ k: "profit", v: "60", role: "v" }, { k: "ub", v: "100 ≤ 110", role: "k" }], kind: "pruned", role: "k", use: "Even adding Item 3 ($40) only reaches 60+40 = 100 ≤ 110. Stop here!" }
         ]
       },
       {
-        id: "n2", edge: "skip 1", edgeRole: "k", t: "Skip 1", attrs: [{ k: "W_rem", v: "4", role: "v" }, { k: "ub", v: "90 ≤ 110", role: "k" }], kind: "pruned", role: "k",
+        id: "n2", edge: "Skip #1", edgeRole: "k", t: "Skip Item 1", attrs: [{ k: "W_left", v: "4 kg", role: "v" }, { k: "ub", v: "90 ≤ 110", role: "k" }], kind: "pruned", role: "k",
+        use: "Best left without #1 is #2 + #3 = 50 + 40 = 90 ≤ 110 — entire subtree cut!",
         children: [
-          { id: "n21", edge: "skip subtree", edgeRole: "k", t: "Never Visited", kind: "pruned", role: "k" }
+          { id: "n21", edge: "never explored", edgeRole: "k", t: "Saved Branch", sub: "skipped!", kind: "pruned", role: "k", use: "Pruned before ever expanding!" }
         ]
       }
     ]
   },
   steps: [
-    { t: "1. Compute root fractional bound ub = 110", d: "Items sorted by v/w: (2,60), (2,50), (2,40). Root takes items 1+2 → ub = 110.", on: ["n0"], reveal: ["n0"], hud: [{ label: "best_so_far", val: "0", role: "v" }, { label: "ub", val: "110", role: "c" }] },
-    { t: "2. Take item 1 & item 2 → best_so_far = 110", d: "Integer leaf reaches profit 110 with W_rem = 0.", on: ["n1", "n11"], reveal: ["n0", "n1", "n11", "n10"], hud: [{ label: "best_so_far", val: "110", role: "r" }, { label: "ub", val: "110", role: "r" }] },
-    { t: "3. Prune skip-2 (ub=100) and skip-1 (ub=90)!", d: "Both subtrees have ub ≤ 110, so they are grayed out and never explored.", on: ["n10", "n2"], prune: ["n10", "n2"], path: ["n0", "n1", "n11"], reveal: "all", hud: [{ label: "best_so_far", val: "110", role: "r" }, { label: "Pruned", val: "ub ≤ 110", role: "k" }], overview: true }
+    { t: "1. Root bound: best possible is $110", d: "Sort items richest-per-kg first (#1: $30/kg, #2: $25/kg, #3: $20/kg). At most 4 kg fits #1+#2 → ub = $110.", on: ["n0"], reveal: ["n0"], hud: [{ label: "best_so_far", val: "$0", role: "v" }, { label: "root ub", val: "$110", role: "c" }] },
+    { t: "2. Take Item 1 & Item 2 → sets best_so_far = $110", d: "Packing #1 ($60) + #2 ($50) uses all 4 kg legally, raising our real integer record best_so_far to $110!", on: ["n1", "n11"], visit: ["n0"], reveal: ["n0", "n1", "n11", "n10"], hud: [{ label: "best_so_far", val: "$110 ✓", role: "r" }, { label: "W_left", val: "0 kg", role: "v" }] },
+    { t: "3. Prune both weaker branches (ub 100 and 90 ≤ 110)!", d: "Skipping #2 caps out at 60+40 = $100; skipping #1 caps out at 50+40 = $90. Both ≤ $110, so gray them out and finish!", on: ["n10", "n2"], prune: ["n10", "n2"], path: ["n0", "n1", "n11"], reveal: "all", hud: [{ label: "Optimal", val: "$110", role: "r" }, { label: "Cut Branches", val: "ub 100 & 90 ≤ 110", role: "k" }], overview: true }
   ]
 });
 

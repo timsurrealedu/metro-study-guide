@@ -119,6 +119,7 @@ function mountAnatomy(S,o={}){
       if(u)showUse(title,u,c);
     };
     svg.addEventListener("pointerover",e=>{const el=e.target.closest("[data-use]");if(el)pick(el)});
+    svg.addEventListener("click",e=>{const el=e.target.closest("[data-use]");if(el&&!svg._camDragged)pick(el)});
     svg.addEventListener("pointerleave",()=>{const sc=S.stage.closest(".sec")||S.stage.closest(".viz");if(!sc?.dataset.pinRole&&!sc?.dataset.pinFeat)showUse(null,defUse)});
     svg.addEventListener("focusin",e=>{const el=e.target.closest("[data-use]");if(el)pick(el)});
     leg.addEventListener("pointerover",e=>{const b=e.target.closest(".k-leg-item");if(b&&b.dataset.use)showUse(b.textContent.trim(),b.dataset.use,b.style.getPropertyValue("--rc"))});
@@ -1098,7 +1099,7 @@ Kit.tree=(id,o)=>{
     const role=roleKey(nd.role)||(kind==="leaf"?"r":kind==="pruned"?"k":kind==="term"?"v":kind==="nt"?"":(kind==="root"||kind==="decision"?"c":""));
     const er=roleKey(nd.edgeRole)||branchRole(nd.edge);
     const attrs=(nd.attrs||[]).map((a,ai)=>({ai,k:a.k||"",v:a.v!=null?String(a.v):"",role:roleKey(a.role)||(/^(s|val|v)$/i.test(a.k||"")?"r":/^i/i.test(a.k||"")?"c":"f"),use:a.use||"",pending:a.pending!=null?String(a.pending):"",at:a.at!=null?a.at:null}));
-    const item={i,id:cid,parent,depth,t:nd.t||"",sub:nd.sub||"",tag:nd.tag||"",kind,role,color:nd.color||"",edge:nd.edge||"",edgeRole:er,use:nd.use||"",attrs,order:nd.order!=null?nd.order:null,children:[]};
+    const item={i,id:cid,parent,depth,t:nd.t||"",sub:nd.sub||"",tag:nd.tag||(kind==="pruned"?"✕ PRUNED":""),kind,role,color:nd.color||"",edge:nd.edge||"",edgeRole:er,use:nd.use||"",attrs,order:nd.order!=null?nd.order:null,children:[]};
     nodes.push(item);byId.set(cid,i);
     if(parent>=0)nodes[parent].children.push(i);
     ch.forEach(c=>walk(c,i,depth+1));
@@ -1122,7 +1123,8 @@ Kit.tree=(id,o)=>{
   const kindGlyph={root:"◎",decision:"◆",branch:"▸",leaf:"✓",pruned:"✕",nt:"◇",term:"●"};
   const wantLeg=o.legend!==false;
   const an=wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:hasDeps?"Hover any node to isolate its attribute flow and grammar edges, or tap to jump to its evaluation step.":"Hover or tap any node to trace its path from the root and see its role."}):null;
-  const hudEl=(o.hud||steps.some(s=>s.hud))?h("div",{class:"k-hud","aria-live":"polite"}):null;
+  const memoHasHud=!!(o.memo&&(o.memo.hud||o.memo.steps?.some(s=>s.hud)));
+  const hudEl=(o.hud||steps.some(s=>s.hud)||memoHasHud)?h("div",{class:"k-hud","aria-live":"polite"}):null;
   const boardEl=o.board?h("div",{class:"k-tree-board"}):null;
   if(hudEl)S.stage.append(hudEl);
   if(boardEl){S.stage.classList.add("has-board");S.stage.insertBefore(boardEl,svg)}
@@ -1224,7 +1226,8 @@ Kit.tree=(id,o)=>{
         const aw=nd.attrs.length?Math.max(...nd.attrs.map(a=>Math.ceil(attrTxt(a).length*6.9)+26)):0;
         const tw=Math.ceil(nd.t.length*8.4)+24+(nd.order!=null?24:0);
         const sw=nd.sub?Math.ceil(nd.sub.length*7)+22:0;
-        return Math.max(66,Math.min(o.boxWidth||150,Math.max(tw,aw,sw)));
+        const gW=nd.tag?Math.ceil(nd.tag.length*7.4)+32:0;
+        return Math.max(66,Math.min(o.boxWidth||150,Math.max(tw,aw,sw,gW)));
       }
       return Math.min(o.boxWidth||186,Math.max(minBw,rawBw));
     };
@@ -1359,7 +1362,7 @@ Kit.tree=(id,o)=>{
         }
         const sy=compact?(p.y+8+w.t.length*16+(nd.attrs.length?3+nd.attrs.length*16:0)+14):(p.y+36+w.t.length*18+2);
         if(w.s.length)t+=tlines(p.x+padL,sy,w.s,"k-s",compact?14:15.5);
-        if(nd.tag){const tw=Math.min(p.w-20,Math.ceil(nd.tag.length*7.4)+18);t+=`<g class="k-tag"><rect x="${p.x+padL}" y="${p.y+p.h-26}" width="${tw}" height="19" rx="9.5"/><text class="k-c" x="${p.x+padL+8}" y="${p.y+p.h-13}">${escHtml(nd.tag)}</text></g>`}
+        if(nd.tag){const tw=Math.min(p.w-16,Math.ceil(nd.tag.length*7.2)+20);t+=`<g class="k-tag"><rect x="${p.x+padL}" y="${p.y+p.h-26}" width="${tw}" height="19" rx="9.5"/><text class="k-c" x="${p.x+padL+9}" y="${p.y+p.h-13.5}">${escHtml(nd.tag)}</text></g>`}
         t+=`<line class="k-slash hide" x1="${p.x+8}" y1="${p.y+p.h-8}" x2="${p.x+p.w-8}" y2="${p.y+8}"/>`;
       }
       s+=t+"</g>";
@@ -1549,17 +1552,21 @@ Kit.tree=(id,o)=>{
   svg.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches(".k-tn")){e.preventDefault();jumpTree(e.target)}});
   let activeMode=0,lastW=640,dagCore=null,dagSvg=null;
   if(o.memo&&o.memo.nodes?.length){
-    dagSvg=h("svg",{class:"hide",role:"img","aria-label":o.memo.alt||"Memoization DAG"});dagSvg.hidden=true;
+    dagSvg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+    dagSvg.setAttribute("class","hide");
+    dagSvg.setAttribute("role","img");
+    dagSvg.setAttribute("aria-label",o.memo.alt||"Memoization DAG");
+    dagSvg.setAttribute("hidden","");
     S.stage.insertBefore(dagSvg,svg.nextSibling);
-    dagCore=mountDagCore(S,dagSvg,o.memo,{an,getPlayer:()=>player,mountPlayer:false});
-    dagSvg.classList.add("hide");dagSvg.hidden=true;
+    dagCore=mountDagCore(S,dagSvg,o.memo,{an,hudEl,getPlayer:()=>player,mountPlayer:false});
+    dagSvg.classList.add("hide");dagSvg.setAttribute("hidden","");
     if(dagCore.cam)dagCore.cam.bar.hidden=true;
     mountTabs(S,[{label:o.memo.treeLabel||"Recursion Tree O(2ⁿ)"},{label:o.memo.dagLabel||"Memoization DAG O(n)"}],idx=>{
       activeMode=idx;
       const isDag=idx===1;
-      svg.classList.toggle("hide",isDag);svg.hidden=isDag;
+      svg.classList.toggle("hide",isDag);if(isDag)svg.setAttribute("hidden","");else svg.removeAttribute("hidden");
       if(cam)cam.bar.hidden=isDag||!camEnabled;
-      dagSvg.classList.toggle("hide",!isDag);dagSvg.hidden=!isDag;
+      dagSvg.classList.toggle("hide",!isDag);if(isDag)dagSvg.removeAttribute("hidden");else dagSvg.setAttribute("hidden","");
       if(dagCore.cam)dagCore.cam.bar.hidden=!isDag||!dagCore.camEnabled;
       if(isDag)dagCore.layout(lastW);else layout(lastW);
       if(player)player.setSteps(isDag?dagCore.steps:steps,0);
@@ -1625,6 +1632,13 @@ function mountDagCore(S,svg,o,opts={}){
   const eIdxOf=x=>typeof x==="number"?x:eById.get(String(x));
   const wantLeg=o.legend!==false,wantCam=o.zoom!==false;
   const an=opts.an!==undefined?opts.an:(wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:"Hover any node to trace every upstream input and downstream dependent."}):null);
+  const hasDagHud=!!(o.hud||steps.some(s=>s.hud));
+  const dagHudEl=opts.hudEl||(hasDagHud?h("div",{class:"k-hud","aria-live":"polite"}):null);
+  const renderDagHud=list=>{
+    if(!dagHudEl)return;
+    const arr=list||o.hud||[];dagHudEl.hidden=!arr.length;
+    dagHudEl.innerHTML=arr.map(x=>{const rk=roleKey(x.role);return `<span class="k-hud-chip"${rk?` data-role="${rk}" style="--rc:var(--m-${rk})"`:""}><b>${escHtml(x.label)}</b><span>${escHtml(x.val)}</span></span>`}).join("");
+  };
   let curP=[],curPillBoxes=new Map(),camEnabled=false,cur=0,prevRev=new Set(nodes.map(n=>n.i)),prevActEdges=new Set(),player=null,cam=null;
   const getPl=()=>opts.getPlayer?opts.getPlayer():player;
   const updateCam=(instant=false)=>{
@@ -1641,6 +1655,7 @@ function mountDagCore(S,svg,o,opts={}){
     cam.focus(any?{x1,y1,x2,y2}:null,{isOverview:isOv,instant});
   };
   cam=wantCam?mountCamera(S,svg,{onMode:()=>updateCam(false)}):null;
+  if(!opts.hudEl&&dagHudEl)S.stage.insertBefore(dagHudEl,cam?cam.bar:svg);
   if(an){
     const defLeg=[];const seen=new Set();
     const lbl={v:"Source / Input",f:"Shared / Merge (×2+)",c:"Intermediate Op",r:"Output / Sink",g:"Group",k:"Cut",a:"Highlight"};
@@ -1729,7 +1744,7 @@ function mountDagCore(S,svg,o,opts={}){
       t+=tlines(p.x+10,p.y+21,w.t,"k-t",16.5);
       if(nd.order!=null){const ox=p.x+p.w-12,oy=p.y+12;t+=`<g class="k-ord"><circle cx="${ox}" cy="${oy}" r="8"/><text class="k-ord-t" x="${ox}" y="${oy+3.5}" text-anchor="middle">${escHtml(String(nd.order))}</text></g>`}
       if(w.s.length)t+=tlines(p.x+10,p.y+21+w.t.length*16.5+1,w.s,"k-s",14.5);
-      if(nd.tag){const tw=Math.min(p.w-20,Math.ceil(nd.tag.length*7.4)+18);t+=`<g class="k-tag"><rect x="${p.x+10}" y="${p.y+p.h-26}" width="${tw}" height="19" rx="9.5"/><text class="k-c" x="${p.x+18}" y="${p.y+p.h-13}">${escHtml(nd.tag)}</text></g>`}
+      if(nd.tag){const tw=Math.min(p.w-16,Math.ceil(nd.tag.length*7.2)+20);t+=`<g class="k-tag"><rect x="${p.x+10}" y="${p.y+p.h-26}" width="${tw}" height="19" rx="9.5"/><text class="k-c" x="${p.x+19}" y="${p.y+p.h-13.5}">${escHtml(nd.tag)}</text></g>`}
       s+=t+"</g>";
     });
     svg.innerHTML=s+`</g>`;prepEdgeLengths(svg);render(cur,true);
@@ -1760,6 +1775,7 @@ function mountDagCore(S,svg,o,opts={}){
       p.classList.toggle("hide",!vis||(o.edgeLabels!=="all"&&!isAct));
     });
     prevRev=rev;prevActEdges=new Set(actEdges);
+    renderDagHud(s.hud);
     updateCam(instant);
     if(an&&on.size===1){const u=[...on][0];if(nodes[u]?.use)an.showUse(nodes[u].t,nodes[u].use,roleCol(nodes[u].role,"var(--pc)"))}
     if(o.on)o.on(i,svg,s);
@@ -1864,7 +1880,7 @@ Kit.dp=(id,o)=>{
       html+=`</tbody></table>`;wrapEl.innerHTML=html;
     } else if(m==="bitmask"){
       const rows=cfg.rows||[],cols=cfg.cols||[];
-      let html=`<table class="k-dp-tbl k-dp-bit"><thead><tr><th>|S|</th><th>Subset S</th>${cols.map(c=>`<th>v=${escHtml(String(c))}</th>`).join("")}</tr></thead><tbody>`;
+      let html=`<svg class="k-dp-arrs" aria-hidden="true"></svg><table class="k-dp-tbl k-dp-bit"><thead><tr><th>|S|</th><th>Subset S</th>${cols.map(c=>`<th>v=${escHtml(String(c))}</th>`).join("")}</tr></thead><tbody>`;
       let prevSz=null;
       rows.forEach((rw,ri)=>{
         const sz=rw.size!=null?rw.size:(rw.mask?rw.mask.split("").filter(x=>x==="1").length:0);
@@ -1884,7 +1900,7 @@ Kit.dp=(id,o)=>{
       const isInt=m==="interval";
       const rows=cfg.rows||(isInt?Array.from({length:cfg.n},(_,i)=>String(i+1)):[]);
       const cols=cfg.cols||(isInt?Array.from({length:cfg.n},(_,i)=>String(i+1)):[]);
-      let html=`<table class="k-dp-tbl${isInt?" k-dp-int":""}"><thead><tr><th>${escHtml(cfg.corner||"i \\ j")}</th>${cols.map(c=>`<th>${escHtml(String(c))}</th>`).join("")}</tr></thead><tbody>`;
+      let html=`<svg class="k-dp-arrs" aria-hidden="true"></svg><table class="k-dp-tbl${isInt?" k-dp-int":""}"><thead><tr><th>${escHtml(cfg.corner||"i \\ j")}</th>${cols.map(c=>`<th>${escHtml(String(c))}</th>`).join("")}</tr></thead><tbody>`;
       rows.forEach((rw,ri)=>{
         html+=`<tr><th>${escHtml(String(rw))}</th>`;
         cols.forEach((_,ci)=>{
@@ -1899,23 +1915,45 @@ Kit.dp=(id,o)=>{
       html+=`</tbody></table>`;wrapEl.innerHTML=html;
     }
   };
-  const draw1DArr=(onCols,fromCols)=>{
+  const drawDpArr=(mode,onCols,fromCols)=>{
     const arrSvg=$(".k-dp-arrs",wrapEl);if(!arrSvg)return;
     const wr=wrapEl.getBoundingClientRect();if(!wr.width){arrSvg.innerHTML="";return}
     arrSvg.setAttribute("viewBox",`0 0 ${Math.ceil(wr.width)} ${Math.ceil(wr.height)}`);
     let paths=`<defs><marker id="${S.uid}-dpa" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,1 L9,5 L0,9 z" class="k-head on" style="fill:var(--m-v)"/></marker></defs>`;
-    const dst=onCols.length?$(`.k-dp-tbl td[data-rk="dp"][data-c="${onCols[0]}"]`,wrapEl):null;
-    if(dst){
-      const dr=dst.getBoundingClientRect(),dx=dr.left-wr.left+dr.width/2,dy=dr.top-wr.top+2;
-      fromCols.forEach((fc,fi)=>{
-        const src=$(`.k-dp-tbl td[data-rk="dp"][data-c="${fc}"]`,wrapEl);if(!src||fc===onCols[0])return;
-        const sr=src.getBoundingClientRect(),sx=sr.left-wr.left+sr.width/2,sy=sr.top-wr.top+2;
-        const arch=Math.max(18,Math.min(42,Math.abs(dx-sx)*.26+fi*6));
-        const d=`M${sx.toFixed(1)},${sy.toFixed(1)} Q${((sx+dx)/2).toFixed(1)},${Math.max(2,sy-arch).toFixed(1)} ${dx.toFixed(1)},${dy.toFixed(1)}`;
-        paths+=`<path class="k-dp-arr" d="${d}" marker-end="url(#${S.uid}-dpa)"/>`;
-      });
+    if(mode==="1d"){
+      const dst=onCols.length?$(`.k-dp-tbl td[data-rk="dp"][data-c="${onCols[0]}"]`,wrapEl):null;
+      if(dst){
+        const dr=dst.getBoundingClientRect(),dx=dr.left-wr.left+dr.width/2,dy=dr.top-wr.top+2;
+        fromCols.forEach((fc,fi)=>{
+          const src=$(`.k-dp-tbl td[data-rk="dp"][data-c="${fc}"]`,wrapEl);if(!src||fc===onCols[0])return;
+          const sr=src.getBoundingClientRect(),sx=sr.left-wr.left+sr.width/2,sy=sr.top-wr.top+2;
+          const arch=Math.max(18,Math.min(42,Math.abs(dx-sx)*.26+fi*6));
+          const d=`M${sx.toFixed(1)},${sy.toFixed(1)} Q${((sx+dx)/2).toFixed(1)},${Math.max(2,sy-arch).toFixed(1)} ${dx.toFixed(1)},${dy.toFixed(1)}`;
+          paths+=`<path class="k-dp-arr" d="${d}" marker-end="url(#${S.uid}-dpa)"/>`;
+        });
+      }
+    } else {
+      const dst=$(".k-dp-cell.on",wrapEl),srcs=$$(".k-dp-cell.from",wrapEl);
+      if(dst&&srcs.length){
+        const dr=dst.getBoundingClientRect(),dcx=dr.left-wr.left+dr.width/2,dcy=dr.top-wr.top+dr.height/2;
+        const dhw=Math.max(6,dr.width/2-1),dhh=Math.max(6,dr.height/2-1);
+        srcs.forEach((src,fi)=>{
+          const sr=src.getBoundingClientRect(),scx=sr.left-wr.left+sr.width/2,scy=sr.top-wr.top+sr.height/2;
+          const shw=Math.max(6,sr.width/2-1),shh=Math.max(6,sr.height/2-1);
+          const dx=dcx-scx,dy=dcy-scy,dist=Math.hypot(dx,dy);if(dist<4)return;
+          const ux=dx/dist,uy=dy/dist;
+          const tS=Math.min(Math.abs(ux)>1e-3?shw/Math.abs(ux):1e9,Math.abs(uy)>1e-3?shh/Math.abs(uy):1e9);
+          const tD=Math.min(Math.abs(ux)>1e-3?dhw/Math.abs(ux):1e9,Math.abs(uy)>1e-3?dhh/Math.abs(uy):1e9);
+          const sx=scx+ux*tS,sy=scy+uy*tS,ex=dcx-ux*(tD+3),ey=dcy-uy*(tD+3);
+          const arch=Math.min(18,Math.max(7,Math.hypot(ex-sx,ey-sy)*.18))*(fi%2===0?-1:1);
+          const cx=(sx+ex)/2-uy*arch,cy=(sy+ey)/2+ux*arch;
+          const d=`M${sx.toFixed(1)},${sy.toFixed(1)} Q${cx.toFixed(1)},${cy.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}`;
+          paths+=`<path class="k-dp-arr" d="${d}" marker-end="url(#${S.uid}-dpa)"/>`;
+        });
+      }
     }
     arrSvg.innerHTML=paths;
+    if(E.motionOn())$$(".k-dp-arr",arrSvg).forEach(p=>{try{const l=p.getTotalLength();if(l){p.style.setProperty("--plen",String(Math.ceil(l)+4));p.classList.add("k-tree-draw")}}catch(_){}});
   };
   const render=(i)=>{
     const s=curSteps[i]||{};
@@ -1952,7 +1990,7 @@ Kit.dp=(id,o)=>{
           td.classList.toggle("path",traceC.includes(c));
         }
       });
-      requestAnimationFrame(()=>draw1DArr(onC,fromC));
+      requestAnimationFrame(()=>drawDpArr("1d",onC,fromC));
     } else {
       const onSet=new Set((s.on?(Array.isArray(s.on[0])?s.on:[s.on]):[]).map(normPair));
       const fromSet=new Set((s.from||[]).map(normPair));
@@ -1988,6 +2026,7 @@ Kit.dp=(id,o)=>{
       if(m==="bitmask"&&s.size!=null){
         $$(".k-dp-bit tbody tr",wrapEl).forEach(tr=>{tr.classList.toggle("is-sz-on",+tr.dataset.sz===s.size)});
       }
+      requestAnimationFrame(()=>drawDpArr(m,[],[]));
     }
     if(an&&s.use)an.showUse(s.t,s.use,"var(--pc)");
     if(o.on)o.on(i,S.stage,s);
@@ -2011,6 +2050,7 @@ Kit.dp=(id,o)=>{
   }
   buildTable(tabs[0]);curSteps=stepsFor(tabs[0]);
   player=E.stepper(S.viz,curSteps,i=>render(i),{ms:o.ms||3600});
+  addEventListener("resize",()=>requestAnimationFrame(()=>{const s=curSteps[player?player.i:0]||{};drawDpArr(curCfg.mode||"2d",Array.isArray(s.on)?s.on:(s.on!=null?[s.on]:[]),s.from||[])}));
   return player;
 };
 
@@ -2164,6 +2204,7 @@ Kit.network=(id,o)=>{
     curNodes.forEach((nd,ni)=>{
       const p=P[ni],rk=roleKey(nd.role)||"";
       s+=`<g class="k-net-node clickable" data-i="${ni}" data-id="${escAttr(nd.id)}" tabindex="0" role="button" aria-label="${escAttr(nd.t)}"${rk?` data-role="${rk}" style="--rc:var(--m-${rk})"`:""}${nd.use?` data-use="${escAttr(nd.use)}" data-uname="${escAttr(nd.t)}"`:""}>`;
+      s+=`<circle class="k-pulse-ring k-net-pulse hide" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${R+4}"/>`;
       s+=`<circle class="k-net-c" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${R}"/>`;
       s+=`<text class="k-net-t" x="${p.x.toFixed(1)}" y="${(p.y+4.5).toFixed(1)}" text-anchor="middle">${escHtml(nd.t)}</text>`;
       s+=`<g class="k-net-top" hidden></g><g class="k-net-bot" hidden></g></g>`;
@@ -2236,6 +2277,7 @@ Kit.network=(id,o)=>{
       const col=st.state||st.color||"white";
       const isOn=onSet.has(nd.id);
       g.classList.toggle("on",isOn);
+      const pr=$(".k-net-pulse",g);if(pr)pr.classList.toggle("hide",!isOn);
       g.classList.toggle("st-gray",col==="gray");
       g.classList.toggle("st-black",col==="black");
       g.classList.toggle("is-ok",col==="ok");
@@ -2395,15 +2437,15 @@ Kit.venn=(id,o)=>{
     const pCx=collapsed?240:200,pCy=collapsed?195:245,pRx=collapsed?165:110,pRy=collapsed?115:68;
     const nphCx=410,nphCy=145,nphRx=175,nphRy=115;
     let s=`<defs><clipPath id="${S.uid}-np"><ellipse cx="240" cy="195" rx="185" ry="132"/></clipPath></defs>`;
-    s+=`<g class="k-venn-zone" data-part="np" data-role="v" style="--rc:var(--m-v)"><ellipse class="k-venn-ring" cx="240" cy="195" rx="185" ry="132"/><text class="k-t" x="115" y="128" text-anchor="middle">NP</text></g>`;
-    s+=`<g class="k-venn-zone" data-part="nph" data-role="k" style="--rc:var(--m-k)"><ellipse class="k-venn-ring" cx="${nphCx}" cy="${nphCy}" rx="${nphRx}" ry="${nphRy}"/><text class="k-t" x="495" y="92" text-anchor="middle">NP-hard</text></g>`;
+    s+=`<g class="k-venn-zone" data-part="np" data-role="v" style="--rc:var(--m-v)"><ellipse class="k-venn-ring" cx="240" cy="195" rx="185" ry="132"/><text class="k-t" x="115" y="124" text-anchor="middle">NP</text><text class="k-s" x="115" y="140" text-anchor="middle">Fast to check</text></g>`;
+    s+=`<g class="k-venn-zone" data-part="nph" data-role="k" style="--rc:var(--m-k)"><ellipse class="k-venn-ring" cx="${nphCx}" cy="${nphCy}" rx="${nphRx}" ry="${nphRy}"/><text class="k-t" x="495" y="88" text-anchor="middle">NP-hard</text><text class="k-s" x="495" y="104" text-anchor="middle">At least as hard</text></g>`;
     s+=`<g class="k-venn-zone" data-part="npc" data-role="f" clip-path="url(#${S.uid}-np)" style="--rc:var(--m-f)"><ellipse class="k-venn-ring is-npc" cx="${nphCx}" cy="${nphCy}" rx="${nphRx}" ry="${nphRy}"/></g>`;
-    s+=`<g class="k-venn-zone" data-part="p" data-role="r" style="--rc:var(--m-r)"><ellipse class="k-venn-ring" cx="${pCx}" cy="${pCy}" rx="${pRx}" ry="${pRy}"/><text class="k-t" x="${pCx}" y="${pCy+(collapsed?-65:-32)}" text-anchor="middle">${collapsed?"P = NP = NPC":"P"}</text></g>`;
+    s+=`<g class="k-venn-zone" data-part="p" data-role="r" style="--rc:var(--m-r)"><ellipse class="k-venn-ring" cx="${pCx}" cy="${pCy}" rx="${pRx}" ry="${pRy}"/><text class="k-t" x="${pCx}" y="${pCy+(collapsed?-65:-32)}" text-anchor="middle">${collapsed?"P = NP = NPC":"P"}</text><text class="k-s" x="${pCx}" y="${pCy+(collapsed?-49:-16)}" text-anchor="middle">${collapsed?"All collapse together":"Fast to solve"}</text></g>`;
     const pills=collapsed
-      ?[{x:200,y:175,t:"3-SAT",r:"r"},{x:285,y:175,t:"Shortest Path",r:"r"},{x:240,y:215,t:"2-Coloring",r:"r"},{x:490,y:145,t:"TSP-OPT",r:"k"},{x:490,y:185,t:"Halting",r:"k"}]
-      :[{x:165,y:248,t:"Shortest Path",r:"r"},{x:260,y:248,t:"2-Coloring",r:"r"},{x:148,y:168,t:"Graph Iso?",r:"v"},{x:320,y:128,t:"3-SAT",r:"f"},{x:320,y:164,t:"Vertex Cover",r:"f"},{x:495,y:145,t:"TSP-OPT",r:"k"},{x:495,y:185,t:"Halting",r:"k"}];
-    pills.forEach(pl=>{s+=pillSvg(pl.x,pl.y,pl.t,{W,H,fs:11,cls:"k-epill on",tcls:"k-epill-t",role:pl.r,minW:34})});
-    if(!collapsed)s+=`<text class="k-c" x="320" y="96" text-anchor="middle" style="fill:var(--m-f)">NPC = NP ∩ NP-hard</text>`;
+      ?[{x:200,y:175,t:"3-SAT",r:"r",use:"Under P = NP, every NP-complete problem becomes fast to solve."},{x:285,y:175,t:"Shortest Path",r:"r",use:"Solved in O(V+E) or O((V+E) log V) — solidly in P."},{x:240,y:215,t:"2-Coloring",r:"r",use:"Checked by one BFS/DFS pass — polynomial time (P)."},{x:490,y:145,t:"TSP-OPT",r:"k",use:"Optimization (find min tour cost, not Yes/No) sits above NP."},{x:490,y:185,t:"Halting",r:"k",use:"Undecidable: outside NP even if P = NP."}]
+      :[{x:165,y:248,t:"Shortest Path",r:"r",use:"Solved in O(V+E) or O((V+E) log V) — fast to solve (P)."},{x:260,y:248,t:"2-Coloring",r:"r",use:"Solved in O(V+E) by BFS/DFS — fast to solve (P)."},{x:148,y:168,t:"Graph Iso?",r:"v",use:"Easy to check a bijection (in NP), not proven in P or NPC."},{x:320,y:132,t:"3-SAT",r:"f",use:"Canonical NPC problem: every NP problem reduces to 3-SAT."},{x:320,y:168,t:"Vertex Cover",r:"f",use:"NPC: easy to check a cover, hard to find minimum k vertices."},{x:495,y:145,t:"TSP-OPT",r:"k",use:"Optimization (not Yes/No decision) — sits in NP-hard \\ NP."},{x:495,y:185,t:"Halting",r:"k",use:"Undecidable: at least as hard as NP, not even verifiable."}];
+    pills.forEach(pl=>{s+=pillSvg(pl.x,pl.y,pl.t,{W,H,fs:11,cls:"k-epill clickable on",tcls:"k-epill-t",role:pl.r,minW:34,use:pl.use,uname:pl.t})});
+    if(!collapsed)s+=`<text class="k-c" x="320" y="92" text-anchor="middle" style="fill:var(--m-f)">NPC = NP ∩ NP-hard</text><text class="k-s" x="320" y="106" text-anchor="middle">Hardest Yes/No problems in NP</text>`;
     svg.innerHTML=s;if(an)an.wire(svg);
   };
   const render=i=>{

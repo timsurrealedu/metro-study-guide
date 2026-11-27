@@ -122,7 +122,7 @@ let moved=[],made=[],arranged=null,nextBase="Next",pendingLast=false,pgEl=null;c
 function moveTo(n,into){const ph=document.createComment("exm");n.before(ph);into.appendChild(n);moved.push([n,ph])}
 function restoreMoved(){moved.reverse().forEach(([n,ph])=>{if(ph.parentNode)ph.parentNode.insertBefore(n,ph);ph.remove()});moved=[];made.forEach(m=>m.remove());made=[];
   closeTry();tryBtn.hidden=true;arranged=null;$$(".ex-win",med).forEach(st=>{st.classList.remove("ex-win","ex-win-top","ex-win-bot");st.style.maxHeight=""})}
-function returnNodes(){restoreMoved();shown.forEach(n=>{const ph=home.get(n);if(ph&&ph.parentNode)ph.parentNode.insertBefore(n,ph);n.style.zoom=""});shown=[];txt.innerHTML="";txt.style.zoom="";med.innerHTML="";med.style.zoom="";med.style.height="";med.scrollTop=0;med.classList.remove("paged","more");txt.style.height="";txt.scrollTop=0;txt.classList.remove("paged","more");card.style.height="";card.scrollTop=0;card.classList.remove("more");pgEl=null;card.classList.remove("scroll","two","solo","title","paged");pg.stops=[0];pg.i=0;
+function returnNodes(){restoreMoved();shown.forEach(n=>{const ph=home.get(n);if(ph&&ph.parentNode)ph.parentNode.insertBefore(n,ph);n.style.zoom=""});shown=[];txt.innerHTML="";txt.style.zoom="";med.innerHTML="";med.style.zoom="";med.style.height="";med.scrollTop=0;med.classList.remove("paged","more","ex-scroll-y");txt.style.height="";txt.scrollTop=0;txt.classList.remove("paged","more");card.style.height="";card.scrollTop=0;card.classList.remove("more","m-has-focus","ex-scroll-y");delete card.dataset.pinRole;delete card.dataset.pinFeat;$$(".m-focus",card).forEach(el=>el.classList.remove("m-focus"));pgEl=null;card.classList.remove("scroll","two","solo","title","paged");pg.stops=[0];pg.i=0;
   painted.forEach((d,q)=>q.dispatchEvent(new CustomEvent("quizpaint",{bubbles:true,detail:d})));painted.clear()}
 function openTry(){trySheet.hidden=false;tryBtn.setAttribute("aria-expanded","true");ex.classList.add("trying")}
 function closeTry(){trySheet.hidden=true;tryBtn.setAttribute("aria-expanded","false");ex.classList.remove("trying")}
@@ -216,12 +216,12 @@ function squeeze(avail,keepTop,keep,floor=.72){
 function refit(keep){
   if(cur<0)return;
   const w0=$(".ex-win",med),keepTop=w0?w0.scrollTop:0;
-  resetFit();txt.style.zoom="";med.style.height="";med.classList.remove("paged","more");txt.style.height="";txt.classList.remove("paged","more");
-  card.style.height="";card.scrollTop=0;card.classList.remove("scroll","paged","more");pgEl=med;
+  resetFit();txt.style.zoom="";med.style.height="";med.classList.remove("paged","more","ex-scroll-y");txt.style.height="";txt.classList.remove("paged","more");
+  card.style.height="";card.scrollTop=0;card.classList.remove("scroll","paged","more","ex-scroll-y");pgEl=med;
   const wide=card.classList.contains("two");
   card.classList.toggle("head-only",![...txt.children].some(n=>n.tagName!=="H3")&&!!txt.childNodes.length);
   const cs=getComputedStyle(stage),H=stage.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-4;
-  const parts=()=>{pgEl=card;card.style.height=H+"px";card.classList.add("paged");return setPages(stopsFor(H),keep)};
+  const parts=()=>{pgEl=card;card.style.height=H+"px";card.classList.add("paged");if(!wide)card.classList.add("ex-scroll-y");return setPages(stopsFor(H),keep)};
   if(wide&&txt.scrollHeight>H)txt.style.zoom=Math.max(.82,H/txt.scrollHeight).toFixed(3);
   if(!med.childNodes.length){
     if(txt.scrollHeight>H){const z=H/txt.scrollHeight;if(z>=.8)txt.style.zoom=z.toFixed(3);else return parts()}
@@ -235,7 +235,7 @@ function refit(keep){
   if(!wide&&stepped&&tH>0){resetFit();
     const after=[...med.children].filter(n=>n!==v&&(v.compareDocumentPosition(n)&Node.DOCUMENT_POSITION_FOLLOWING));
     const extra=after.length?med.scrollHeight-(v.getBoundingClientRect().bottom-med.getBoundingClientRect().top):0;
-    if(squeeze(H+extra,keepTop,keep,.66)<=0){pgEl=card;card.style.height=H+"px";card.classList.add("paged");
+    if(squeeze(H+extra,keepTop,keep,.66)<=0){pgEl=card;card.style.height=H+"px";card.classList.add("paged","ex-scroll-y");
       const at=n=>Math.round(n.getBoundingClientRect().top-card.getBoundingClientRect().top+card.scrollTop);
       const S=[0,at(v)];if(after.length&&card.scrollHeight-S[1]>H+1)S.push(at(after[0]));return setPages(S,keep)}
     resetFit();squeeze(avail,keepTop,keep)}
@@ -278,6 +278,20 @@ function follow(smooth=true){
   st.scrollTo({top,behavior:smooth&&E.motionOn()?"smooth":"auto"});
   winEdges(st);setTimeout(()=>winEdges(st),260);
 }
+function syncScroll(){
+  if(!pgEl||!pgEl.classList.contains("ex-scroll-y")||pg.stops.length<2)return;
+  const top=pgEl.scrollTop,atEnd=top+pgEl.clientHeight>=pgEl.scrollHeight-12;
+  let idx=pg.stops.length-1;
+  if(!atEnd){idx=0;for(let k=0;k<pg.stops.length;k++)if(top>=pg.stops[k]-24)idx=k}
+  pg.i=idx;
+  const n=pg.stops.length,more=!atEnd&&idx<n-1;
+  pgEl.classList.toggle("more",more&&n>1);
+  $(".ex-prev",ex).disabled=cur===0&&pg.i===0;
+  $(".ex-next span",ex).textContent=more?"More":nextBase;
+  count.textContent=(count.dataset.base||"")+(n>1?` · part ${pg.i+1} of ${n}`:"");
+}
+card.addEventListener("scroll",syncScroll,{passive:true});
+med.addEventListener("scroll",syncScroll,{passive:true});
 med.addEventListener("scroll",e=>{if(e.target.classList&&e.target.classList.contains("ex-win"))winEdges(e.target)},true);
 med.addEventListener("visualstep",()=>requestAnimationFrame(()=>{refit(true);follow(true)}));
 med.addEventListener("quizpaint",e=>{painted.set(e.target,e.detail);requestAnimationFrame(()=>refit(true))});

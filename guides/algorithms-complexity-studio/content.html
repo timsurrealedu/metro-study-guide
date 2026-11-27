@@ -6,17 +6,17 @@
     <p class="bigidea">Dynamic Programming caches repeated subproblems so an exponential recursion tree collapses into a small acyclic graph.</p>
 
     <div class="sec"><h3 data-eb="In plain words">Overlapping subproblems</h3>
-      <p>A naive recursive function solves the exact same subproblem over and over. Storing each finished answer in a table turns duplicate work into an instant lookup.</p>
+      <p>Think of DP like sticky notes on a hard math worksheet: the first time you solve a small question, you write the answer on a note so you never have to re-calculate it again.</p>
       <dl class="terms">
-        <div data-role="v"><b>Optimal Substructure</b><span class="d">A big optimal answer is built directly from optimal answers to smaller pieces.</span></div>
-        <div data-role="f"><b>Memoization DAG</b><span class="d">Caching turns repeated tree branches into shared pointers on a <em>directed acyclic graph</em>.</span></div>
-        <div data-role="c"><b>Fill Order</b><span class="d">Evaluating states from smallest to largest guarantees every needed subproblem is already ready.</span></div>
+        <div data-role="v"><b>Optimal Substructure</b><span class="d">The best overall answer can be glued together cleanly from the best answers to smaller sub-pieces.</span></div>
+        <div data-role="f"><b>Memoization DAG</b><span class="d">Looking up cached sticky notes merges identical tree branches into shared pointers on a neat one-way graph.</span></div>
+        <div data-role="c"><b>Fill Order</b><span class="d">Solving tiny subproblems before bigger ones guarantees every sticky note is already waiting when you need it.</span></div>
       </dl>
-      <div class="callout eg"><b>Example</b><div>Computing <span class="m">fib(5)</span> by hand repeats <span class="m">fib(2)</span> three times. Writing <span class="m">dp[0..5]</span> on paper once drops the work from <span class="m">O(2^{n})</span> calls to <span class="m">O(n)</span> steps.</div></div>
+      <div class="callout eg"><b>Real-world example</b><div>If your friend asks "What is <span class="m">fib(2)</span>?" three times in one conversation, computing it from scratch each time blows up to <span class="m">O(2^{n})</span> calls. Jotting <span class="m">dp[2] = 1</span> down once turns the work into <span class="m">O(n)</span> fast lookups.</div></div>
     </div>
 
     <div class="sec"><h3 data-eb="See it">Recursion Tree vs. Memoization DAG</h3>
-      <p class="lead">Switch tabs to compare how naive <span class="m">fib(4)</span> repeats calls in a tree while memoization merges duplicate nodes into a linear chain.</p>
+      <p class="lead">Tap through Step 1–3 on the <b>Recursion Tree</b> to spot wasted duplicate red calls, then switch to <b>Memoization DAG</b> to watch all duplicates merge into 5 cached boxes.</p>
       <div class="viz" id="tr-memo"></div>
     </div>
 
@@ -50,20 +50,25 @@
   </article>
 
   <article class="chapter" id="c1-2" data-n="1.2" data-short="1D & 2D DP" data-title="1D & 2D Prefix DP: Kadane, LIS & LCS" data-tag="1D · Reconstruction · Arrows">
-    <p class="bigidea">Prefix DP scans arrays and string prefixes step by step, storing either the best score or an arrow back to the winning choice.</p>
+    <p class="bigidea">Prefix DP walks left-to-right storing the best score so far—plus a breadcrumb pointer so you can rebuild the winning sequence backward.</p>
+
+    <div class="sec"><h3 data-eb="In plain words">Winning streaks &amp; matching letters</h3>
+      <p>Imagine walking down a row of numbers keeping only what helps you: if yesterday's total is negative, drop it and start fresh today.</p>
+      <div class="callout eg"><b>Example</b><div>To match two words like <b>ABC</b> and <b>AC</b> letter by letter, identical letters add <span class="m">+1</span> diagonally (<span class="m">↖</span>); mismatched letters simply carry over the taller score from above (<span class="m">↑</span>) or left (<span class="m">←</span>).</div></div>
+    </div>
 
     <div class="sec"><h3 data-eb="Interactive Tracer">Kadane's &amp; LIS with Parent Pointers</h3>
-      <p class="lead">Switch between <b data-role="c">Kadane's</b> maximum subarray and <b data-role="r">LIS</b> with <span class="m">parent[i]</span> reconstruction. Curved blue arrows show which earlier cell each step reads.</p>
+      <p class="lead">Switch between <b data-role="c">Kadane's</b> (keep streak vs. restart) and <b data-role="r">LIS</b> (link to earlier smaller element). Blue arrows show the exact earlier cell each step reads.</p>
       <div class="viz" id="dp-1d"></div>
     </div>
 
     <div class="sec"><h3 data-eb="Worked Recurrence">Kadane's Recurrence Step by Step</h3>
-      <p class="lead">At each index <span class="m">i</span>, decide whether extending the previous streak helps or whether <span class="m">A[i]</span> is better off starting fresh.</p>
+      <p class="lead">At each index <span class="m">i</span>, compare two choices: start a brand-new subarray at <span class="m">A[i]</span> or glue <span class="m">A[i]</span> onto the best streak ending at <span class="m">i-1</span>.</p>
       <div class="viz" id="der-kadane"></div>
     </div>
 
     <div class="sec"><h3 data-eb="2D Grid Tracer">LCS Table with Directional Arrows</h3>
-      <p class="lead">Watch <span class="m">c[i,j]</span> fill row by row for <span class="m">X = ABC</span> and <span class="m">Y = AC</span>, then trace the green <span class="m">↖</span> diagonal matches backward.</p>
+      <p class="lead">Step through filling <span class="m">c[i,j]</span> for <span class="m">X = ABC</span> and <span class="m">Y = AC</span>. Blue arrows point from the cells we read; green <span class="m">↖</span> marks show matching letters used in the final traceback.</p>
       <div class="viz" id="dp-lcs"></div>
     </div>
 
@@ -73,10 +78,14 @@
   </article>
 
   <article class="chapter" id="c1-3" data-n="1.3" data-short="0/1 Knapsack" data-title="0/1 Knapsack & Rolling Array Order" data-tag="2D Grid · 1D Direction">
-    <p class="bigidea">Every item is taken once or skipped once—and shrinking the table to one row works only if capacity sweeps right-to-left.</p>
+    <p class="bigidea">Every item is either packed once or left behind—and shrinking the 2D table to one row works only if capacity sweeps right-to-left.</p>
+
+    <div class="sec"><h3 data-eb="In plain words">Why sweep backwards?</h3>
+      <p>Packing a bag with one copy of each item means checking yesterday's shelf (row <span class="m">i-1</span>) before updating it. Sweeping left-to-right overwrites smaller capacities first, letting the current item sneak into the bag twice.</p>
+    </div>
 
     <div class="sec"><h3 data-eb="Interactive Tracer">2D Table &amp; 1D Rolling Array Bug Toggle</h3>
-      <p class="lead">Step through the full <span class="m">dp[i,c]</span> grid, or switch to the <b>1D Rolling Array</b> tab and toggle <b>Right → Left</b> vs. <b>Left → Right</b> to see item reuse happen live.</p>
+      <p class="lead">First watch how the <b>2D table</b> pulls values from the row above, then switch to <b>1D Rolling Array</b> and toggle <b>Left → Right</b> to catch the double-packing bug live.</p>
       <div class="viz" id="dp-knap"></div>
     </div>
 
@@ -92,10 +101,15 @@
   </article>
 
   <article class="chapter" id="c1-4" data-n="1.4" data-short="Interval DP" data-title="Diagonal Interval DP" data-tag="MCM · OBST · Stick · Balloons">
-    <p class="bigidea">Interval DP solves subarrays <span class="m">[i, j]</span> along diagonals of growing length <span class="m">l = 2 \dots n</span> so both halves are already computed.</p>
+    <p class="bigidea">Interval DP solves short chunks before long chunks—which on a grid means filling diagonally from bottom-left to top-right (<span class="m">l = 2 \dots n</span>).</p>
+
+    <div class="sec"><h3 data-eb="In plain words">Short chunks first</h3>
+      <p>Every cell <span class="m">[i, j]</span> combines a shorter left chunk <span class="m">[i, k]</span> and a shorter right chunk <span class="m">[k+1, j]</span>. Solving length 2, then length 3, then length 4 ensures both pieces are ready first.</p>
+      <div class="callout eg"><b>Example</b><div>Multiplying matrices <span class="m">(A_{1}A_{2})A_{3}</span> vs. <span class="m">A_{1}(A_{2}A_{3})</span> produces the exact same product, yet good parenthesizing can cut millions of scalar multiplications down to a few hundred.</div></div>
+    </div>
 
     <div class="sec"><h3 data-eb="Interactive Tracer">Diagonal Fill Order Across Four Classic Problems</h3>
-      <p class="lead">Pick any of the four classic Interval DP problems below and watch the teal diagonal band sweep upward from length <span class="m">l = 2</span> to <span class="m">l = n</span>.</p>
+      <p class="lead">Switch between the four problems below and watch blue dependency arrows feed shorter teal diagonals into each longer interval cell.</p>
       <div class="viz" id="dp-int"></div>
     </div>
 
@@ -110,10 +124,14 @@
   </article>
 
   <article class="chapter" id="c1-5" data-n="1.5" data-short="Bitmask DP" data-title="Subset Bitmask DP & Master Matrix" data-tag="Held-Karp · DP Matrix">
-    <p class="bigidea">When <span class="m">n \le 20</span>, an integer bitmask encodes which vertices are visited, and DP fills subsets by increasing size <span class="m">\vert S\vert</span>.</p>
+    <p class="bigidea">When <span class="m">n \le 20</span>, a binary bitmask acts like a checklist of visited cities—turning <span class="m">O(n!)</span> route permutations into <span class="m">O(2^{n}n^{2})</span> subset steps.</p>
+
+    <div class="sec"><h3 data-eb="In plain words">A binary checklist for visited cities</h3>
+      <p>For 4 cities, the 4-bit code <span class="m">0111</span> means you have visited cities <span class="m">\{0, 1, 2\}</span>. By grouping rows by how many 1-bits are set (<span class="m">\vert S\vert = 1, 2, 3, 4</span>), every longer path builds cleanly from a 1-city-shorter prefix.</p>
+    </div>
 
     <div class="sec"><h3 data-eb="Interactive Tracer">Held-Karp TSP by Subset Size <span class="m">\vert S\vert</span></h3>
-      <p class="lead">Trace <span class="m">dp[S, v]</span> across <span class="m">\vert S\vert = 1, 2, 3, 4</span> for a 4-city tour starting at vertex <span class="m">0</span>.</p>
+      <p class="lead">Watch <span class="m">dp[S, v]</span> step from 1-city start <span class="m">0001</span> down to the full 4-city tour <span class="m">1111</span>, with blue arrows linking each previous endpoint.</p>
       <div class="viz" id="dp-tsp"></div>
     </div>
 
@@ -147,16 +165,16 @@
   data-lede="Classify edges via DFS timestamps, pick the right shortest-path engine, and prune search trees with AC-3 and Branch-and-Bound.">
 
   <article class="chapter" id="c2-1" data-n="2.1" data-short="BFS, DFS & Kahn" data-title="BFS, DFS Edge Classifier & Kahn's Queue" data-tag="(d, f) · Parenthesis · Edges">
-    <p class="bigidea">DFS timestamps <span class="m">(d, f)</span> reveal nested subtrees and every edge type, while Kahn's queue peels off zero in-degree sources.</p>
+    <p class="bigidea">Think of DFS as coloring vertices as you explore a maze: hitting a still-open GRAY bread-crumb proves you walked in a loop.</p>
 
     <div class="sec"><h3 data-eb="Interactive Graph">DFS Edge Classifier vs. BFS &amp; Kahn's Queue</h3>
-      <p class="lead">Watch vertices turn white → gray → black with live <span class="m">[d, f]</span> Parenthesis Theorem bars, then switch to <b>BFS &amp; Kahn's Queue</b> to see in-degree-0 ordering.</p>
+      <p class="lead">Watch vertices change color (<b>White</b> unseen → <b>Gray</b> currently on the stack → <b>Black</b> completely finished) alongside live nested <span class="m">[d, f]</span> bars, then try <b>Kahn's Queue</b>.</p>
       <div class="viz" id="net-trav"></div>
       <dl class="terms">
-        <div data-role="r"><b>Tree Edge</b><span class="d">Discovers a <em>white</em> (unvisited) vertex and builds the search forest.</span></div>
-        <div data-role="k"><b>Back Edge</b><span class="d">Points to a <em>gray</em> active ancestor—exists if and only if the graph has a cycle.</span></div>
-        <div data-role="a"><b>Forward Edge</b><span class="d">Non-tree edge pointing from an ancestor <span class="m">u</span> to a finished <em>black</em> descendant <span class="m">v</span> (<span class="m">d[u] &lt; d[v]</span>).</span></div>
-        <div data-role="c"><b>Cross Edge</b><span class="d">Connects finished <em>black</em> subtrees where neither is an ancestor of the other (<span class="m">d[u] &gt; d[v]</span>).</span></div>
+        <div data-role="r"><b>Tree Edge</b><span class="d">Steps into a fresh <em>white</em> vertex—forms the main green search skeleton.</span></div>
+        <div data-role="k"><b>Back Edge</b><span class="d">Loops back to a still-<em>gray</em> ancestor on your active call stack—proves a cycle!</span></div>
+        <div data-role="a"><b>Forward Edge</b><span class="d">Shortcut to an already-<em>black</em> descendant (<span class="m">d[u] &lt; d[v]</span>) deep inside your own interval.</span></div>
+        <div data-role="c"><b>Cross Edge</b><span class="d">Jumps sideways to a finished <em>black</em> sibling (<span class="m">d[u] &gt; d[v]</span>) with no nesting.</span></div>
       </dl>
     </div>
 
@@ -166,10 +184,14 @@
   </article>
 
   <article class="chapter" id="c2-2" data-n="2.2" data-short="Shortest Paths" data-title="Shortest-Path Relaxation Stepper" data-tag="Dijkstra · Bellman-Ford · DAG">
-    <p class="bigidea">Relaxation shrinks distance estimates edge by edge, but each algorithm trades speed for what weights and cycles it tolerates.</p>
+    <p class="bigidea">Relaxing an edge means asking: "Does walking through <span class="m">u</span> beat my current best distance to <span class="m">v</span>?" Different graphs allow different shortcuts.</p>
+
+    <div class="sec"><h3 data-eb="In plain words">Why negative weights break greedy locks</h3>
+      <p><b>Dijkstra</b> permanently locks whichever node looks closest right now—fast, but blind to negative "rebate" edges later. <b>Bellman-Ford</b> re-checks every edge <span class="m">\vert V\vert-1</span> times to catch rebates and loops, while <b>DAG-SP</b> follows one-way dependencies in one clean pass.</p>
+    </div>
 
     <div class="sec"><h3 data-eb="Side-by-Side Stepper">Dijkstra vs. Bellman-Ford vs. DAG-SP</h3>
-      <p class="lead">Compare how <b>Dijkstra</b> locks a wrong answer on a negative edge, how <b>Bellman-Ford</b> catches a negative cycle on pass <span class="m">\vert V\vert</span>, and how <b>DAG-SP</b> finishes in one topological pass.</p>
+      <p class="lead">Switch between the three tabs to see Dijkstra lock <span class="m">a=2</span> too soon, Bellman-Ford spot a negative loop on pass <span class="m">\vert V\vert</span>, and DAG-SP relax <span class="m">b</span> before <span class="m">a</span> cleanly.</p>
       <div class="viz" id="net-sp"></div>
     </div>
 
@@ -194,15 +216,19 @@
   </article>
 
   <article class="chapter" id="c2-3" data-n="2.3" data-short="Backtracking" data-title="Backtracking & AC-3 Pruning Trees" data-tag="4-Queens · Sudoku AC-3">
-    <p class="bigidea">Backtracking checks feasibility at every partial choice and cuts dead branches early—while AC-3 shrinks candidate domains before branching.</p>
+    <p class="bigidea">Smart search never finishes a doomed path: it checks rules at every single step and crosses off impossible digits before guessing.</p>
+
+    <div class="sec"><h3 data-eb="In plain words">Stop early when a partial guess already fails</h3>
+      <p>In 4-Queens, placing two attacking queens on Row 0 and Row 1 immediately kills all deeper placements below them. In Sudoku, crossing off row/column/box conflicts (<b data-role="v">AC-3</b>) often solves cells without any guessing at all.</p>
+    </div>
 
     <div class="sec"><h3 data-eb="State-Space Tree">4-Queens Feasibility &amp; Dead-End Pruning</h3>
-      <p class="lead">Follow the tree alongside the chessboard to see <b data-role="c">PROMISING</b> checks, dead-end <b data-role="k">PRUNED</b> branches, and the first valid <b data-role="r">Solution</b>.</p>
+      <p class="lead">Watch the chessboard on the left sync with the decision tree: amber <b data-role="c">PROMISING</b> checks test safe squares, red <b data-role="k">PRUNED</b> branches stop dead ends early, and green <b data-role="r">Solved!</b> finds the valid board.</p>
       <div class="viz" id="tr-queens"></div>
     </div>
 
     <div class="sec"><h3 data-eb="Constraint Propagation">4×4 Sudoku with AC-3 Domain Shrinking</h3>
-      <p class="lead">Watch AC-3 eliminate conflicting digits from neighboring cells in the 4×4 grid before backtracking makes its choice.</p>
+      <p class="lead">Watch cell <span class="m">(0,1)</span> on the 4×4 grid cross out impossible digits 1, 3, and 4 in red so only <span class="m">2</span> remains—solving two cells with zero trial-and-error.</p>
       <div class="viz" id="tr-sudoku"></div>
     </div>
 
@@ -212,12 +238,12 @@
   </article>
 
   <article class="chapter" id="c2-4" data-n="2.4" data-short="Branch & Bound" data-title="0/1 Knapsack Branch-and-Bound" data-tag="Upper Bound · Pruning">
-    <p class="bigidea">Branch-and-Bound computes a fractional upper bound at every node and grays out any subtree that cannot beat <span class="m">best\_so\_far</span>.</p>
+    <p class="bigidea">Imagine shopping with a greedy ceiling estimate: if the absolute best possible total inside a branch still falls below what you already found, walk away.</p>
 
     <div class="sec"><h3 data-eb="Live Upper Bound">Fractional Bound <span class="m">ub = v_{\text{so far}} + \text{frac}(W_{\text{rem}})</span></h3>
-      <p class="lead">Sort items by value-to-weight ratio (<span class="m">60/2=30, 50/2=25, 40/2=20</span>, <span class="m">W=4</span>) and watch subtrees prune whenever <span class="m">ub \le best\_so\_far</span>.</p>
+      <p class="lead">Items are sorted best-value-per-kg first (<span class="m">30, 25, 20</span> per unit weight, cap <span class="m">W=4</span>). Step through to watch subtrees get grayed out (<b data-role="k">PRUNED</b>) as soon as <span class="m">ub \le best\_so\_far</span>.</p>
       <div class="viz" id="tr-bnb"></div>
-      <div class="callout eg"><b>Example</b><div>If your current best integer profit is <span class="m">110</span> and skipping item 1 leaves a fractional upper bound of only <span class="m">90</span>, exploring that subtree is mathematically pointless—prune it!</div></div>
+      <div class="callout eg"><b>Example</b><div>Once you pack items 1 + 2 for a real integer profit of <span class="m">110</span>, skipping item 1 leaves an optimistic ceiling of at most <span class="m">90</span> (items 2 + 3). Since <span class="m">90 \le 110</span>, checking that entire subtree can never beat 110!</div></div>
     </div>
 
     <div class="traps">
@@ -231,10 +257,10 @@
   data-lede="Map P, NP, NPC, and NP-hard, follow CLRS's reduction spine, and build the 3-SAT ≤ₚ Independent Set gadget.">
 
   <article class="chapter" id="c3-1" data-n="3.1" data-short="P, NP & NPC" data-title="Complexity Classes & Tractability Boundary" data-tag="Venn · P vs NP">
-    <p class="bigidea">NPC is the intersection of easily verifiable problems (NP) and problems at least as hard as every NP problem (NP-hard).</p>
+    <p class="bigidea">Filling in a giant Sudoku puzzle from scratch takes forever (hard to solve), yet checking a friend's finished grid takes seconds (easy to verify).</p>
 
     <div class="sec"><h3 data-eb="Structural Diagram">Complexity Class Venn Diagram</h3>
-      <p class="lead">Step through <b data-role="r">P</b>, <b data-role="v">NP</b>, <b data-role="f">NPC</b>, and <b data-role="k">NP-hard</b>, then switch to <b>Assume P = NP</b> to watch P, NP, and NPC collapse together.</p>
+      <p class="lead">Tap any ring or problem badge inside the diagram to see why it belongs there—and toggle <b>Assume P = NP</b> to watch <b data-role="r">P</b>, <b data-role="v">NP</b>, and <b data-role="f">NPC</b> collapse into one circle.</p>
       <div class="viz" id="venn-pnp"></div>
     </div>
 
@@ -258,10 +284,10 @@
   </article>
 
   <article class="chapter" id="c3-2" data-n="3.2" data-short="Reductions" data-title="Polynomial Reductions & CLRS Reduction DAG" data-tag="A ≤ₚ B · Fig 34.13 · Proof">
-    <p class="bigidea">A polynomial-time reduction <span class="m">A \le_{P} B</span> transforms known-hard <span class="m">A</span> into target <span class="m">B</span> so any fast solver for <span class="m">B</span> would solve <span class="m">A</span>.</p>
+    <p class="bigidea">A reduction <span class="m">A \le_{P} B</span> is a fast puzzle translator: turn known-hard puzzle <span class="m">A</span> into puzzle <span class="m">B</span> so solving <span class="m">B</span> automatically cracks <span class="m">A</span>.</p>
 
     <div class="sec"><h3 data-eb="Pipeline">Polynomial-Time Reduction Pipeline</h3>
-      <p class="lead">Follow an input <span class="m">x \in A</span> through the polynomial-time mapper <span class="m">F(x)</span> into a hypothetical decider for <span class="m">B</span>.</p>
+      <p class="lead">Follow an input <span class="m">x \in A</span> through the fast translator <span class="m">F(x)</span> into an imaginary solver for <span class="m">B</span>.</p>
       <div class="viz" id="fl-red"></div>
     </div>
 
@@ -286,10 +312,14 @@
   </article>
 
   <article class="chapter" id="c3-3" data-n="3.3" data-short="3-SAT Gadget" data-title="3-SAT ≤ₚ Independent Set Gadget Builder" data-tag="Triangles · Conflicts">
-    <p class="bigidea">Each 3-SAT clause becomes a 3-vertex triangle, and opposite literals <span class="m">x_{i} \leftrightarrow \neg x_{i}</span> get conflict edges so only consistent assignments yield <span class="m">k</span> independent vertices.</p>
+    <p class="bigidea">Turn each 3-term clause into a triangle (pick at most 1 corner) and wire opposite clues (<span class="m">x_{i} \leftrightarrow \neg x_{i}</span>) so contradictory choices touch.</p>
+
+    <div class="sec"><h3 data-eb="In plain words">Translating logic into graph vertices</h3>
+      <p>An <b>Independent Set</b> picks vertices with no edges connecting any two picked vertices. Because clause edges block picking two literals from one clause and dashed red wires block picking both <span class="m">x_{i}</span> and <span class="m">\neg x_{i}</span>, picking <span class="m">k=3</span> safe vertices works if and only if the formula is true!</p>
+    </div>
 
     <div class="sec"><h3 data-eb="Interactive Gadget">Clause Triangles &amp; Conflict Edges</h3>
-      <p class="lead">Toggle <span class="m">x_{1}, x_{2}, x_{3}</span> (or tap any green literal vertex) to watch how satisfying all <span class="m">3</span> clauses produces an Independent Set of size <span class="m">k = 3</span> with zero conflicts.</p>
+      <p class="lead">Toggle <span class="m">x_{1}, x_{2}, x_{3}</span> yourself (or tap any literal node) to watch valid truth assignments select <span class="m">3</span> green non-touching vertices.</p>
       <div class="viz" id="net-sat"></div>
     </div>
 
@@ -304,10 +334,10 @@
   data-lede="Bound worst-case ratios ρ ≥ 1 without knowing OPT, shortcut Metric TSP tours via MSTs, and trade ε for polynomial time.">
 
   <article class="chapter" id="c4-1" data-n="4.1" data-short="Metric TSP" data-title="Approximation Ratios & Metric TSP Tour" data-tag="ρ ≥ 1 · MST Shortcut">
-    <p class="bigidea">When optimal solutions are NP-hard, an MST or maximal matching provides a provable lower bound on <span class="m">OPT</span>.</p>
+    <p class="bigidea">When finding the exact best answer is too slow, connect all cities with a cheap spanning tree first, then take direct shortcuts over repeats.</p>
 
     <div class="sec"><h3 data-eb="Interactive Tour">APPROX-TSP-TOUR: MST → Preorder → Shortcut</h3>
-      <p class="lead">Step through building an MST (<span class="m">OPT \ge w(MST)</span>), doubling edges for a preorder walk, and shortcutting repeated vertices via the triangle inequality.</p>
+      <p class="lead">Walk the 3 steps: (1) build an MST costing at most <span class="m">OPT</span>, (2) trace around it twice (<span class="m">\le 2 \cdot OPT</span>), and (3) skip repeated stops via the triangle inequality.</p>
       <div class="viz" id="net-tsp"></div>
     </div>
 
@@ -322,10 +352,10 @@
   </article>
 
   <article class="chapter" id="c4-2" data-n="4.2" data-short="FPTAS & Trim" data-title="Subset-Sum Trimming & Knapsack FPTAS" data-tag="TRIM(L,δ) · Scaling">
-    <p class="bigidea">Trimming values within <span class="m">(1+\delta)</span> or scaling profits by <span class="m">K</span> shrinks exponential tables to polynomial size with error bounded by <span class="m">\varepsilon</span>.</p>
+    <p class="bigidea">Suppose you only care about getting within <span class="m">\varepsilon</span> of the exact best sum: erase sums that sit right next to each other so the list stays short and fast.</p>
 
     <div class="sec"><h3 data-eb="Interactive Simulator">Subset-Sum List Merging &amp; <span class="m">\text{TRIM}(L, \delta)</span></h3>
-      <p class="lead">Step through merging <span class="m">L_{i-1}</span> with <span class="m">L_{i-1} + x_{i}</span> and drag the <b>Tolerance ε</b> slider to see how larger <span class="m">\varepsilon</span> trims more sums.</p>
+      <p class="lead">Watch sums shift and merge, and drag the <b>Tolerance ε</b> slider: higher <span class="m">\varepsilon</span> crosses out more nearly-identical orange values while staying guaranteed close to optimal.</p>
       <div class="viz" id="trim-ss"></div>
     </div>
 
