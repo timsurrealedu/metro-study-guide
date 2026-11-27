@@ -1,9 +1,8 @@
 /* =====================================================================
-   METRO ENGINE v1.5 · BOOT SCREEN · MODE PICKER · FULL-SCREEN EXPLAINER
+   METRO ENGINE v2.0 · BOOT SCREEN · MODE PICKER · FULL-SCREEN EXPLAINER
    Two ways to ride the same stations:
-     scroll   – the whole guide on one page (the original layout)
-     explain  – full screen, one idea per screen: explainer text on top,
-                the visual / table / quiz in the middle, Back + Next below.
+     explain  – full screen, one Beat at a time, visual-first
+     scroll   – the whole guide on one page
    The explainer reuses the real content nodes (moved in and out), so
    every visual, quiz and table keeps working and keeps its state.
    ===================================================================== */
@@ -22,26 +21,30 @@ const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches||root.datase
 const msg=boot&&$(".boot-msg",boot),bar=boot&&$(".boot-bar i",boot);
 const steps=["Laying the track","Painting the lines","Opening the stations","Ready"];
 let si=0;const tick=()=>{if(!boot)return;si=Math.min(si+1,steps.length-1);if(msg)msg.textContent=steps[si];if(bar)bar.style.width=((si+1)/steps.length*100)+"%"};
-const minT=reduce?150:950,t0=performance.now();
+const minT=reduce?80:400,t0=performance.now();
 const tickT=reduce?null:setInterval(tick,minT/steps.length);
 const fontsReady=document.fonts&&document.fonts.ready?Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1500))]):Promise.resolve();
 const ready=Promise.all([fontsReady,new Promise(r=>setTimeout(r,Math.max(0,minT-(performance.now()-t0))))]);
 
 /* -------------------------------------------------------------- picker */
 const pick=boot&&$(".pick",boot);
-let remember=store.get("modeSkip",false);
+let remember=store.get("modeSkip",false),picked=false;
 function finishBoot(){if(!boot)return;boot.classList.add("gone");root.classList.remove("booting");setTimeout(()=>boot.remove(),600)}
 function choose(m){store.set("mode",m);store.set("modeSkip",!!remember);if(m==="explain")enter();else leave(true);finishBoot()}
+function openPicker(){
+  if(!boot||picked||boot.classList.contains("picking"))return;
+  picked=true;clearInterval(tickT);si=steps.length-1;
+  if(msg)msg.textContent=steps[si];if(bar)bar.style.width="100%";
+  if(remember){choose(store.get("mode","explain"));return}
+  boot.classList.add("picking");pick.hidden=false;
+  const last=store.get("mode","explain");$$(".pick-opt",pick).forEach(b=>b.classList.toggle("last",b.dataset.mode===last));
+  const dn=E.counted.filter(c=>E.isDone(c.id)).length;
+  $(".pick-sub",pick).textContent=dn?`${dn} of ${E.counted.length} stations done. Same stations, two ways to ride.`:"Same stations, two ways to ride.";
+  $(`.pick-opt[data-mode="${last}"]`,pick)?.focus({preventScroll:true});
+}
 if(boot){
-  ready.then(()=>{clearInterval(tickT);si=steps.length-1;if(msg)msg.textContent=steps[si];if(bar)bar.style.width="100%";
-    setTimeout(()=>{
-      if(remember){choose(store.get("mode","scroll"));return}
-      boot.classList.add("picking");pick.hidden=false;
-      const last=store.get("mode","scroll");$$(".pick-opt",pick).forEach(b=>b.classList.toggle("last",b.dataset.mode===last));
-      const pos=store.get("exPos",null),dn=E.counted.filter(c=>E.isDone(c.id)).length;
-      $(".pick-sub",pick).textContent=dn?`${dn} of ${E.counted.length} stations done. Same stations, two ways to ride.`:"Same stations, two ways to ride.";
-      $(`.pick-opt[data-mode="${last}"]`,pick)?.focus({preventScroll:true});
-    },reduce?0:250)});
+  ready.then(()=>setTimeout(openPicker,reduce?0:120));
+  boot.addEventListener("click",e=>{if(!boot.classList.contains("picking")&&!e.target.closest("button"))openPicker()});
   $$(".pick-opt",boot).forEach(b=>b.addEventListener("click",()=>choose(b.dataset.mode)));
   const sw=$(".pick-rem .switch",boot);
   if(sw){sw.setAttribute("aria-checked",String(remember));sw.addEventListener("click",()=>{remember=!remember;sw.setAttribute("aria-checked",String(remember))})}
@@ -71,6 +74,14 @@ function build(){
       const head=$(":scope>.ch-head",c);if(head)add({...base,kind:"chapter",nodes:[head],text:[]});
       [...c.children].forEach(el=>{
         if(el.matches(".ch-head,.ch-foot"))return;
+        if(el.matches(".beat")){
+          const h3=$(":scope>h3",el),kids=[...el.children].filter(b=>b!==h3);
+          const hasMedia=kids.some(b=>!isText(b)&&!isAside(b));
+          const text=[];let media=0;
+          kids.forEach(b=>{keep(b);if(!hasMedia){text.push(b)}else if(isText(b)&&!media){text.push(b)}else{media++}});
+          S.push({...base,kind:"sec",h3,nodes:kids,text,media,calls:0,chars:0});
+          return;
+        }
         if(!el.matches(".sec")){add({...base,kind:"media",nodes:[el],text:[],h3:null});return}
         const h3=$(":scope>h3",el);let cur=null;
         const start=()=>{cur={...base,kind:"sec",h3,nodes:[],text:[],media:0,calls:0,chars:0};S.push(cur)};
@@ -107,7 +118,7 @@ ex.innerHTML=`<div class="ex-top">
   <div class="ex-stage"><div class="ex-card" aria-live="polite"><div class="ex-text"></div><div class="ex-media"></div></div></div>
   <div class="ex-bot">
     <div class="ex-nav"><button class="ex-prev" type="button">${ic("back")}<span>Back</span></button><button class="ex-next" type="button"><span>Next</span>${ic("next")}</button></div>
-    <div class="ex-meta"><span class="ex-count"></span><span class="ex-tools"><button class="ex-pill ex-trybtn" type="button" aria-expanded="false" aria-controls="ex-try" hidden>${ic("sliders")}<span>Try it yourself</span></button><span class="ex-done"></span></span></div>
+    <div class="ex-meta"><span class="ex-count"></span><span class="ex-tools"><button class="ex-pill tts-btn ex-tts" type="button" aria-pressed="false" aria-label="Listen"${E.ttsSupported?"":" hidden"}>${ic("speaker")}<span>${E.t("listen")}</span></button><button class="ex-pill ex-trybtn" type="button" aria-expanded="false" aria-controls="ex-try" hidden>${ic("sliders")}<span>Try it yourself</span></button><span class="ex-done"></span></span></div>
   </div>`;
 document.body.appendChild(ex);
 /* sliders sheet (narrow screens): the visual's sliders live here while the screen is shown */
@@ -131,6 +142,7 @@ function setLine(p){
   else{ex.classList.remove("part");delete ex.dataset.part;ex.style.cssText=""}}
 function show(i,dir){
   if(!screens)screens=build();
+  E.stopSpeak&&E.stopSpeak();
   i=Math.max(0,Math.min(screens.length-1,i));const s=screens[i];
   returnNodes();cur=i;setLine(s.part);
   // text column: section heading (a copy), then the explainer paragraphs
@@ -205,10 +217,10 @@ function squeeze(avail,keepTop,keep,floor=.72){
     if(sp&&over()>0){
       const vpH=wideLay||!vp?0:vp.offsetHeight+14;
       const want=Math.floor(avail-vpH-36);
-      if(want>=120){sp.classList.add("ex-win");sp.style.maxHeight=want+"px";const left=over();if(left>0)sp.style.maxHeight=Math.max(110,want-left)+"px";sp.scrollTop=keepTop;follow(!!keep);winEdges(sp)}
+      if(want>=180){sp.classList.add("ex-win");sp.style.maxHeight=want+"px";const left=over();if(left>0)sp.style.maxHeight=Math.max(160,want-left)+"px";sp.scrollTop=keepTop;follow(!!keep);winEdges(sp)}
     }
   } else if(over()>0&&st&&$(".player",card)&&!st.querySelector(":scope>svg")){const want=st.offsetHeight-over();
-    if(want>=110){st.classList.add("ex-win");st.style.maxHeight=want+"px";const left=over();if(left>0)st.style.maxHeight=(want-left)+"px";st.scrollTop=keepTop;follow(!!keep);winEdges(st)}}
+    if(want>=180){st.classList.add("ex-win");st.style.maxHeight=want+"px";const left=over();if(left>0)st.style.maxHeight=Math.max(160,want-left)+"px";st.scrollTop=keepTop;follow(!!keep);winEdges(st)}}
   if(!hasSplit&&over()>0){const svgs=$$("svg",med).filter(g=>!g.closest(".ex-win,.ic,button")&&g.getBoundingClientRect().height>120).sort((a,b)=>b.getBoundingClientRect().height-a.getBoundingClientRect().height);
     if(svgs[0]){const g=svgs[0],gh=g.getBoundingClientRect().height,want=gh-over();if(want/gh>=Math.min(floor,.4)){g.classList.add("ex-fit");g.style.maxHeight=Math.floor(want)+"px"}}}
   return over();
@@ -219,14 +231,19 @@ function refit(keep){
   resetFit();txt.style.zoom="";med.style.height="";med.classList.remove("paged","more","ex-scroll-y");txt.style.height="";txt.classList.remove("paged","more");
   card.style.height="";card.scrollTop=0;card.classList.remove("scroll","paged","more","ex-scroll-y");pgEl=med;
   const wide=card.classList.contains("two");
+  const depthOpen=!!card.querySelector("details.depth[open]");
   card.classList.toggle("head-only",![...txt.children].some(n=>n.tagName!=="H3")&&!!txt.childNodes.length);
   const cs=getComputedStyle(stage),H=stage.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom)-4;
-  const parts=()=>{pgEl=card;card.style.height=H+"px";card.classList.add("paged");if(!wide)card.classList.add("ex-scroll-y");return setPages(stopsFor(H),keep)};
-  if(wide&&txt.scrollHeight>H)txt.style.zoom=Math.max(.82,H/txt.scrollHeight).toFixed(3);
+  const parts=()=>{pgEl=card;card.style.height=H+"px";card.classList.add("paged");if(!wide||depthOpen)card.classList.add("ex-scroll-y");return setPages(stopsFor(H),keep)};
+  if(wide&&!depthOpen&&txt.scrollHeight>H)txt.style.zoom=Math.max(.82,H/txt.scrollHeight).toFixed(3);
   if(!med.childNodes.length){
-    if(txt.scrollHeight>H){const z=H/txt.scrollHeight;if(z>=.8)txt.style.zoom=z.toFixed(3);else return parts()}
+    if(txt.scrollHeight>H){const z=H/txt.scrollHeight;if(!depthOpen&&z>=.8)txt.style.zoom=z.toFixed(3);else return parts()}
     return setPages([0])}
   const tH=wide?0:txt.offsetHeight+(txt.childNodes.length?14:0),avail=H-tH,over=()=>med.scrollHeight-avail;
+  if(depthOpen&&over()>0){
+    if(wide){pgEl=med;med.style.height=avail+"px";med.classList.add("paged","ex-scroll-y");card.classList.add("paged");return setPages(stopsFor(avail),keep)}
+    return parts();
+  }
   const v=med.querySelector(":scope>.viz"),stepped=!!(v&&$(".player",card));
   // narrow screens: sliders to the sheet when they don't fit
   if(!wide&&v&&over()>0&&!tryBody.childNodes.length){const c=$$(":scope>.ctl",v);if(c.length){c.forEach(n=>moveTo(n,tryBody));tryBtn.hidden=false}}
@@ -293,13 +310,16 @@ function syncScroll(){
 card.addEventListener("scroll",syncScroll,{passive:true});
 med.addEventListener("scroll",syncScroll,{passive:true});
 med.addEventListener("scroll",e=>{if(e.target.classList&&e.target.classList.contains("ex-win"))winEdges(e.target)},true);
-med.addEventListener("visualstep",()=>requestAnimationFrame(()=>{refit(true);follow(true)}));
+card.addEventListener("visualstep",()=>requestAnimationFrame(()=>{refit(true);follow(true)}));
 med.addEventListener("quizpaint",e=>{painted.set(e.target,e.detail);requestAnimationFrame(()=>refit(true))});
 med.addEventListener("click",e=>{if(e.target.closest(".quiz,.flash,.sorter,.drill"))setTimeout(()=>refit(true),80)});
-med.addEventListener("drillchange",()=>setTimeout(()=>refit(true),80)); /* v1.3: drills grow when checked */
+card.addEventListener("drillchange",()=>setTimeout(()=>refit(true),80)); /* v1.3: drills & predict grow when checked */
 tryBtn.addEventListener("click",()=>trySheet.hidden?openTry():closeTry());
+$(".ex-tts",ex).addEventListener("click",e=>E.speakScope&&E.speakScope(card,e.currentTarget));
 $(".ex-try-done",trySheet).addEventListener("click",()=>{closeTry();tryBtn.focus()});
 med.addEventListener("toggle",()=>requestAnimationFrame(()=>refit(true)),true);
+txt.addEventListener("toggle",()=>requestAnimationFrame(()=>refit(true)),true);
+document.addEventListener("depthchange",()=>{if(cur>=0&&root.classList.contains("mode-ex"))requestAnimationFrame(()=>refit(true))});
 let rT=0;addEventListener("resize",()=>{if(!root.classList.contains("mode-ex"))return;clearTimeout(rT);rT=setTimeout(fit,120)});
 
 /* ---------------------------------------------------------- enter / leave */
@@ -317,6 +337,7 @@ function enter(){
 }
 function leave(silent){
   if(!root.classList.contains("mode-ex")){if(silent)return;}
+  E.stopSpeak&&E.stopSpeak();
   const s=cur>=0&&screens?screens[cur]:null;returnNodes();cur=-1;root.classList.remove("mode-ex");store.set("mode","scroll");
   const target=s?(s.ch||($(".part-open",s.part||document)?.closest(".part"))):null;
   if(target&&!silent)requestAnimationFrame(()=>scrollTo({top:target.getBoundingClientRect().top+scrollY-70,behavior:"instant"}));
@@ -339,6 +360,7 @@ document.addEventListener("langchange",()=>{
   $(".ex-opt span",ex).textContent=E.t("opt");
   $(".ex-fs .lbl",ex).textContent=E.t("full_scr");
   $(".ex-prev span",ex).textContent=E.t("back");
+  const ttsL=$(".ex-tts span",ex);if(ttsL)ttsL.textContent=E.t($(".ex-tts",ex).classList.contains("speaking")?"stop_listen":"listen");
   $(".ex-trybtn span",ex).textContent=E.t("try_it");
   $(".ex-try-h b",trySheet).textContent=E.t("try_it");
   $(".ex-try-h span",trySheet).textContent=E.t("try_d");

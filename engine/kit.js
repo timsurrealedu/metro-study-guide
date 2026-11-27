@@ -96,8 +96,11 @@ function mountAnatomy(S,o={}){
   let items=[],defUse=o.defaultUse||E.t("tap_inspect");
   const showUse=(title,text,color)=>{
     if(!useBox.parentNode)return;
+    const msg=text||(title?"":defUse);
+    if(!title&&!msg){useBox.hidden=true;useBox.innerHTML="";return}
+    useBox.hidden=false;
     const st=color?` style="--rc:${color}"`:"";
-    useBox.innerHTML=title?`<b${st}>${escHtml(title)}</b><span>${escHtml(text||"")}</span>`:`<span>${escHtml(text||defUse)}</span>`;
+    useBox.innerHTML=title?`<b${st}>${escHtml(title)}</b><span>${escHtml(msg||"")}</span>`:`<span>${escHtml(msg)}</span>`;
   };
   function setItems(list){
     items=(list||[]).filter(Boolean);
@@ -120,16 +123,17 @@ function mountAnatomy(S,o={}){
     };
     svg.addEventListener("pointerover",e=>{const el=e.target.closest("[data-use]");if(el)pick(el)});
     svg.addEventListener("click",e=>{const el=e.target.closest("[data-use]");if(el&&!svg._camDragged)pick(el)});
-    svg.addEventListener("pointerleave",()=>{const sc=S.stage.closest(".sec")||S.stage.closest(".viz");if(!sc?.dataset.pinRole&&!sc?.dataset.pinFeat)showUse(null,defUse)});
+    svg.addEventListener("pointerleave",()=>{const sc=S.stage.closest(".sec,.beat")||S.stage.closest(".viz");if(!sc?.dataset.pinRole&&!sc?.dataset.pinFeat)showUse(null,defUse)});
     svg.addEventListener("focusin",e=>{const el=e.target.closest("[data-use]");if(el)pick(el)});
-    leg.addEventListener("pointerover",e=>{const b=e.target.closest(".k-leg-item");if(b&&b.dataset.use)showUse(b.textContent.trim(),b.dataset.use,b.style.getPropertyValue("--rc"))});
-    leg.addEventListener("click",e=>{const b=e.target.closest(".k-leg-item");if(b&&b.dataset.use)showUse(b.textContent.trim(),b.dataset.use,b.style.getPropertyValue("--rc"))});
   }
+  leg.addEventListener("pointerover",e=>{const b=e.target.closest(".k-leg-item");if(b&&b.dataset.use)showUse(b.textContent.trim(),b.dataset.use,b.style.getPropertyValue("--rc"))});
+  leg.addEventListener("click",e=>{const b=e.target.closest(".k-leg-item");if(b&&b.dataset.use)showUse(b.textContent.trim(),b.dataset.use,b.style.getPropertyValue("--rc"))});
   const hasUse=!!(o.showUse);
   S.stage.prepend(leg);
   if(hasUse||o.legend)S.stage.append(useBox);
   leg.hidden=true;
-  if(!hasUse&&!o.legend)useBox.hidden=true;
+  useBox.hidden=true;
+  if(Array.isArray(o.legend)&&o.legend.length)setItems(o.legend);
   return {leg,useBox,setItems,showUse,wire,ensureUse(){if(useBox.hidden){useBox.hidden=false;if(!useBox.parentNode)S.stage.append(useBox);showUse(null,defUse)}}};
 }
 function mountTabs(S,tabs,onPick){
@@ -1124,7 +1128,7 @@ Kit.tree=(id,o)=>{
   const wantLeg=o.legend!==false;
   const an=wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:hasDeps?"Hover any node to isolate its attribute flow and grammar edges, or tap to jump to its evaluation step.":"Hover or tap any node to trace its path from the root and see its role."}):null;
   const memoHasHud=!!(o.memo&&(o.memo.hud||o.memo.steps?.some(s=>s.hud)));
-  const hudEl=(o.hud||steps.some(s=>s.hud)||memoHasHud)?h("div",{class:"k-hud","aria-live":"polite"}):null;
+  const hudEl=(o.hud||steps.some(s=>s.hud)||memoHasHud)?h("div",{class:"k-hud","aria-live":"polite",hidden:true}):null;
   const boardEl=o.board?h("div",{class:"k-tree-board"}):null;
   if(hudEl)S.stage.append(hudEl);
   if(boardEl){S.stage.classList.add("has-board");S.stage.insertBefore(boardEl,svg)}
@@ -1633,7 +1637,7 @@ function mountDagCore(S,svg,o,opts={}){
   const wantLeg=o.legend!==false,wantCam=o.zoom!==false;
   const an=opts.an!==undefined?opts.an:(wantLeg?mountAnatomy(S,{showUse:true,legend:o.legend,defaultUse:"Hover any node to trace every upstream input and downstream dependent."}):null);
   const hasDagHud=!!(o.hud||steps.some(s=>s.hud));
-  const dagHudEl=opts.hudEl||(hasDagHud?h("div",{class:"k-hud","aria-live":"polite"}):null);
+  const dagHudEl=opts.hudEl||(hasDagHud?h("div",{class:"k-hud","aria-live":"polite",hidden:true}):null);
   const renderDagHud=list=>{
     if(!dagHudEl)return;
     const arr=list||o.hud||[];dagHudEl.hidden=!arr.length;
@@ -1832,6 +1836,7 @@ Kit.dp=(id,o)=>{
   const wrapEl=h("div",{class:"k-dp-wrap"});
   scrollEl.append(wrapEl);
   S.stage.append(rollBar,hudEl,eqEl,scrollEl,splitEl);
+  if(an)S.stage.append(an.useBox);
 
   const dirGlyph=d=>d==="\\"||d==="diag"?"↖":d==="^"||d==="up"?"↑":d==="<"||d==="left"?"←":"";
   const dirRole=d=>d==="\\"||d==="diag"?"r":d==="^"||d==="up"?"c":d==="<"||d==="left"?"v":"";
@@ -2366,6 +2371,7 @@ Kit.trim=(id,o)=>{
   const hudEl=h("div",{class:"k-hud"});
   const bodyEl=h("div",{class:"k-trim-body"});
   S.stage.append(hudEl,bodyEl);
+  if(an){S.stage.append(an.useBox);an.wire(bodyEl)}
 
   const computeSteps=e=>{
     const delta=e/(2*n);
@@ -2401,7 +2407,11 @@ Kit.trim=(id,o)=>{
     let html=`<div class="k-tr-sec"><b>L${s.idx?s.idx-1:0}</b><div>${pillRow(s.prev)}</div></div>`;
     if(s.shift.length)html+=`<div class="k-tr-sec"><b>L${s.idx-1} + ${s.x}</b><div>${pillRow(s.shift,"is-v")}</div></div>`;
     html+=`<div class="k-tr-sec"><b>TRIM(L, ${s.delta.toFixed(3)})</b><div>`+
-      s.merged.map(m=>`<span class="k-tr-pill is-${m.st}" title="${m.st==="trim"?`Trimmed near ${m.ref}`:m.st==="over"?`Over target ${t}`:"Kept"}">${m.v}</span>`).join("")+
+      s.merged.map(m=>{
+        const note=m.st==="trim"?`Trimmed near ${m.ref} (within ×(1+${s.delta.toFixed(3)}))`:m.st==="over"?`Dropped: exceeds target ${t}`:m.st==="best"?"Final closest subset sum z* ≤ target":"Kept representative in trimmed list";
+        const rl=m.st==="trim"?"c":m.st==="over"?"k":"r";
+        return `<span class="k-tr-pill is-${m.st}" data-role="${rl}" data-uname="${m.v}" data-use="${escAttr(note)}" title="${escAttr(note)}">${m.v}</span>`;
+      }).join("")+
       `</div></div>`;
     bodyEl.innerHTML=html;
   };

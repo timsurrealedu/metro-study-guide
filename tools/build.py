@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Metro Engine v1.5 — build a study guide into ONE self-contained HTML file.
+Metro Engine v2.0 — build a study guide into ONE self-contained HTML file.
 
     python3 tools/build.py <guide-folder> [--fragment] [--min] [--out FILE]
 
@@ -182,6 +182,26 @@ def callout_icons(html):
         return m.group(0) + f'<span class="ci"><svg class="ic"><use href="#i-{ICONS[kind]}"/></svg></span>'
     return re.sub(r'<div class="callout\b([^"]*)">(?!\s*<span class="ci">)', sub, html)
 
+def strip_blocks(s, cls):
+    out, pos = [], 0
+    for m in re.finditer(rf'<details\b[^>]*\bclass="[^"]*\b{cls}\b[^"]*"[^>]*>', s):
+        if m.start() < pos: continue
+        out.append(s[pos:m.start()])
+        pos = block_end(s, m.start(), "details")
+    out.append(s[pos:])
+    return "".join(out)
+
+def calc_effort(cbody, ctag):
+    manual = attr(ctag, "data-effort")
+    if manual: return manual
+    beats = len(re.findall(r'<div\b[^>]*\bclass="[^"]*\bbeat\b', cbody))
+    plain = strip_blocks(cbody, "depth")
+    words = len(re.sub(r"<[^>]+>", " ", plain).split())
+    viz_n = len(re.findall(r'\bclass="[^"]*\bviz\b', cbody))
+    chk_n = len(re.findall(r'\bclass="[^"]*\b(?:mcheck|drill|sorter)\b', cbody))
+    mins = max(1, round(words / 160 + viz_n * 0.45 + chk_n * 0.35))
+    return f"~{mins} min · {beats} beats" if beats else f"~{mins} min"
+
 def expand(content, g, quiz):
     content = re.sub(r"<!--.*?-->", "", content, flags=re.S)  # comments may mention tags; drop them first
     sets = {x for q in quiz for x in q.get("sets", [])}
@@ -210,6 +230,8 @@ def expand(content, g, quiz):
                 e = block_end(cbody, t)
                 traps[cid] = cbody[t + len('<div class="traps">'):e - len("</div>")].strip()
                 cbody = cbody[:t] + cbody[e:]
+            counts = attr(ctag, "data-count") != "no" and "checkpoint" not in attr(ctag, "class")
+            effort = calc_effort(cbody, ctag) if counts else ""
             if '<header class="ch-head"' not in cbody:
                 bm = re.search(r'\s*<p class="bigidea">.*?</p>', cbody, re.S)
                 big = bm.group(0).strip() if bm else ""
@@ -217,14 +239,23 @@ def expand(content, g, quiz):
                 eb = kicker if key == "R" else f"{kicker} · {title}"
                 tg = attr(ctag, "data-tag")
                 topic = ' <span class="topic">' + tg + '</span>' if tg else ""
+                eff_html = f' <span class="effort">{effort}</span>' if effort else ""
                 cbody = (f'\n  <header class="ch-head"><div class="ch-num">{attr(ctag, "data-n")}</div>'
-                         f'<div class="eyebrow">{eb}{topic}</div>'
+                         f'<div class="eyebrow">{eb}{topic}{eff_html}</div>'
                          f'<h2>{attr(ctag, "data-title")}</h2>{big}</header>' + cbody)
             if '<footer class="ch-foot"' not in cbody:
                 cbody = cbody.rstrip() + '\n  <footer class="ch-foot" data-auto></footer>\n'
             if "checkpoint" not in attr(ctag, "class"): chs.append((cid, attr(ctag, "data-n"), attr(ctag, "data-short") or attr(ctag, "data-title")))
             return ctag + cbody + "</article>"
         body = re.sub(r'(<article class="chapter[^>]*>)(.*?)</article>', chap, body, flags=re.S)
+        if key == "R" and 'class="weak-queue"' not in body:
+            wq_sec = '\n  <div class="sec"><h3 data-eb="Weak-spot queue">Needs another look</h3>\n    <div class="weak-queue"></div>\n  </div>'
+            m_rc = re.search(r'<article class="chapter[^>]*id="r-cards"[^>]*>.*?(?=<footer class="ch-foot")', body, re.S)
+            if m_rc:
+                body = body[:m_rc.end()] + wq_sec + "\n  " + body[m_rc.end():]
+            else:
+                m_ft = re.search(r'<footer class="ch-foot"', body)
+                if m_ft: body = body[:m_ft.start()] + wq_sec + "\n  " + body[m_ft.start():]
         has_cp = 'class="chapter col checkpoint"' in body or "checkpoint" in "".join(re.findall(r'<article class="([^"]*)"', body))
         rows = [(cid, n, short) for cid, n, short in chs if cid in traps or cid in sets]
         if key != "R" and not has_cp and rows and g.get("checkpoints", True):

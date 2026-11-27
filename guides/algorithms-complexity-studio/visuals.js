@@ -36,7 +36,12 @@ Kit.tree("tr-memo", {
   },
   steps: [
     { t: "1. Root call fib(4) splits into fib(3) and fib(2)", d: "To find fib(4), recursion asks for fib(3) on the left and fib(2) on the right.", on: ["f4"], reveal: ["f4", "f3", "f2b"], hud: [{ label: "Calls", val: "1", role: "c" }, { label: "Repeats", val: "0", role: "r" }] },
-    { t: "2. Left branch solves fib(2) = 1 for the first time", d: "Inside fib(3), we solve fib(2) = fib(1) + fib(0) = 1. Next up: fib(3) finishes as 1 + 1 = 2.", on: ["f2a", "f1a", "f0a"], visit: ["f4", "f3", "f1b"], reveal: ["f4", "f3", "f2b", "f2a", "f1a", "f0a", "f1b"], hud: [{ label: "Calls", val: "6", role: "v" }, { label: "fib(2)", val: "solved 1st time", role: "v" }] },
+    { t: "2. Left branch solves fib(2) = 1 for the first time", d: "Inside fib(3), we solve fib(2) = fib(1) + fib(0) = 1. Next up: fib(3) finishes as 1 + 1 = 2.", on: ["f2a", "f1a", "f0a"], visit: ["f4", "f3", "f1b"], reveal: ["f4", "f3", "f2b", "f2a", "f1a", "f0a", "f1b"], hud: [{ label: "Calls", val: "6", role: "v" }, { label: "fib(2)", val: "solved 1st time", role: "v" }],
+      predict: {
+        q: "When fib(4) now checks the right branch fib(2), what happens WITHOUT sticky notes?",
+        o: [["It re-runs fib(1) and fib(0) all over again", true, "Right! Without a cache, it wastes time rebuilding the whole fib(2) tree."],
+            ["It magically remembers 1 automatically", false, "Only Memoization (switching to the DAG tab) saves and reuses fib(2) = 1."]]
+      } },
     { t: "3. Right branch wastes time repeating fib(2)!", d: "Without sticky-note caching, fib(4) solves the exact same fib(2) tree all over again (O(2ⁿ) growth).", on: ["f2b", "f1c", "f0b"], visit: ["f4", "f3", "f2a", "f1a", "f0a", "f1b"], reveal: "all", hud: [{ label: "Total Calls", val: "9 (O(2ⁿ))", role: "k" }, { label: "Wasted", val: "3 red nodes", role: "k" }], overview: true }
   ],
   memo: {
@@ -553,7 +558,12 @@ Kit.tree("tr-queens", {
   },
   steps: [
     { t: "1. Start empty, then try Q(0,0) on Row 0", d: "Putting a queen in top-left (0,0) immediately crosses out squares along its column, row, and diagonal.", on: ["q00"], reveal: ["r", "q00"], board: { title: "1 · Try Q(0,0)", queens: [[0, 0]] }, hud: [{ label: "Queens", val: "1 / 4", role: "c" }, { label: "Pruned", val: "0 subtrees", role: "v" }] },
-    { t: "2. Skip attacked cols 0–1 → place Q(1,2)", d: "On Row 1, cols 0 and 1 are pruned without descending. Only col 2 (PROMISING) opens a deeper branch.", on: ["q12"], visit: ["r", "q00"], prune: ["q10"], reveal: ["r", "q00", "q10", "q12"], board: { title: "2 · Safe Q(1,2)", queens: [[0, 0], [1, 2]] }, hud: [{ label: "Queens", val: "2 / 4", role: "c" }, { label: "Pruned", val: "col 0, col 1", role: "k" }] },
+    { t: "2. Skip attacked cols 0–1 → place Q(1,2)", d: "On Row 1, cols 0 and 1 are pruned without descending. Only col 2 (PROMISING) opens a deeper branch.", on: ["q12"], visit: ["r", "q00"], prune: ["q10"], reveal: ["r", "q00", "q10", "q12"], board: { title: "2 · Safe Q(1,2)", queens: [[0, 0], [1, 2]] }, hud: [{ label: "Queens", val: "2 / 4", role: "c" }, { label: "Pruned", val: "col 0, col 1", role: "k" }],
+      predict: {
+        q: "Look at Row 2 on the board: every square is attacked by Q(0,0) or Q(1,2). What does backtracking do next?",
+        o: [["Stop right here and back up to try a different column on Row 0", true, "Yes! Pruning skips Row 3 completely and moves Row 0's queen to col 1."],
+            ["Place a queen in Row 3 anyway to see the whole board", false, "Why build Row 3 on top of an already-broken Row 2? Backtracking cuts it immediately."]]
+      } },
     { t: "3. Dead end on Row 2 → PRUNE & Backtrack!", d: "Look at Row 2 on the board: every square has an ×! Backtracking quits Q(0,0) right now without trying Row 3.", on: ["dead"], prune: ["q10", "dead"], reveal: ["r", "q00", "q10", "q12", "dead"], board: { title: "3 · Row 2 Blocked!", queens: [[0, 0], [1, 2]], bad: [2, 1] }, hud: [{ label: "Action", val: "Backtrack to Row 0", role: "k" }, { label: "Saved", val: "skipped Row 3!", role: "r" }] },
     { t: "4. Backtrack to Q(0,1) → Solved [1, 3, 0, 2]!", d: "Shifting Row 0 to col 1 opens safe spots (1,3) → (2,0) → (3,2) — all 4 queens stand peacefully!", on: ["sol"], prune: ["q10", "dead"], path: ["r", "q01", "q13", "sol"], reveal: "all", board: { title: "4 · Solved [1, 3, 0, 2]!", queens: [[0, 1], [1, 3], [2, 0], [3, 2]] }, hud: [{ label: "Queens", val: "4 / 4 ✓", role: "r" }, { label: "Cols", val: "[1, 3, 0, 2]", role: "r" }], overview: true }
   ]
@@ -622,7 +632,12 @@ Kit.tree("tr-bnb", {
   },
   steps: [
     { t: "1. Root bound: best possible is $110", d: "Sort items richest-per-kg first (#1: $30/kg, #2: $25/kg, #3: $20/kg). At most 4 kg fits #1+#2 → ub = $110.", on: ["n0"], reveal: ["n0"], hud: [{ label: "best_so_far", val: "$0", role: "v" }, { label: "root ub", val: "$110", role: "c" }] },
-    { t: "2. Take Item 1 & Item 2 → sets best_so_far = $110", d: "Packing #1 ($60) + #2 ($50) uses all 4 kg legally, raising our real integer record best_so_far to $110!", on: ["n1", "n11"], visit: ["n0"], reveal: ["n0", "n1", "n11", "n10"], hud: [{ label: "best_so_far", val: "$110 ✓", role: "r" }, { label: "W_left", val: "0 kg", role: "v" }] },
+    { t: "2. Take Item 1 & Item 2 → sets best_so_far = $110", d: "Packing #1 ($60) + #2 ($50) uses all 4 kg legally, raising our real integer record best_so_far to $110!", on: ["n1", "n11"], visit: ["n0"], reveal: ["n0", "n1", "n11", "n10"], hud: [{ label: "best_so_far", val: "$110 ✓", role: "r" }, { label: "W_left", val: "0 kg", role: "v" }],
+      predict: {
+        q: "Now that our real best score is $110, we check 'Skip Item 1' whose best dream ceiling is $90. What should we do?",
+        o: [["Prune the entire 'Skip Item 1' branch", true, "Spot on! Since $90 ≤ $110, nothing inside that branch can ever beat $110."],
+            ["Explore all items inside it anyway", false, "Its optimistic ceiling is $90, so it is guaranteed never to beat $110."]]
+      } },
     { t: "3. Prune both weaker branches (ub 100 and 90 ≤ 110)!", d: "Skipping #2 caps out at 60+40 = $100; skipping #1 caps out at 50+40 = $90. Both ≤ $110, so gray them out and finish!", on: ["n10", "n2"], prune: ["n10", "n2"], path: ["n0", "n1", "n11"], reveal: "all", hud: [{ label: "Optimal", val: "$110", role: "r" }, { label: "Cut Branches", val: "ub 100 & 90 ≤ 110", role: "k" }], overview: true }
   ]
 });
@@ -646,6 +661,17 @@ Kit.flow("fl-red", {
     [0, 1, "x"],
     [1, 2, "F(x)"],
     [2, 3, "Yes/No", "r"]
+  ],
+  steps: [
+    { t: "1. Start with known hard puzzle x ∈ A?", d: "Pick a puzzle A we already know is super hard (like 3-SAT).", on: [0] },
+    { t: "2. Fast translator F(x) rewrites x into B", d: "F(x) runs in polynomial time and keeps Yes answers Yes and No answers No.", on: [1],
+      predict: {
+        q: "If puzzle B suddenly got a fast solver tomorrow, what would happen to hard puzzle A?",
+        o: [["A would become fast to solve too (translate x → F(x), then run B)", true, "Exact! That proves B must be at least as hard as A."],
+            ["Nothing — A would still stay impossible", false, "Because F(x) is fast and preserves Yes/No, solving B fast would solve A fast too!"]]
+      } },
+    { t: "3. Imaginary fast solver for B", d: "Feed the translated puzzle F(x) into a solver for B.", on: [2] },
+    { t: "4. Answer solves A automatically!", d: "B returns Yes/No for F(x), which is the exact answer for x ∈ A.", on: [3] }
   ]
 });
 
@@ -699,7 +725,12 @@ Kit.network("net-sat", {
   },
   steps: [
     { t: "1. Build k=3 Clause Triangles", d: "Each clause forms a triangle so at most 1 vertex per clause can join the Independent Set.", assign: { x1: true, x2: false, x3: true } },
-    { t: "2. Test an invalid assignment (x₁=F, x₂=T, x₃=F)", d: "Clause C₂ has true literals, but Clause C₁ still fails—only 2 vertices can be picked (< k).", assign: { x1: false, x2: true, x3: false } },
+    { t: "2. Test an invalid assignment (x₁=F, x₂=T, x₃=F)", d: "Clause C₂ has true literals, but Clause C₁ still fails—only 2 vertices can be picked (< k).", assign: { x1: false, x2: true, x3: false },
+      predict: {
+        q: "Why can't we pick 3 green corners when Clause C₁ has no true literals?",
+        o: [["You can pick at most 1 corner per triangle, so a failing triangle leaves 0 picks", true, "Yes! 0 picks in C₁ plus at most 1 each in C₂ and C₃ gives at most 2 < 3."],
+            ["Red conflict wires forbid picking any corners in C₂", false, "Conflict wires only block xᵢ and ¬xᵢ together; C₁ failing means 0 valid corners there."]]
+      } },
     { t: "3. Valid assignment (x₁=T, x₂=F, x₃=T) → IS size 3!", d: "Every clause has ≥1 true literal and zero xᵢ ↔ ¬xᵢ conflicts. Try flipping variables yourself!", assign: { x1: true, x2: false, x3: true }, overview: true }
   ]
 });
@@ -725,7 +756,12 @@ Kit.network("net-tsp", {
   ],
   steps: [
     { t: "1. Compute MST (w = 19 ≤ OPT)", d: "Deleting one edge from OPT leaves a spanning tree, so OPT ≥ w(MST) = 19.", on: ["a", "b", "c", "e"], edges: { ab: "mst", bc: "mst", ae: "mst", bd: "mst" }, hud: [{ label: "w(MST)", val: "19 ≤ OPT", role: "r" }] },
-    { t: "2. Preorder walk around doubled MST (≤ 2·w(MST))", d: "Walk visits A → B → C → B → D → B → A → E → A (cost 2·19 = 38).", on: ["b", "d"], edges: { ab: "walk", bc: "walk", bd: "walk", ae: "walk" }, hud: [{ label: "Full Walk", val: "38 = 2·w(MST)", role: "a" }] },
+    { t: "2. Preorder walk around doubled MST (≤ 2·w(MST))", d: "Walk visits A → B → C → B → D → B → A → E → A (cost 2·19 = 38).", on: ["b", "d"], edges: { ab: "walk", bc: "walk", bd: "walk", ae: "walk" }, hud: [{ label: "Full Walk", val: "38 = 2·w(MST)", role: "a" }],
+      predict: {
+        q: "When we take direct shortcuts to skip repeated visits to B and A, why can't the total cost grow?",
+        o: [["Triangle inequality: a direct road is never longer than a detour", true, "Spot on! Direct shortcuts always stay ≤ the doubled tree walk (≤ 2·OPT)."],
+            ["Shortcuts always double the edge weights", false, "In a metric graph, going straight from C to D is ≤ going C → B → D."]]
+      } },
     { t: "3. Shortcut repeated vertices → A→B→C→D→E→A", d: "Triangle inequality guarantees shortcuts C→D, D→E, E→A never increase length (total ≤ 2·OPT)!", on: ["a", "b", "c", "d", "e"], edges: { ab: "mst", bc: "mst", cd: "shortcut", da: "shortcut", ea: "shortcut" }, hud: [{ label: "Tour Cost", val: "23 ≤ 2·OPT", role: "f" }], overview: true }
   ]
 });

@@ -1,43 +1,63 @@
 <!-- =====================================================================
-     STARTER · content.html
+     STARTER · content.html (Metro Engine v2.0)
      Copy this folder, rename it, then replace the text. Shorthands used
      here (build.py fills in the rest):
        - <section class="part" data-…>   → the line opener is generated
-       - <article class="chapter" data-…> → header and footer are generated
+       - <article class="chapter" data-…> → header, effort cue & footer generated
        - <p class="bigidea"> first        → goes into the station header
+       - <div class="beat">               → one explicit Explainer Beat screen
        - <div class="traps">              → moved into the line's checkpoint
-       - callouts need no icon markup
-     Every block you can use: docs/03-content-blocks.md
+     Every block you can use: references/03-content-blocks.md
      ===================================================================== -->
 
 <section class="part" data-part="1" data-title="Line name" data-kicker="Line 1" data-eyebrow="Line 1 · Topics 1–2"
   data-lede="One sentence: what this line covers.">
 
 <article class="chapter" id="c1-1" data-n="1.1" data-short="Short name" data-title="Full station title" data-tag="Exam topic 1">
-  <p class="bigidea">Two sentences in plain words: the one idea to remember from this station.</p>
+  <p class="bigidea">One or two simple everyday sentences: what an 8-year-old should remember from this station.</p>
 
-  <div class="sec"><h3 data-eb="In plain words">First section heading</h3>
-    <p>Explain the idea simply. Put the teacher's exact <b>term</b> in bold with the Indonesian term next to it (<span class="id">istilah</span>).</p>
-    <dl class="terms">
-      <div><b>Term</b><span class="id">istilah</span><span class="d">One-line meaning.</span></div>
-      <div><b>Another term</b><span class="d">One-line meaning.</span></div>
-    </dl>
-  </div>
-
-  <div class="sec"><h3 data-eb="See it">A visual</h3>
-    <p class="lead">Every visual has a lead sentence first: what to watch for.</p>
+  <div class="beat"><h3 data-eb="See it first">Watch how the pieces move</h3>
+    <p class="lead">Tap through the steps below and make a quick guess before the final step reveals.</p>
     <div class="viz" id="k-example"></div>
   </div>
 
-  <div class="sec"><h3 data-eb="Compare">A comparison</h3>
-    <p class="lead">Comparisons are always tables. Say what the rows have in common.</p>
+  <div class="beat"><h3 data-eb="Name it">Attach the official word</h3>
+    <div class="nameit">
+      <span class="nameit-badge">Name it</span>
+      <b>Official Term</b>
+      <span class="id">istilah lokal</span>
+      <span class="nameit-d">One short sentence linking what you just saw in the picture to the official word your teacher uses.</span>
+    </div>
+    <div class="callout eg"><b>Example</b><div>A plain everyday example using familiar objects. Never metro-themed.</div></div>
+  </div>
+
+  <div class="beat"><h3 data-eb="Quick check">Test your gut feeling</h3>
+    <div class="mcheck" data-id="mc-1-1">
+      <div class="mc-q">If step 1 happens first, what comes right after?</div>
+      <div class="mc-opts">
+        <button type="button" data-ok="1" data-why="Yes! Step 2 bridges step 1 to the final result.">Second step</button>
+        <button type="button" data-why="Not quite — step 3 is the finish, so step 2 comes right after step 1.">Jump straight to step 3</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="beat"><h3 data-eb="Go deeper">Formal terms &amp; comparison</h3>
+    <p class="lead">Compare the two options side by side once the big picture makes sense.</p>
     <div class="tbl-wrap"><table class="tbl">
       <thead><tr><th></th><th>Option A</th><th>Option B</th></tr></thead>
       <tbody>
-        <tr><td>Row</td><td>…</td><td>…</td></tr>
-        <tr><td>Row</td><td class="yes">Yes</td><td class="no">No</td></tr>
+        <tr><td>Works offline</td><td class="yes">Yes</td><td class="no">No</td></tr>
+        <tr><td>Key difference</td><td>Plain intuition first</td><td>Skips visual</td></tr>
       </tbody></table></div>
-    <div class="callout eg"><b>Example</b><div>A plain real-life example. Not themed.</div></div>
+    <details class="depth">
+      <summary><b>Formal definitions &amp; edge cases</b></summary>
+      <div class="depth-body">
+        <dl class="terms">
+          <div data-role="v"><b>Official Term</b><span class="id">istilah lokal</span><span class="d">Full exam-ready definition, constraints, and edge cases from class slides.</span></div>
+          <div data-role="r"><b>Second Term</b><span class="d">Exact formula or rule, e.g. <span class="m" data-speak="a over b equals c">\frac{a}{b} = c</span>.</span></div>
+        </dl>
+      </div>
+    </details>
   </div>
 
   <div class="traps">
@@ -46,35 +66,51 @@
 </article>
 
 <article class="chapter" id="c1-2" data-n="1.2" data-short="Second" data-title="Second station" data-tag="Exam topic 2">
-  <p class="bigidea">The one idea of this station.</p>
-  <div class="sec"><h3 data-eb="Steps">A process</h3>
-    <p class="lead">Steps in order, each with its reason.</p>
+  <p class="bigidea">One simple sentence explaining the second station in everyday words.</p>
+
+  <div class="beat"><h3 data-eb="See it first">Before and after</h3>
+    <p class="lead">Tap Next to see the state change.</p>
+    <div class="viz" id="v-custom"><div class="viz-stage"><svg viewBox="0 0 640 260" role="img" aria-label="Describe the drawing for screen readers."></svg></div></div>
+  </div>
+
+  <div class="beat"><h3 data-eb="Quick check">Put the steps in order</h3>
+    <p class="lead">Arrange these two steps from first to last.</p>
     <ol class="steps">
-      <li><b>First step</b>What happens and why it comes first.</li>
+      <li><b>First step</b>What happens first and why.</li>
       <li><b>Second step</b>What happens next.</li>
     </ol>
-  </div>
-  <div class="sec"><h3 data-eb="Custom visual">A hand-drawn visual</h3>
-    <p class="lead">Use a custom visual only when no kit fits.</p>
-    <div class="viz" id="v-custom"><div class="viz-stage"><svg viewBox="0 0 640 260" role="img" aria-label="Describe the drawing for screen readers."></svg></div></div>
+    <div class="mcheck" data-id="mc-1-2">
+      <div class="mc-q">Which step must happen before the state turns into "After"?</div>
+      <div class="mc-opts">
+        <button type="button" data-ok="1" data-why="Right — the Before state sets up the transition.">First step</button>
+        <button type="button" data-why="The second step produces After, so the first step must run before it.">Second step</button>
+      </div>
+    </div>
+    <details class="depth">
+      <summary><b>Exam notes &amp; details</b></summary>
+      <div class="depth-body">
+        <p>Include any subtle exceptions or background notes from the lecture slides right here so nothing is ever skipped.</p>
+      </div>
+    </details>
   </div>
 </article>
 </section>
 
 <section class="part" data-part="R" data-title="Review" data-kicker="Review" data-eyebrow="Review · The night before"
-  data-lede="The cheat sheet, flashcards and a practice exam.">
+  data-lede="The cheat sheet, flashcards, weak-spot queue and a practice exam.">
 <article class="chapter" id="r-cheat" data-n="R1" data-short="Cheat sheet" data-title="Cheat sheet" data-count="no">
   <p class="bigidea">The tables and numbers that come up most.</p>
   <div class="sec"><h3 data-eb="Line 1">Line name</h3><ul><li>Key fact.</li></ul></div>
 </article>
 <article class="chapter" id="r-cards" data-n="R2" data-short="Flashcards" data-title="Flashcards" data-count="no">
-  <p class="bigidea">Tap the card to flip it. Say the answer out loud before you flip.</p>
+  <p class="bigidea">Tap the card to flip it. Mark Still shaky or Got it to tune your review.</p>
   <div class="flash"></div>
+  <div class="sec"><h3 data-eb="Weak-spot queue">Needs another look</h3><div class="weak-queue"></div></div>
 </article>
 <article class="chapter" id="r-exam" data-n="R3" data-short="Practice exam" data-title="Practice exam" data-count="no">
-  <p class="bigidea">Mixed questions. Wrong answers link back to the lesson.</p>
+  <p class="bigidea">Mixed questions. Wrong answers link back to the station and join your weak-spot queue.</p>
   <div class="quiz" data-set="exam"></div>
 </article>
 </section>
 
-<p class="foot">Built from your teacher's materials. Progress and quiz answers are saved only in this browser.</p>
+<p class="foot">Built with Metro Engine v2.0. Progress and quiz answers stay local in this browser.</p>

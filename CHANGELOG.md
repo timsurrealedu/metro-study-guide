@@ -1,5 +1,15 @@
 # Changelog
 
+## Metro Engine v2.0 — 27 November 2026
+
+**ADHD-first visual pacing, progressive Plain Intuition → Exam Depth, non-blocking Micro-Checks, and calm offline study aids (`GLOSSARY.md`, `docs/adr/0001`–`0006`).**
+
+- **Domain Language & Entry Flow (`GLOSSARY.md`, `engine/boot.html`, `engine/explainer.js`, `engine/metro.js`)**: Standardized UI and authoring terminology around **Guide / Line / Station / Beat / Effort Cue / Checkpoint / Review Line / Terminus**; shortened boot (~0.4s, tap-to-skip) and promoted **Explainer** first in the Mode Picker (`"Best for focus"`).
+- **Explicit Explainer Beats & Inline Exam Depth (`engine/explainer.js`, `engine/metro.css`)**: Added `<div class="beat">` screen boundaries (preserving `.sec` backwards compatibility for v1.x guides), `.nameit` bridges, and collapsed inline `<details class="depth">` drawers plus a global **Exam Depth** toggle; expanding Exam Depth in Explainer scrolls smoothly at 100% readable font size instead of zoom-shrinking.
+- **In-Station Micro-Checks & Universal `E.stepper` `predict` (`engine/metro.js`)**: Added standalone `<div class="mcheck">` 1-tap checks and universal `s.predict` (**Tap-to-Predict**) support inside `E.stepper` so all 15 kits become actively interactive without bloating `kit.js`.
+- **ADHD Focus & Review Aids (`engine/metro.js`, `tools/build.py`)**: Added build-time **Effort Cues** (`~N min · M beats`), optional Scroll-mode **Focus dim**, graceful-fallback offline Web Speech API **Read-Aloud** (with `1×/1.25×/1.5×` speed and `data-speak` math hints), confidence-tracked flashcards (**Still shaky** / **Got it**), and an automatic **Weak-Spot Queue** (`.weak-queue`).
+- **v2 Authoring Rules & Verification (`tools/check.py`, `tools/verify_chromium.py`, `SKILL.md`, `starter/`)**: Enforced ≤ 45-word Plain Intuition paragraphs, visual-first limits, and per-station Micro-Check coverage for v2 guides while keeping v1.x guides backwards-compatible.
+
 ## Metro Engine v1.6 — 26 November 2026
 
 **Mobile tree readability, pan/zoom camera, DP/graph/FPTAS/complexity visualizers, filterable reference tables, and proof templates.**

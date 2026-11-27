@@ -74,6 +74,60 @@ LAYOUT_JS = r"""(function(phone) {
       }
     }
   });
+  const skipGhost = "i,hr,br,svg,path,rect,circle,line,polygon,polyline,canvas,img,input,textarea,select,.grab,.tr,.dot,.line-band,.hero-lines,.pbar,.sbar,.ex-bars,.od-grip,.pa-roll,.pa-art,.pa-vis,.pa-nav,.boot-bar,.t-bar,.k-cam-sep,.k-np-track,.k-np-bar,.spacer,.st,.tk,.mk,.fi,.ci,.k-qb-cell,.sheet-scrim,.dropover,.toast,.ex-try";
+  document.querySelectorAll("main div, main section, main article, main aside, main header, main footer, main nav, main ul, main ol, main dl, main p, main span, main details, main summary").forEach(el => {
+    if (el.matches(skipGhost) || el.closest("[hidden],svg,.boot,.pick-art")) return;
+    const cs = getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden" || parseFloat(cs.opacity) <= 0.05) return;
+    const r = el.getBoundingClientRect();
+    if (r.width < 32 || r.height < 18) return;
+    if ((el.textContent || "").trim().length === 0 && !el.querySelector("svg,img,canvas,input,button,select,textarea")) {
+      const hasBg = cs.backgroundColor && cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent";
+      const hasTopBd = parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== "none" && cs.borderTopColor !== "rgba(0, 0, 0, 0)" && cs.borderTopColor !== "transparent";
+      const hasBotBd = parseFloat(cs.borderBottomWidth) > 0 && cs.borderBottomStyle !== "none" && cs.borderBottomColor !== "rgba(0, 0, 0, 0)" && cs.borderBottomColor !== "transparent";
+      const hasBd = hasTopBd || hasBotBd;
+      const hasSh = cs.boxShadow && cs.boxShadow !== "none";
+      if (hasBg || hasBd || hasSh) {
+        bad.push(`empty ghost box: <${el.tagName.toLowerCase()} class="${el.getAttribute("class") || ""}"> ${Math.round(r.width)}x${Math.round(r.height)} in #${el.closest(".viz,[id]")?.id || "?"}`);
+      }
+    }
+  });
+  document.querySelectorAll("svg use[href], svg use[xlink\\:href]").forEach(u => {
+    const href = u.getAttribute("href") || u.getAttribute("xlink:href") || "";
+    if (href.startsWith("#") && !document.getElementById(href.slice(1))) {
+      bad.push(`broken svg <use> ref: ${href}`);
+    }
+  });
+  document.querySelectorAll(".fc-face").forEach(el => {
+    if (el.closest("[hidden]")) return;
+    const cs = getComputedStyle(el);
+    if (cs.display === "none" || cs.visibility === "hidden") return;
+    if (el.scrollHeight > el.clientHeight + 6 && cs.overflowY === "hidden") {
+      bad.push(`flashcard .fc-face clipped (${el.scrollHeight} > ${el.clientHeight})`);
+    }
+  });
+  document.querySelectorAll(".viz-stage").forEach(st => {
+    const use = st.querySelector(":scope > .k-use"), hud = st.querySelector(":scope > .k-hud");
+    if (!use || !hud) return;
+    const ur = use.getBoundingClientRect(), hr = hud.getBoundingClientRect();
+    if (ur.height > 0 && hr.height > 0 && ur.top < hr.bottom - 2) {
+      bad.push(`kit stacking out of order in #${st.closest(".viz")?.id || "?"}: .k-use above .k-hud`);
+    }
+  });
+  document.querySelectorAll(".k-hud, .k-use, .viz-stage svg text").forEach(el => {
+    if (el.closest(".hide,[hidden],[style*='display: none'],defs")) return;
+    const txt = (el.textContent || "").trim();
+    if (/\b(undefined|NaN)\b/.test(txt)) {
+      bad.push(`leaked literal in #${el.closest(".viz,[id]")?.id || "?"}: "${txt.slice(0, 40)}"`);
+    }
+  });
+  document.querySelectorAll("main *").forEach(el => {
+    if (el.closest("code,pre,script,style,[hidden]") || el.children.length > 0) return;
+    const txt = el.textContent || "";
+    if (/\[\[[^|\]]+\|[vcfgrkas](?:\|[^\]]+)?\]\]/.test(txt)) {
+      bad.push(`unexpanded shorthand leak: "${txt.trim().slice(0, 40)}"`);
+    }
+  });
   if (phone) {
     document.querySelectorAll("main button, main a.btn, main .opt").forEach(e => {
       const r = e.getBoundingClientRect();
@@ -351,6 +405,15 @@ def main():
                     step_bad = cdp.eval(STEPPED_VIZ_JS) or []
                     for it in step_bad:
                         problems.append(f"{tag} {it}")
+                    mc_err = cdp.eval(r"""(() => {
+                      const b = document.querySelector('.mcheck .mc-opts button');
+                      if (!b) return null;
+                      b.click();
+                      const fb = b.closest('.mcheck')?.querySelector('.mc-fb');
+                      return (!fb || fb.hidden) ? 'mcheck feedback did not appear after tap' : null;
+                    })()""")
+                    if mc_err:
+                        problems.append(f"{tag} {mc_err}")
 
                 if args.shots and (sz, theme) in (("lap", "light"), ("ph", "light"), ("ph", "dark")):
                     shot = cdp.call("Page.captureScreenshot", {"format": "png"})
@@ -369,6 +432,15 @@ def main():
                     for vi in viz_idxs:
                         cdp.eval(f"Explainer.show({vi})")
                         time.sleep(0.25)
+                        if sz == "ph" and theme == "light":
+                            has_depth = cdp.eval("!!document.querySelector('.ex-card details.depth')")
+                            if has_depth:
+                                cdp.eval("document.querySelectorAll('.ex-card details.depth').forEach(d=>d.open=true)")
+                                time.sleep(0.15)
+                                ov_err = cdp.eval("document.documentElement.scrollWidth > window.innerWidth + 1")
+                                if ov_err:
+                                    problems.append(f"{tag} explainer horizontal overflow when Exam Depth expanded on screen {vi}")
+                                cdp.eval("document.querySelectorAll('.ex-card details.depth').forEach(d=>d.open=false)")
                         ex_bad = cdp.eval(r"""(() => {
                           const bad = [], iw = window.innerWidth;
                           const tx = document.querySelector('.ex-card.two .ex-text'), md = document.querySelector('.ex-card.two .ex-media');
@@ -398,6 +470,30 @@ def main():
                                   bad.push(`explainer clips #${vid} (${Math.round(r.top)}..${Math.round(r.bottom)} vs ${Math.round(pr.top)}..${Math.round(pr.bottom)})`);
                                   break;
                                 }
+                              }
+                            }
+                          });
+                          document.querySelectorAll('.ex-win').forEach(w => {
+                            const cs = getComputedStyle(w);
+                            if (w.scrollHeight > w.clientHeight + 6 && cs.overflowY === 'hidden') {
+                              bad.push(`explainer .ex-win trapped scroll in #${w.closest('.viz')?.id || '?'}`);
+                            }
+                          });
+                          const skipExGhost = "i,hr,br,td,th,svg,path,rect,circle,line,polygon,polyline,canvas,img,input,textarea,select,.grab,.tr,.dot,.line-band,.hero-lines,.pbar,.sbar,.ex-bars,.od-grip,.pa-roll,.pa-art,.pa-vis,.pa-nav,.boot-bar,.t-bar,.k-cam-sep,.k-np-track,.k-np-bar,.spacer,.st,.tk,.mk,.fi,.ci,.k-qb-cell,.k-dp-blank,.sheet-scrim,.dropover,.toast,.ex-try";
+                          document.querySelectorAll('.ex-text, .ex-media, .ex-vpanel, .ex .viz-stage *').forEach(el => {
+                            if (el.matches(skipExGhost) || el.closest("[hidden],svg,.boot,.pick-art")) return;
+                            const cs = getComputedStyle(el);
+                            if (cs.display === "none" || cs.visibility === "hidden" || parseFloat(cs.opacity) <= 0.05) return;
+                            const r = el.getBoundingClientRect();
+                            if (r.width < 32 || r.height < 18) return;
+                            if ((el.textContent || "").trim().length === 0 && !el.querySelector("svg,img,canvas,input,button,select,textarea")) {
+                              const hasBg = cs.backgroundColor && cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent";
+                              const hasTopBd = parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== "none" && cs.borderTopColor !== "rgba(0, 0, 0, 0)" && cs.borderTopColor !== "transparent";
+                              const hasBotBd = parseFloat(cs.borderBottomWidth) > 0 && cs.borderBottomStyle !== "none" && cs.borderBottomColor !== "rgba(0, 0, 0, 0)" && cs.borderBottomColor !== "transparent";
+                              const hasBd = hasTopBd || hasBotBd;
+                              const hasSh = cs.boxShadow && cs.boxShadow !== "none";
+                              if (hasBg || hasBd || hasSh) {
+                                bad.push(`explainer empty ghost box: <${el.tagName.toLowerCase()} class="${el.getAttribute("class") || ""}"> ${Math.round(r.width)}x${Math.round(r.height)} in #${el.closest(".viz,[id]")?.id || "?"}`);
                               }
                             }
                           });

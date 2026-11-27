@@ -1,8 +1,9 @@
 {
   "id": "algorithms-complexity-studio",
+  "v2": true,
   "title": "Algorithms & Complexity Studio",
   "highlight": "Complexity",
-  "eyebrow": "Metro Engine v1.6 · Interactive Algorithms, DP, Graphs & NP-Completeness",
+  "eyebrow": "Metro Engine v2.0 · Plain Intuition to Exam Rigor",
   "lede": "Interactive step-by-step tracers, state-space trees, reduction gadgets, FPTAS simulators, and master exam tables—color-coded and mobile-ready.",
   "terminus": "Exam Ready",
   "lines": {

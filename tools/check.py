@@ -124,16 +124,65 @@ def main(folder):
         if len(c.attrs.get("data-short", "")) > 22: warn(f"chapter {cid}: data-short \"{c.attrs['data-short']}\" is long for the map; aim for 18 characters or fewer")
     all_ids = {n.attrs["id"]: n for n in R.find(lambda n: "id" in n.attrs)}
 
-    for s in R.find(lambda n: "sec" in n.cls):
+    is_v2 = bool(g.get("v2")) or bool(R.find(lambda n: bool(n.cls & {"beat", "depth", "mcheck"})))
+    def viz_has_predict(vid):
+        for m in re.finditer(r'(?:Kit\.\w+|E\.stepper)\(\s*["\'`#]*' + re.escape(vid) + r'["\'`]', vis):
+            bstart = vis.find("{", m.end())
+            if bstart < 0: continue
+            depth, bend = 0, bstart
+            while bend < len(vis):
+                if vis[bend] == "{": depth += 1
+                elif vis[bend] == "}":
+                    depth -= 1
+                    if depth == 0: break
+                bend += 1
+            if re.search(r'\bpredict\s*:', vis[bstart:bend + 1]): return True
+        return False
+
+    for s in R.find(lambda n: bool(n.cls & {"sec", "beat"})):
         h3 = [k for k in s.kids if k.tag == "h3"]
-        if not h3: warn(f"line {s.line}: a .sec has no <h3> heading")
-        heavy = s.find(lambda n: n.cls & {"viz", "tbl-wrap", "steps", "sorter", "grid2", "grid3", "drill", "proof-tpl"})
+        if not h3: warn(f"line {s.line}: a .{ 'beat' if 'beat' in s.cls else 'sec' } has no <h3> heading")
+        body_kids = [k for k in s.kids if k.tag != "h3"]
+        if not body_kids and not s.text.strip():
+            warn(f"line {s.line}: a .{ 'beat' if 'beat' in s.cls else 'sec' } has no content besides its heading")
+        heavy = [n for n in s.find(lambda n: bool(n.cls & {"viz", "tbl-wrap", "steps", "sorter", "grid2", "grid3", "drill", "proof-tpl"}))
+                 if not n.up(lambda x: x.tag == "details" and "depth" in x.cls)]
         lead = s.find(lambda n: n.tag == "p" and "lead" in n.cls)
         if heavy and not lead and not s.up(lambda n: "checkpoint" in n.cls) and not s.up(lambda n: n.attrs.get("data-part") == "R"):
             warn(f"line {s.line}: section \"{h3[0].alltext().strip() if h3 else '?'}\" has a visual/table/steps but no <p class=\"lead\"> to introduce it")
     for p in R.find(lambda n: n.tag == "p"):
         words = len(p.alltext().split())
-        if words > 90: warn(f"line {p.line}: a paragraph of {words} words. Split it, or turn it into steps, terms or a table (no text walls)")
+        in_depth = bool(p.up(lambda x: x.tag == "details" and "depth" in x.cls))
+        in_counted = bool(p.up(lambda x: x.tag == "article" and "chapter" in x.cls and "checkpoint" not in x.cls and x.attrs.get("data-count") != "no"))
+        if is_v2 and in_counted and not in_depth and not p.up(lambda x: bool(x.cls & {"mcheck", "trap"})):
+            if words > 45: warn(f"line {p.line}: Plain Intuition paragraph has {words} words (v2 target ≤ 35, max 45). Shorten or move details into <details class=\"depth\">")
+        elif words > 90:
+            warn(f"line {p.line}: a paragraph of {words} words. Split it, or turn it into steps, terms or a table (no text walls)")
+    for mc in R.find(lambda n: "mcheck" in n.cls):
+        if not mc.find(lambda x: "mc-q" in x.cls): err(f"line {mc.line}: .mcheck has no .mc-q question prompt")
+        btns = mc.find(lambda x: x.tag == "button" and x.up(lambda y: "mc-opts" in y.cls))
+        if len(btns) < 2: err(f"line {mc.line}: .mcheck needs at least 2 <button> choices inside .mc-opts")
+        elif not any(b.attrs.get("data-ok") == "1" for b in btns): err(f"line {mc.line}: .mcheck needs at least one button with data-ok=\"1\"")
+        if any(not b.attrs.get("data-why") for b in btns): warn(f"line {mc.line}: .mcheck choice missing data-why explanation")
+    for dp in R.find(lambda n: n.tag == "details" and "depth" in n.cls):
+        if not [k for k in dp.kids if k.tag == "summary"]: err(f"line {dp.line}: <details class=\"depth\"> needs a <summary>")
+        body_kids = [k for k in dp.kids if k.tag != "summary"]
+        if not body_kids and not dp.text.strip():
+            warn(f"line {dp.line}: <details class=\"depth\"> has no content besides its <summary>")
+    if is_v2:
+        for c in chs:
+            if "checkpoint" in c.cls or c.attrs.get("data-count") == "no": continue
+            cid = c.attrs.get("id", "?")
+            viz_nodes = c.find(lambda n: "viz" in n.cls)
+            if viz_nodes:
+                first_viz = viz_nodes[0]
+                pre_ps = [p for p in c.find(lambda n: n.tag == "p" and "bigidea" not in n.cls and "lead" not in n.cls)
+                          if p.line < first_viz.line and not p.up(lambda x: x.tag == "details" and "depth" in x.cls)]
+                if len(pre_ps) > 2:
+                    warn(f"station {cid}: {len(pre_ps)} paragraphs appear before its first visual (visual-first limit is 2)")
+            has_mc = bool(c.find(lambda n: bool(n.cls & {"mcheck", "drill", "sorter"}))) or any(viz_has_predict(v.attrs.get("id", "")) for v in viz_nodes if v.attrs.get("id"))
+            if not has_mc:
+                warn(f"station {cid}: no in-station Micro-Check (.mcheck, .drill, .sorter, or predict step)")
     for tr in R.find(lambda n: "callout" in n.cls and "trap" in n.cls):
         if not tr.up(lambda n: "checkpoint" in n.cls or "cp-body" in n.cls):
             warn(f"line {tr.line}: a trap callout outside the checkpoint. Put traps in <div class=\"traps\"> at the end of the station")

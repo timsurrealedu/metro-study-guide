@@ -10,21 +10,22 @@
     <p class="boot-sub">{{EYEBROW}}</p>
     <div class="boot-bar" aria-hidden="true"><i></i></div>
     <p class="boot-msg" aria-live="polite">Laying the track</p>
+    <p class="boot-skip">Tap anywhere to skip</p>
   </div>
   <div class="pick" hidden>
     <h2>How do you want to ride?</h2>
     <p class="pick-sub">Same stations, two ways to ride.</p>
     <div class="pick-opts">
+      <button class="pick-opt" type="button" data-mode="explain">
+        <span class="pick-new">Best for focus</span>
+        <span class="pick-art pa-ex" aria-hidden="true"><i class="pa-bar"></i><i class="pa-t"></i><i class="pa-s"></i><i class="pa-vis"><b></b></i><span class="pa-nav"><i></i><i></i></span></span>
+        <span class="pick-name">Explainer</span>
+        <span class="pick-desc">One bite at a time, visual-first. Tap Next.</span>
+      </button>
       <button class="pick-opt" type="button" data-mode="scroll">
         <span class="pick-art pa-scroll" aria-hidden="true"><span class="pa-roll"><i class="pa-h"></i><i></i><i></i><i class="pa-box"></i><i></i><i class="pa-s"></i><i class="pa-box b2"></i><i></i><i></i><i class="pa-h"></i><i></i><i class="pa-box"></i></span></span>
         <span class="pick-name">Scroll</span>
-        <span class="pick-desc">The whole guide on one page. Scroll and read at your own pace.</span>
-      </button>
-      <button class="pick-opt" type="button" data-mode="explain">
-        <span class="pick-new">New</span>
-        <span class="pick-art pa-ex" aria-hidden="true"><i class="pa-bar"></i><i class="pa-t"></i><i class="pa-s"></i><i class="pa-vis"><b></b></i><span class="pa-nav"><i></i><i></i></span></span>
-        <span class="pick-name">Explainer</span>
-        <span class="pick-desc">Full screen, one idea at a time, built around the visual. Tap Next.</span>
+        <span class="pick-desc">Full page · best for scanning and searching.</span>
       </button>
     </div>
     <div class="pick-rem"><button class="switch" type="button" role="switch" aria-checked="false" aria-label="Remember my choice and skip this next time"><span class="tr"></span></button><span>Remember my choice</span></div>

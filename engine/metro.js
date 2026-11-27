@@ -1,10 +1,10 @@
 /* =====================================================================
-   METRO ENGINE v1.5 — runtime  (docs/02-file-structure.md, docs/05-custom-visuals.md)
+   METRO ENGINE v2.0 — runtime  (docs/02-file-structure.md, docs/05-custom-visuals.md)
    Reads the page structure (.part > .chapter) and builds:
    sidebar + phone bar + sheet, scroll spy, progress, Auto/Light/Dark,
-   motion switch, step players, flowing dots, quizzes, flashcards.
-   Content pages only provide: window.GUIDE, window.QUIZ, window.FLASH,
-   and HTML that follows the chapter template.
+   motion switch, Exam Depth, Focus dim, TTS read-aloud, step players
+   with Tap-to-Predict, micro-checks, quizzes, confidence flashcards,
+   and Weak-Spot Queue.
    ===================================================================== */
 (function(){
 "use strict";
@@ -37,6 +37,9 @@ const SPRITE=`<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
 <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/></symbol><symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></symbol><symbol id="i-train" viewBox="0 0 24 24"><rect x="5.5" y="2.5" width="13" height="14" rx="3.5"/><path d="M5.5 9.5h13M9 13.5h.01M15 13.5h.01M8.5 16.5 6.5 21M15.5 16.5l2 4.5M7.5 19h9"/></symbol>
 <symbol id="i-motion" viewBox="0 0 24 24"><path d="M3 12h3l2.5-6 4 12 3-9 2 3H21"/></symbol>
 <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M4 7h3.5c4 0 5 10 9 10H20M4 17h3.5c1.6 0 2.7-1.6 3.6-3.4M14 10c.8-1.7 1.6-3 2.5-3H20"/><path d="M17.5 4.5L20 7l-2.5 2.5M17.5 14.5L20 17l-2.5 2.5"/></symbol>
+<symbol id="i-speaker" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a9 9 0 0 1 0 12"/></symbol>
+<symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3L3 8l9 5 9-5z"/><path d="M3 13l9 5 9-5"/><path d="M3 18l9 5 9-5"/></symbol>
 </svg>`;
 document.body.insertAdjacentHTML("afterbegin",SPRITE);
 /* shared glossy gradients for every diagram (fill:url(#g-…)) */
@@ -49,34 +52,50 @@ function applyTheme(t){theme=t;store.set("theme",t);if(t==="auto")root.removeAtt
 /* ---------- language (en / id) ---------- */
 const I18N={
   en:{opt:"Options",done:"Done",mode:"Reading mode",scroll:"Scroll page",explain:"Explainer",
-    mode_ex:"Full screen, one idea at a time. Tap Next to move on.",
+    mode_ex:"One bite at a time, visual-first. Tap Next to move on.",
     mode_sc:"The whole guide on one page. Scroll at your own pace.",
     app:"Appearance",app_d:"Auto matches your device's light or dark setting.",auto:"Auto",light:"Light",dark:"Dark",
     anim:"Animations",anim_d:"Moving parts in the visuals. Turn off to keep everything still.",
-    lang:"Language",lang_d:"Translate all guide contents between English and Indonesian.",
+    depth:"Exam Depth",depth_d:"Show formal formulas, proofs & edge cases automatically.",
+    focus_dim:"Focus dim",focus_dim_d:"Soften surrounding blocks in Scroll mode so one idea stands out.",
+    tts_rate:"Read-aloud speed",tts_rate_d:"Adjust spoken read-aloud pace.",
+    listen:"Listen",stop_listen:"Stop",
+    lang:"Language",lang_d:"Switches UI offline; full text translation needs internet.",
+    lang_d_local:"Translate all guide contents offline.",
     font:"Font",font_d:"Use a font file of your own.",choose:"Aa · Choose",
-    contents:"Contents",mark:"Mark chapter as learned",learned:"Learned",next:"Next",
+    contents:"Contents",mark:"Mark station as learned",learned:"Learned",next:"Next",
     next_st:"Next station",start:"Start",cont:"Continue",stops:"stops",
     reset:"Start over",step_of:(a,b)=>`Step ${a} of ${b}`,
     q_of:(a,b)=>`Question ${a} of ${b}`,score:"See your score",q_next:"Next question",
     try_again:"Try again",check_ans:"Check answer",ans:"Answer",flip:"Flip",shuffle:"Shuffle",
+    got_it:"Got it",shaky:"Still shaky",
+    weak_empty:"All clear — missed micro-checks, quiz questions, and shaky flashcards show up here automatically for quick replay.",
+    weak_clear:"Got it now",
     stations:"Stations",ex_scroll:"Scroll",back:"Back",finish:"Finish",start_ride:"Start riding",
     try_it:"Try it yourself",try_d:"Drag a slider and watch the visual.",mark_sm:"Mark as learned",
     full_scr:"Full screen",free:"Or try it yourself",
     how:"How",why:"Why",hide:"Hide",rule:"Rule",watch_out:"Watch out",replay:"Replay",
     all:"All",diff_only:"Differences",tap_inspect:"Hover or tap any part to see what it does.",what_does:"Role & purpose"},
   id:{opt:"Opsi",done:"Selesai",mode:"Mode baca",scroll:"Gulir halaman",explain:"Penjelas",
-    mode_ex:"Layar penuh, satu ide tiap langkah. Ketuk Lanjut.",
+    mode_ex:"Satu langkah tiap layar, fokus visual. Ketuk Lanjut.",
     mode_sc:"Seluruh panduan dalam satu halaman. Gulir sesuai ritme Anda.",
     app:"Tampilan",app_d:"Otomatis mengikuti tema terang atau gelap perangkat.",auto:"Otomatis",light:"Terang",dark:"Gelap",
     anim:"Animasi",anim_d:"Gerakan pada visual. Matikan agar tetap diam.",
-    lang:"Bahasa",lang_d:"Terjemahkan seluruh isi panduan ke Bahasa Indonesia atau Inggris.",
+    depth:"Kedalaman Ujian",depth_d:"Tampilkan rumus resmi, pembuktian, dan kasus tepi otomatis.",
+    focus_dim:"Mode fokus",focus_dim_d:"Redupkan blok lain di mode Gulir agar satu ide menonjol.",
+    tts_rate:"Kecepatan suara",tts_rate_d:"Atur kecepatan baca lantang.",
+    listen:"Dengarkan",stop_listen:"Berhenti",
+    lang:"Bahasa",lang_d:"Antarmuka offline; terjemahan isi penuh butuh internet.",
+    lang_d_local:"Terjemahkan seluruh isi panduan secara offline.",
     font:"Huruf",font_d:"Gunakan berkas huruf Anda sendiri.",choose:"Aa · Pilih",
-    contents:"Daftar Isi",mark:"Tandai bab sudah dipelajari",learned:"Sudah dipelajari",next:"Berikutnya",
+    contents:"Daftar Isi",mark:"Tandai stasiun sudah dipelajari",learned:"Sudah dipelajari",next:"Berikutnya",
     next_st:"Stasiun berikutnya",start:"Mulai",cont:"Lanjut",stops:"stasiun",
     reset:"Ulangi",step_of:(a,b)=>`Langkah ${a} dari ${b}`,
     q_of:(a,b)=>`Pertanyaan ${a} dari ${b}`,score:"Lihat skor",q_next:"Pertanyaan berikutnya",
     try_again:"Coba lagi",check_ans:"Periksa jawaban",ans:"Jawaban",flip:"Balik",shuffle:"Acak",
+    got_it:"Paham",shaky:"Masih ragu",
+    weak_empty:"Semua beres — latihan singkat, kuis yang salah, dan kartu yang masih ragu muncul otomatis di sini.",
+    weak_clear:"Sudah paham",
     stations:"Stasiun",ex_scroll:"Gulir",back:"Kembali",finish:"Selesai",start_ride:"Mulai belajar",
     try_it:"Coba sendiri",try_d:"Geser pengatur dan amati visualnya.",mark_sm:"Tandai dipelajari",
     full_scr:"Layar penuh",free:"Atau coba sendiri",
@@ -101,12 +120,100 @@ chapters.forEach(c=>{c._part=c.closest(".part");c.counts=c.dataset.count!=="no"}
 const counted=chapters.filter(c=>c.counts);
 let done=new Set(store.get("done",[]));
 
+/* ---------- depth, focus-dim, tts, weak-spot state ---------- */
+let depthOn=store.get("depth","off")==="on";
+function applyDepth(on){
+  depthOn=!!on;store.set("depth",depthOn?"on":"off");root.dataset.depth=depthOn?"on":"off";
+  $$(".btn-depth").forEach(b=>b.setAttribute("aria-checked",String(depthOn)));
+  $$("details.depth").forEach(d=>{d.open=depthOn});
+  document.dispatchEvent(new CustomEvent("depthchange",{detail:depthOn}));
+}
+let focusDim=!!store.get("focusDim",false);
+function updateFocusDim(){
+  if(!focusDim||root.classList.contains("mode-ex"))return;
+  const blocks=$$(".beat,.sec,.mcheck,.drill,.viz",main).filter(el=>!el.closest(".checkpoint,[hidden]"));
+  if(!blocks.length)return;
+  const mid=innerHeight*.42;let best=null,dist=Infinity;
+  blocks.forEach(el=>{const r=el.getBoundingClientRect();if(r.bottom<60||r.top>innerHeight)return;
+    const d=Math.abs((r.top+Math.min(r.height,innerHeight*.5)*.5)-mid);if(d<dist){dist=d;best=el}});
+  blocks.forEach(el=>el.classList.toggle("f-active",el===best));
+}
+function applyFocusDim(on){
+  focusDim=!!on;store.set("focusDim",focusDim);root.classList.toggle("focus-dim",focusDim);
+  $$(".btn-focus").forEach(b=>b.setAttribute("aria-checked",String(focusDim)));
+  if(focusDim)updateFocusDim();else $$(".f-active",main).forEach(el=>el.classList.remove("f-active"));
+}
+document.addEventListener("pointerenter",e=>{if(!focusDim||root.classList.contains("mode-ex"))return;const b=e.target.closest&&e.target.closest(".beat,.sec,.mcheck,.drill,.viz");if(b&&main.contains(b)&&!b.closest(".checkpoint")){$$(".f-active",main).forEach(x=>x.classList.remove("f-active"));b.classList.add("f-active")}},true);
+const ttsSupported="speechSynthesis" in window&&"SpeechSynthesisUtterance" in window;
+let ttsRate=+store.get("ttsRate",1)||1,ttsToken=0;
+function cleanSpeakText(el){
+  const cl=el.cloneNode(true);
+  $$("svg,.player,.tbl-bar,.k-legend,.eq-legend,.kd-tools,.kd-drawer,.dr-bar,.mc-opts,.mc-fb,button,pre,code,table,.tbl-wrap,.cmp-wrap,[hidden]",cl).forEach(n=>n.remove());
+  $$("[data-speak]",cl).forEach(n=>n.replaceWith(document.createTextNode(" "+n.dataset.speak+" ")));
+  $$(".eq,.m",cl).forEach(n=>{if(n.querySelector(".fr,.m-mat,.m-big")||n.classList.contains("eq"))n.replaceWith(document.createTextNode(" the formula shown "))});
+  return (cl.textContent||"").replace(/\s+/g," ").trim();
+}
+function buildSpeakQueue(container){
+  if(!container)return [];
+  const raw=$$(".ch-head h2,.bigidea,.beat>h3,.sec>h3,.beat>p,.sec>p,.beat>ul li,.beat>ol:not(.proof-tpl) li,.nameit,.viz-cap h4,.viz-cap p,.callout:not(.trap),.mcheck .mc-q,details.depth[open] p",container);
+  const picks=[];
+  raw.forEach(el=>{
+    if(el.closest("[hidden],.traps,.cp-list,details.depth:not([open])"))return;
+    if(picks.some(p=>p.contains(el)||el.contains(p)))return;
+    const txt=cleanSpeakText(el);if(txt)picks.push([el,txt]);
+  });
+  return picks;
+}
+function stopSpeak(){
+  ttsToken++;
+  if(ttsSupported)try{window.speechSynthesis.cancel()}catch(e){}
+  $$(".tts-speaking").forEach(el=>el.classList.remove("tts-speaking"));
+  $$(".tts-btn").forEach(b=>{b.classList.remove("speaking");b.setAttribute("aria-pressed","false");
+    const u=$("use",b);if(u)u.setAttribute("href","#i-speaker");const s=$("span",b);if(s)s.textContent=t("listen")});
+}
+function speakScope(container,btn){
+  if(!ttsSupported)return;
+  if(btn&&btn.classList.contains("speaking")){stopSpeak();return}
+  stopSpeak();
+  const q=buildSpeakQueue(container);
+  if(!q.length){showToast(`<span class="ti">${ic("info")}</span><span>Nothing readable on this screen.</span>`);return}
+  const tok=ttsToken;
+  if(btn){btn.classList.add("speaking");btn.setAttribute("aria-pressed","true");
+    const u=$("use",btn);if(u)u.setAttribute("href","#i-stop");const s=$("span",btn);if(s)s.textContent=t("stop_listen")}
+  let idx=0;
+  const next=()=>{
+    if(tok!==ttsToken)return;
+    if(idx>=q.length){stopSpeak();return}
+    const [el,txt]=q[idx++];
+    const u=new SpeechSynthesisUtterance(txt);
+    u.rate=ttsRate;u.lang=lang==="id"?"id-ID":"en-US";
+    u.onstart=()=>{if(tok!==ttsToken)return;$$(".tts-speaking").forEach(x=>x.classList.remove("tts-speaking"));el.classList.add("tts-speaking")};
+    u.onend=()=>{el.classList.remove("tts-speaking");next()};
+    u.onerror=()=>{el.classList.remove("tts-speaking");next()};
+    try{window.speechSynthesis.speak(u)}catch(e){stopSpeak()}
+  };
+  next();
+}
+let weak=store.get("weak",[]);
+const saveWeak=()=>store.set("weak",weak);
+function addWeak(item){
+  if(!item||!item.id)return;
+  const idx=weak.findIndex(w=>w.id===item.id);
+  if(idx>=0)weak[idx]={...weak[idx],...item};else weak.unshift(item);
+  saveWeak();renderWeakQueues();
+}
+function clearWeak(id){
+  const next=weak.filter(w=>w.id!==id);
+  if(next.length!==weak.length){weak=next;saveWeak();renderWeakQueues()}
+}
+
 /* ---------- chrome: top bar ---------- */
 const main=$("main");
 const top=h("div",{class:"topbar",role:"region","aria-label":"Reading controls"});
 top.innerHTML=`<div class="topbar-in glass">
  <button class="tb-btn btn-side" type="button" title="Show or hide the sidebar" aria-label="Show or hide the sidebar">${ic("sidebar")}</button>
  <div class="crumb" aria-live="polite"><i class="dot"></i><span class="t"><span class="p"></span><span class="c">${G.title}</span></span></div>
+ <button class="tb-btn tb-depth btn-depth" type="button" role="switch" aria-checked="false" title="Show or hide Exam Depth details" aria-label="Exam Depth">${ic("layers")}<span class="lbl">Exam Depth</span></button>
  <button class="tb-btn tb-aa" type="button" aria-haspopup="dialog" aria-label="Fonts" title="Load your own font">Aa<span class="lbl">Font</span></button><button class="tb-btn tb-fs fs-btn" type="button" aria-label="Full screen" title="Full screen" hidden><svg class="ic fs-on" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg><svg class="ic fs-off" viewBox="0 0 24 24"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg><span class="lbl">Full screen</span></button>
  <button class="switch btn-motion" type="button" role="switch" aria-checked="true" aria-label="Animations"><span class="lbl">Animations</span><span class="tr"></span></button>
  <div class="seg seg-theme" role="group" aria-label="Appearance">
@@ -120,6 +227,7 @@ $(".btn-side",top).addEventListener("click",()=>{root.classList.toggle("side-hid
 if(store.get("side","shown")==="hidden")root.classList.add("side-hidden");
 if(!matchMedia("(min-width:1100px)").matches) $(".btn-side",top).hidden=true;
 matchMedia("(min-width:1100px)").addEventListener?.("change",e=>{$(".btn-side",top).hidden=!e.matches});
+$(".btn-depth",top).addEventListener("click",()=>applyDepth(!depthOn));
 $(".btn-motion",top).addEventListener("click",()=>applyMotion(motionOn()?"off":"on"));
 const TH=["auto","light","dark"],compactBar=matchMedia("(max-width:600px)");
 $$(".seg-theme button",top).forEach(b=>b.addEventListener("click",()=>{
@@ -140,7 +248,7 @@ function navHTML(){
 }
 const headHTML=`<div class="side-head"><div class="side-title"><span class="appicon" aria-hidden="true"><svg class="ic">${'<use href="#i-train"/>'}</svg></span><div><b>${G.title}</b><div class="side-sub">${G.subtitle||""}</div></div></div>
   <div class="pbar"><i></i></div><div class="pcount"></div></div>`;
-const side=h("nav",{class:"side glass","aria-label":"Chapters"},headHTML+`<div class="nav">${navHTML()}</div>`);
+const side=h("nav",{class:"side glass","aria-label":"Stations"},headHTML+`<div class="nav">${navHTML()}</div>`);
 document.body.appendChild(side);
 const pbar=h("div",{class:"phonebar"});
 pbar.innerHTML=`<div class="phonebar-in glass"><svg class="ring" viewBox="0 0 36 36" aria-hidden="true"><circle class="bgc" cx="18" cy="18" r="14"/><circle class="fg" cx="18" cy="18" r="14" stroke-dasharray="87.96" stroke-dashoffset="87.96" transform="rotate(-90 18 18)"/></svg>
@@ -174,6 +282,12 @@ opt.innerHTML=`<div class="grab" aria-hidden="true"></div><div class="op-head"><
    <div class="segc op-theme seg-theme" role="group" aria-label="Appearance"><button type="button" data-t="auto">${ic("auto")} <span data-tr="auto">${t("auto")}</span></button><button type="button" data-t="light">${ic("sun")} <span data-tr="light">${t("light")}</span></button><button type="button" data-t="dark">${ic("moon")} <span data-tr="dark">${t("dark")}</span></button></div></div>
   <div class="op-item"><div class="op-l"><b data-tr="lang">${t("lang")}</b><span class="op-ld" data-tr="lang_d">${t("lang_d")}</span></div>
    <div class="segc op-lang" role="group" aria-label="Language"><button type="button" data-l="en">English</button><button type="button" data-l="id">Indonesia</button></div></div>
+  <div class="op-item op-inline"><div class="op-l"><b data-tr="depth">${t("depth")}</b><span data-tr="depth_d">${t("depth_d")}</span></div>
+   <button class="switch btn-depth" type="button" role="switch" aria-label="Exam Depth"><span class="tr"></span></button></div>
+  <div class="op-item op-inline"><div class="op-l"><b data-tr="focus_dim">${t("focus_dim")}</b><span data-tr="focus_dim_d">${t("focus_dim_d")}</span></div>
+   <button class="switch btn-focus" type="button" role="switch" aria-label="Focus dim"><span class="tr"></span></button></div>
+  <div class="op-item op-tts"${ttsSupported?"":" hidden"}><div class="op-l"><b data-tr="tts_rate">${t("tts_rate")}</b><span data-tr="tts_rate_d">${t("tts_rate_d")}</span></div>
+   <div class="segc op-tts-rate" role="group" aria-label="Read-aloud speed"><button type="button" data-r="1">1×</button><button type="button" data-r="1.25">1.25×</button><button type="button" data-r="1.5">1.5×</button></div></div>
   <div class="op-item op-inline"><div class="op-l"><b data-tr="anim">${t("anim")}</b><span data-tr="anim_d">${t("anim_d")}</span></div>
    <button class="switch btn-motion" type="button" role="switch" aria-label="Animations"><span class="tr"></span></button></div>
   <div class="op-item op-inline"><div class="op-l"><b data-tr="font">${t("font")}</b><span data-tr="font_d">${t("font_d")}</span></div>
@@ -186,7 +300,12 @@ function paintOpt(){$$(".op-mode button",opt).forEach(b=>b.setAttribute("aria-pr
   $(".op-md",opt).textContent=t(isEx()?"mode_ex":"mode_sc");
   $$(".op-theme button",opt).forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.t===theme)));
   $$(".op-lang button",opt).forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.l===lang)));
-  $$("[data-tr]",opt).forEach(el=>{el.textContent=t(el.dataset.tr)})}
+  $$(".op-tts-rate button",opt).forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.r===ttsRate)));
+  $$(".btn-depth",opt).forEach(b=>b.setAttribute("aria-checked",String(depthOn)));
+  $$(".btn-focus",opt).forEach(b=>b.setAttribute("aria-checked",String(focusDim)));
+  $$("[data-tr]",opt).forEach(el=>{el.textContent=t(el.dataset.tr)});
+  const hasOff=!!window.GUIDE_I18N||$$("[data-id]").length>0;
+  $(".op-ld",opt).textContent=t(hasOff?"lang_d_local":"lang_d")}
 function openOptions(o){if(o)paintOpt();opt.classList.toggle("open",o);optScrim.classList.toggle("open",o);if(o)$(".op-done",opt).focus({preventScroll:true})}
 $(".tb-opt",top).addEventListener("click",()=>openOptions(true));
 $(".op-done",opt).addEventListener("click",()=>openOptions(false));
@@ -197,18 +316,27 @@ $$(".op-mode button",opt).forEach(b=>b.addEventListener("click",()=>{const X=win
   if(b.dataset.m==="explain"&&!isEx())X.enter();else if(b.dataset.m==="scroll"&&isEx())X.leave(false);paintOpt();setTimeout(()=>openOptions(false),180)}));
 $$(".op-theme button",opt).forEach(b=>b.addEventListener("click",()=>{applyTheme(b.dataset.t);paintOpt()}));
 $$(".op-lang button",opt).forEach(b=>b.addEventListener("click",()=>{applyLang(b.dataset.l);paintOpt()}));
+$(".btn-depth",opt).addEventListener("click",()=>{applyDepth(!depthOn);paintOpt()});
+$(".btn-focus",opt).addEventListener("click",()=>{applyFocusDim(!focusDim);paintOpt()});
+$$(".op-tts-rate button",opt).forEach(b=>b.addEventListener("click",()=>{ttsRate=+b.dataset.r||1;store.set("ttsRate",ttsRate);paintOpt()}));
 $(".btn-motion",opt).addEventListener("click",()=>applyMotion(motionOn()?"off":"on"));
 $(".op-font",opt).addEventListener("click",e=>{e.stopPropagation();openOptions(false);fontPop.classList.add("open")});
 
-/* ---------- part openers: chapter pills; chapter footers ---------- */
+/* ---------- part openers: station pills; station footers ---------- */
 $$(".part").forEach(p=>{const po=$(".part-open",p);if(po&&!$(".lbadge",po))po.insertAdjacentHTML("afterbegin",`<span class="lbadge big" aria-hidden="true">${p.dataset.part}</span><span class="line-band" aria-hidden="true"></span>`);
   const l=$(".plist[data-auto]",p);if(!l)return;
   chapters.filter(c=>c._part===p).forEach(c=>l.insertAdjacentHTML("beforeend",`<a href="#${c.id}" data-ch="${c.id}"><i class="st"></i><b>${c.dataset.n||"•"}</b><span class="pl-n">${c.dataset.n||""}</span>${c.dataset.title}</a>`))});
 chapters.forEach((c,i)=>{
+  const head=$(":scope>.ch-head",c);
+  if(head&&ttsSupported&&!$(".ch-tts",head)){
+    const tb=h("button",{class:"vbtn tts-btn ch-tts",type:"button","aria-pressed":"false","aria-label":"Listen to this station"},`${ic("speaker")}<span>${t("listen")}</span>`);
+    tb.addEventListener("click",()=>speakScope(c,tb));head.appendChild(tb);
+  }
   const f=$(".ch-foot[data-auto]",c);if(!f)return;
   const nx=chapters[i+1];
-  f.innerHTML=(c.counts?`<button class="donebtn" type="button" data-done="${c.id}" aria-pressed="false">${ic("check")}<span>Mark chapter as learned</span></button>`:"")+
+  f.innerHTML=(c.counts?`<button class="donebtn" type="button" data-done="${c.id}" aria-pressed="false">${ic("check")}<span>${t("mark")}</span></button>`:"")+
     (nx?`<div class="next">Next: <a href="#${nx.id}">${nx.dataset.n?nx.dataset.n+" ":""}${nx.dataset.title}</a></div>`:"");
+  if(!f.innerHTML.trim())f.hidden=true;
 });
 /* ---------- overview: a metro map. Every line (part) runs into one
    interchange; the Review line (data-part="R") runs on to the terminus.
@@ -292,7 +420,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-done]");if
 const toast=h("div",{class:"toast glass",role:"status"});document.body.appendChild(toast);let toastT=0;
 function showToast(html){toast.innerHTML=html;toast.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>toast.classList.remove("show"),2600)}
 function learned(id,from){const c=chapters.find(x=>x.id===id);const n=counted.filter(x=>done.has(x.id)).length;
-  showToast(`<span class="ti">${ic("check")}</span><span>${c?(c.dataset.n+" "+c.dataset.title):"Chapter"} learned · ${n}/${counted.length}</span>`);if(from)celebrate(from)}
+  showToast(`<span class="ti">${ic("check")}</span><span>${c?(c.dataset.n+" "+c.dataset.title):"Station"} learned · ${n}/${counted.length}</span>`);if(from)celebrate(from)}
 function celebrate(el){if(!motionOn())return;const r=el.getBoundingClientRect();const cv=h("canvas",{class:"confetti"});document.body.appendChild(cv);
   const W=cv.width=innerWidth*devicePixelRatio,H=cv.height=innerHeight*devicePixelRatio;const g=cv.getContext("2d");g.scale(devicePixelRatio,devicePixelRatio);
   const cols=["#ff375f","#ff9f0a","#ffd60a","#30d158","#64d2ff","#0a84ff","#bf5af2"];const P=[];const ox=r.left+r.width/2,oy=r.top+r.height/2;
@@ -302,12 +430,12 @@ function celebrate(el){if(!motionOn())return;const r=el.getBoundingClientRect();
 function saveDone(){store.set("done",[...done]);paintProgress()}
 const Engine_markDone=(id)=>{if(!done.has(id)){done.add(id);learned(id);saveDone()}};
 function paintProgress(){
-  const n=counted.filter(c=>done.has(c.id)).length, t=counted.length, pct=t?Math.round(n/t*100):0;
+  const n=counted.filter(c=>done.has(c.id)).length, tot=counted.length, pct=tot?Math.round(n/tot*100):0;
   $$(".pbar i").forEach(i=>i.style.width=pct+"%");
-  $$(".pcount").forEach(e=>e.textContent=`${n} of ${t} stations learned · ${pct}%`);
-  $$(".ring .fg").forEach(r=>r.setAttribute("stroke-dashoffset",(87.96*(1-n/(t||1))).toFixed(2)));
+  $$(".pcount").forEach(e=>e.textContent=`${n} of ${tot} stations learned · ${pct}%`);
+  $$(".ring .fg").forEach(r=>r.setAttribute("stroke-dashoffset",(87.96*(1-n/(tot||1))).toFixed(2)));
   $$("[data-ch]").forEach(a=>a.classList.toggle("done",done.has(a.dataset.ch)));
-  $$("[data-done]").forEach(b=>{const on=done.has(b.dataset.done);b.setAttribute("aria-pressed",String(on));b.querySelector("span").textContent=on?"Learned":"Mark chapter as learned"});
+  $$("[data-done]").forEach(b=>{const on=done.has(b.dataset.done);b.setAttribute("aria-pressed",String(on));b.querySelector("span").textContent=on?t("learned"):t("mark")});
   parts.forEach(p=>{const cs=chapters.filter(c=>c._part===p&&c.counts);if(!cs.length)return;const k=cs.filter(c=>done.has(c.id)).length;$$(`[data-pp="${p.id}"]`).forEach(e=>e.textContent=`${k}/${cs.length}`)});
   paintOverview();
   document.dispatchEvent(new CustomEvent("progress",{detail:{done}}));
@@ -335,7 +463,7 @@ const io=new IntersectionObserver(es=>{
   if(best)setCurrent(best.classList.contains("part-open")?best.closest(".part"):best.classList.contains("hero")?null:best);
 },{rootMargin:"0px",threshold:[0,.1,.5,1]});
 spyTargets.forEach(t=>io.observe(t));
-let spyRaf=0;window.addEventListener("scroll",()=>{if(spyRaf||root.classList.contains("mode-ex"))return;spyRaf=requestAnimationFrame(()=>{spyRaf=0;let best=null,bt=Infinity;spyTargets.forEach(t=>{const r=t.getBoundingClientRect();if(r.top<window.innerHeight*.35&&r.bottom>90){const d=window.innerHeight*.35-r.top;if(d<bt){bt=d;best=t}}});setCurrent(best?(best.classList.contains("part-open")?best.closest(".part"):best.classList.contains("hero")?null:best):null)})},{passive:true});
+let spyRaf=0;window.addEventListener("scroll",()=>{if(spyRaf||root.classList.contains("mode-ex"))return;spyRaf=requestAnimationFrame(()=>{spyRaf=0;let best=null,bt=Infinity;spyTargets.forEach(t=>{const r=t.getBoundingClientRect();if(r.top<window.innerHeight*.35&&r.bottom>90){const d=window.innerHeight*.35-r.top;if(d<bt){bt=d;best=t}}});setCurrent(best?(best.classList.contains("part-open")?best.closest(".part"):best.classList.contains("hero")?null:best):null);updateFocusDim()})},{passive:true});
 
 /* ---------- visibility for animation work ---------- */
 const visible=new WeakMap();
@@ -394,10 +522,44 @@ function stepper(viz,steps,render,o={}){
   const free=$$(".ctl",viz).find(c=>c.compareDocumentPosition(bar)&Node.DOCUMENT_POSITION_PRECEDING);
   if(free&&!free.dataset.h)free.dataset.h=o.freeLabel||"Or try it yourself";
   let i=0,timer=null;
+  const predAns=new Map();
   const btnPlay=$('[data-a="play"]',bar);
   function refill(){[$('.pdots button[aria-current="true"]',bar),$(".vprog button.now",viz)].forEach(cur=>{if(!cur)return;const old=$("i",cur);const n=document.createElement("i");old.replaceWith(n)})}
+  function renderPredict(s,idx){
+    const pr=s&&s.predict;if(!pr||!pr.o||!pr.o.length)return;
+    const pid=pr.id||(`${viz.id||"viz"}:s${idx}`);
+    const ch=viz.closest(".chapter");
+    const lbl=ch?`${ch.dataset.n||""} ${ch.dataset.short||ch.dataset.title}`.trim():"Visual";
+    const box=h("div",{class:"predict"});
+    box.innerHTML=`<div class="mc-top"><span class="mc-badge">Tap to predict</span></div><div class="mc-q">${pr.q||"What happens next?"}</div><div class="mc-opts"></div><div class="mc-fb" hidden></div>`;
+    const opts=$(".mc-opts",box),fb=$(".mc-fb",box);
+    const showAns=chosen=>{
+      const opt=pr.o[chosen],ok=!!opt[1],right=pr.o.find(x=>x[1])||pr.o[0];
+      $$("button",opts).forEach((b,bi)=>{b.classList.toggle("sel",bi===chosen);b.classList.toggle("ok",!!pr.o[bi][1]);b.classList.toggle("try",bi===chosen&&!pr.o[bi][1])});
+      fb.hidden=false;fb.className="mc-fb "+(ok?"ok":"try");
+      fb.innerHTML=`${ic(ok?"check":"bulb")}<span><b>${ok?"Spot on!":"Good guess — actually:"}</b> ${ok?(opt[2]||""):`<b>${right[0]}</b>. ${opt[2]||right[2]||""}`}</span>`;
+      renderInlineMath(fb);
+    };
+    pr.o.forEach((o,oi)=>{
+      const b=h("button",{type:"button"},o[0]);
+      b.addEventListener("click",()=>{
+        play(false);
+        const first=!predAns.has(idx);
+        predAns.set(idx,oi);
+        showAns(oi);
+        if(o[1])clearWeak("pr:"+pid);
+        else if(first)addWeak({id:"pr:"+pid,kind:"predict",see:ch?ch.id:"",label:lbl,prompt:pr.q,answer:(pr.o.find(x=>x[1])||o)[0],why:o[2]||(pr.o.find(x=>x[1])||o)[2]||""});
+        viz.dispatchEvent(new CustomEvent("drillchange",{bubbles:true}));
+      });
+      opts.appendChild(b);
+    });
+    renderInlineMath(box);
+    if(predAns.has(idx))showAns(predAns.get(idx));
+    cap.appendChild(box);
+  }
   function show(k,fromPlay){const prev=i;i=Math.max(0,Math.min(S_steps.length-1,k));
     const s=S_steps[i];cap.innerHTML=`<div class="st">Step ${i+1} of ${S_steps.length}</div><h4>${String(s.t||"").replace(/^\d+\s·\s/,"")}</h4><p>${s.d||""}</p>`;
+    renderPredict(s,i);
     if(i!==prev&&motionOn()){cap.classList.remove("cap-in");void cap.offsetWidth;cap.classList.add("cap-in")}
     renderInlineMath(cap);
     $$(".pdots button",bar).forEach((b,j)=>b.setAttribute("aria-current",String(j===i)));
@@ -415,7 +577,7 @@ function stepper(viz,steps,render,o={}){
     if(e.key==="ArrowLeft"){e.preventDefault();e.stopPropagation();play(false);show(i-1)}
     else if(e.key==="ArrowRight"){e.preventDefault();e.stopPropagation();play(false);show(i+1)}
     else if(e.key===" "&&!e.target.closest("button,a,summary")){e.preventDefault();play(!timer)}});
-  const api={show,stop:()=>play(false),setSteps(next,idx=0){play(false);S_steps=next;syncBars();show(idx)},get i(){return i},bar,cap};players.push(api);
+  const api={show,stop:()=>play(false),setSteps(next,idx=0){play(false);predAns.clear();S_steps=next;syncBars();show(idx)},get i(){return i},bar,cap};players.push(api);
   show(0);
   return api;
 }
@@ -491,24 +653,106 @@ function qCard(q,k,n,set){
     exp.hidden=false;exp.className="q-fb "+(ok?"ok":"no");
     exp.innerHTML=`<span class="fi">${ic(ok?"check":"x")}</span><span class="fh">${ok?praise:"Not quite"}</span><span class="fx">${ok?(q.e||""):`Answer: <b>${right}</b>. ${q.e||""}${q.see?` <a href="#${q.see}">Review the lesson</a>`:""}`}</span>`;
     renderInlineMath(exp);
-    if(save){qstate[set+'|'+q.id]={done:1,ok,sel:[...sel]};store.set("quiz",qstate);c.closest(".quiz")?.dispatchEvent(new Event("answered"))}
+    if(save){
+      qstate[set+'|'+q.id]={done:1,ok,sel:[...sel]};store.set("quiz",qstate);
+      const seeCh=q.see?document.getElementById(q.see):c.closest(".chapter");
+      const lbl=seeCh?`${seeCh.dataset.n||""} ${seeCh.dataset.short||seeCh.dataset.title}`.trim():(q.src||"Quiz");
+      if(ok)clearWeak("q:"+q.id);
+      else addWeak({id:"q:"+q.id,kind:"quiz",see:q.see||"",label:lbl,prompt:q.q,answer:right,why:q.e||""});
+      c.closest(".quiz")?.dispatchEvent(new Event("answered"));
+    }
   }
   const st=qstate[set+'|'+q.id];if(st&&st.done){st.sel.forEach(i=>sel.add(i));grade(false)}
   return c;
 }
 
-/* ---------- flashcards ---------- */
+/* ---------- flashcards (with confidence tracking) ---------- */
+let flashConf=store.get("flashConf",{});
 function flashcards(box){
   let cards=(window.FLASH||[]).slice();let i=0;
   if(!cards.length){box.innerHTML=`<p class="small muted">No flashcards yet. Add them to flash.json.</p>`;return}
+  const keyOf=c=>(c.k?c.k+"|":"")+c.f;
   box.innerHTML=`<div class="fc"><div class="fc-card" tabindex="0" role="button" aria-label="Flip card"><div class="fc-face fc-front"><div class="k"></div><div class="v"></div></div><div class="fc-face fc-back"><div class="k">Answer</div><div class="v"></div></div></div></div>
+   <div class="fc-conf"><button class="vbtn fc-shaky" type="button" data-conf="shaky">${ic("reset")}<span>${t("shaky")}</span></button><button class="vbtn fc-ok" type="button" data-conf="ok">${ic("check")}<span>${t("got_it")}</span></button><span class="caption num fc-stat"></span></div>
    <div class="fc-bar"><button class="vbtn" type="button" data-a="p" aria-label="Previous card">${ic("back")}</button><button class="vbtn pri" type="button" data-a="f">Flip</button><button class="vbtn" type="button" data-a="n" aria-label="Next card">${ic("next")}</button><span class="caption num" data-c></span><span class="spacer"></span><button class="vbtn" type="button" data-a="s">${ic("shuffle")}<span>Shuffle</span></button></div>`;
   const card=$(".fc-card",box);
-  function show(){const c=cards[i];card.classList.remove("flip");$(".fc-front .k",box).textContent=c.k||"Question";$(".fc-front .v",box).innerHTML=c.f;$(".fc-back .v",box).innerHTML=c.b;renderInlineMath(card);$("[data-c]",box).textContent=`${i+1} / ${cards.length}`}
+  function paintStat(){
+    const base=window.FLASH||[];let okN=0,shN=0;
+    base.forEach(c=>{const s=flashConf[keyOf(c)];if(s==="ok")okN++;else if(s==="shaky")shN++});
+    $(".fc-stat",box).textContent=`${okN} ${t("got_it").toLowerCase()} · ${shN} ${t("shaky").toLowerCase()}`;
+  }
+  function show(){const c=cards[i],st=flashConf[keyOf(c)]||"";card.classList.remove("flip");
+    $(".fc-front .k",box).textContent=(c.k||"Question")+(st==="shaky"?" · review":"");
+    $(".fc-front .v",box).innerHTML=c.f;$(".fc-back .v",box).innerHTML=c.b;renderInlineMath(card);
+    $("[data-c]",box).textContent=`${i+1} / ${cards.length}`;
+    $$(".fc-conf button",box).forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.conf===st)));
+    paintStat()}
   card.addEventListener("click",()=>card.classList.toggle("flip"));
   card.addEventListener("keydown",e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();card.classList.toggle("flip")}});
-  $(".fc-bar",box).addEventListener("click",e=>{const a=e.target.closest("button")?.dataset.a;if(a==="f")card.classList.toggle("flip");if(a==="n"){i=(i+1)%cards.length;show()}if(a==="p"){i=(i-1+cards.length)%cards.length;show()}if(a==="s"){cards.sort(()=>Math.random()-.5);i=0;show()}});
+  $(".fc-conf",box).addEventListener("click",e=>{
+    const b=e.target.closest("[data-conf]");if(!b)return;
+    const c=cards[i],ck=keyOf(c),v=b.dataset.conf;
+    flashConf[ck]=v;store.set("flashConf",flashConf);
+    if(v==="shaky"){
+      addWeak({id:"fc:"+ck,kind:"flash",see:"",label:c.k||"Flashcard",prompt:c.f,answer:c.b,why:""});
+      if(cards.length>2){const pos=Math.min(cards.length,i+3);if(cards[pos]!==c)cards.splice(pos,0,c)}
+    } else clearWeak("fc:"+ck);
+    i=(i+1)%cards.length;show();
+  });
+  $(".fc-bar",box).addEventListener("click",e=>{const a=e.target.closest("button")?.dataset.a;if(a==="f")card.classList.toggle("flip");if(a==="n"){i=(i+1)%cards.length;show()}if(a==="p"){i=(i-1+cards.length)%cards.length;show()}if(a==="s"){cards=(window.FLASH||[]).slice().sort(()=>Math.random()-.5);i=0;show()}});
   show();
+}
+
+/* ---------- micro-checks (non-blocking 1-tap checks) & weak-spot queue ---------- */
+function initMicroChecks(){
+  $$(".mcheck").forEach((box,idx)=>{
+    const q=$(".mc-q",box),opts=$$(".mc-opts button",box);
+    if(!q||!opts.length||box.dataset.mcInit)return;
+    box.dataset.mcInit="1";
+    const id=box.dataset.id||box.id||`mc-${idx+1}`;
+    const ch=box.closest(".chapter");
+    const lbl=ch?`${ch.dataset.n||""} ${ch.dataset.short||ch.dataset.title}`.trim():"Quick check";
+    if(!$(".mc-top",box))box.prepend(h("div",{class:"mc-top"},`<span class="mc-badge">${box.dataset.kind==="predict"?"Tap to predict":"Quick check"}</span>`));
+    let fb=$(".mc-fb",box);if(!fb){fb=h("div",{class:"mc-fb",hidden:""});box.appendChild(fb)}
+    renderInlineMath(box);
+    let answered=false;
+    const rightBtn=opts.find(b=>b.dataset.ok==="1")||opts[0];
+    opts.forEach(b=>{
+      b.addEventListener("click",()=>{
+        const ok=b.dataset.ok==="1",why=b.dataset.why||rightBtn.dataset.why||"";
+        const first=!answered;answered=true;
+        opts.forEach(x=>{x.classList.toggle("sel",x===b);x.classList.toggle("ok",x.dataset.ok==="1");x.classList.toggle("try",x===b&&x.dataset.ok!=="1")});
+        fb.hidden=false;fb.className="mc-fb "+(ok?"ok":"try");
+        fb.innerHTML=`${ic(ok?"check":"bulb")}<span><b>${ok?"Spot on!":"Good guess — actually:"}</b> ${ok?why:`<b>${rightBtn.innerHTML}</b>. ${why}`}</span>`;
+        renderInlineMath(fb);
+        if(ok)clearWeak("mc:"+id);
+        else if(first)addWeak({id:"mc:"+id,kind:"micro",see:ch?ch.id:"",label:lbl,prompt:q.innerHTML,answer:rightBtn.innerHTML,why});
+        box.dispatchEvent(new CustomEvent("drillchange",{bubbles:true}));
+      });
+    });
+  });
+}
+function renderWeakQueues(){
+  const labels={micro:"Micro-Check",predict:"Prediction",quiz:"Quiz",flash:"Flashcard"};
+  $$(".weak-queue").forEach(box=>{
+    if(!weak.length){
+      box.innerHTML=`<div class="wq-empty">${ic("check")}<span>${t("weak_empty")}</span></div>`;
+      return;
+    }
+    box.innerHTML=`<div class="wq-head"><span><b>${weak.length}</b> ${weak.length===1?"item":"items"} to revisit</span></div><div class="wq-list"></div>`;
+    const list=$(".wq-list",box);
+    weak.forEach(w=>{
+      const card=h("div",{class:"wq-card"});
+      card.innerHTML=`<div class="wq-meta"><span class="wq-kind">${labels[w.kind]||"Review"}</span><span class="wq-lbl">${w.label||""}</span>${w.see?`<a class="wq-see" href="#${w.see}">Go to station</a>`:""}</div>
+        <div class="wq-q">${w.prompt}</div>
+        <div class="wq-ans" hidden><b>Answer:</b> ${w.answer}${w.why?`<p>${w.why}</p>`:""}</div>
+        <div class="wq-acts"><button class="vbtn" type="button" data-rev>Reveal answer</button><button class="vbtn pri" type="button" data-clr>${ic("check")}<span>${t("weak_clear")}</span></button></div>`;
+      renderInlineMath(card);
+      $("[data-rev]",card).onclick=()=>{const a=$(".wq-ans",card);a.hidden=!a.hidden;$("[data-rev]",card).textContent=a.hidden?"Reveal answer":"Hide answer";box.dispatchEvent(new CustomEvent("drillchange",{bubbles:true}))};
+      $("[data-clr]",card).onclick=()=>clearWeak(w.id);
+      list.appendChild(card);
+    });
+  });
 }
 
 /* ---------- sort game (two bins) ---------- */
@@ -746,7 +990,7 @@ phoneMQ.addEventListener?.("change",fitAll);window.addEventListener("orientation
 document.addEventListener("visualstep",e=>{const s=e.target.querySelector?.(".viz-stage svg");if(s&&(!s.closest(".kit")||s.closest(".kit-diagram"))){fitSvgText(s);setTimeout(()=>fitSvgText(s),700)}});
 
 /* ---------- boot ---------- */
-applyTheme(theme);applyMotion(motion);paintProgress();swipeHints();
+applyTheme(theme);applyMotion(motion);applyDepth(depthOn);applyFocusDim(focusDim);paintProgress();swipeHints();
 $$("input[type=range]").forEach(rangeFill);
 /* gentle settle-in for content blocks (always visible; only position eases) */
 const rvo=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");rvo.unobserve(e.target)}}),{rootMargin:"0px 0px -6% 0px"});
@@ -756,6 +1000,7 @@ $$(".quiz[data-set]").forEach(renderQuiz);
 $$(".sorter[data-bins]").forEach(b=>{const items=$$("[data-bin]",b).map(p=>[p.innerHTML,+p.dataset.bin,p.dataset.why||""]);sorter(b,items,b.dataset.bins.split("|"))});
 $$(".q").forEach(q=>q.classList.add("rv","in"));
 $$(".flash").forEach(flashcards);
+initMicroChecks();renderWeakQueues();
 /* ---------- v1.3 drills, written in HTML (docs/06-quizzes-and-review.md § Drills) ----------
    <div class="drill order">   <p>first</p><p>second</p>…           drag or tap-swap into order
    <div class="drill cloze" data-extra="pengecoh|…">  text with <span class="gap" data-alt="…" data-why="…">answer</span>
@@ -1211,6 +1456,6 @@ function applyLang(l){
 if(lang!==origLang)requestAnimationFrame(()=>applyLang(lang));
 
 window.Engine={$,$$,h,ic,store,flow,stepper,segc,segSet,rangeFill,sorter,drills:DRILLS,watch,tickers,motionOn,markDone:id=>Engine_markDone(id),isDone:id=>done.has(id),visible,
-  openSheet,openOptions,applyTheme,getTheme:()=>theme,applyMotion,applyLang,getLang:()=>lang,t,showToast,lineVars,chapters,parts,counted,fitAll,paintProgress,phoneMQ,math:formatMath,alignMath,renderInlineMath,ROLE_MAP,roleColor};
+  openSheet,openOptions,applyTheme,getTheme:()=>theme,applyMotion,applyDepth,applyFocusDim,speakScope,stopSpeak,ttsSupported,addWeak,clearWeak,applyLang,getLang:()=>lang,t,showToast,lineVars,chapters,parts,counted,fitAll,paintProgress,phoneMQ,math:formatMath,alignMath,renderInlineMath,ROLE_MAP,roleColor};
 document.dispatchEvent(new Event("engine-ready"));
 })();
